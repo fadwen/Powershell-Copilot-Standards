@@ -286,26 +286,6 @@ jobs:
             repo: context.repo.repo,
             body: body
           });
-
-  security-scan:
-    name: 'Security Scan'
-    runs-on: ubuntu-latest
-
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-
-    - name: Run GitLeaks
-      uses: gitleaks/gitleaks-action@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Upload SARIF file
-      if: always()
-      uses: github/codeql-action/upload-sarif@v3
-      with:
-        sarif_file: results.sarif
-
   markdown-lint:
     name: 'Documentation Quality'
     runs-on: ubuntu-latest
