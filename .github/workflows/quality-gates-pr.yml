@@ -1,0 +1,321 @@
+# This workflow runs on Pull Requests to ensure quality before merge
+
+name: 'Quality Gates - Pull Request'
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - '**.ps1'
+      - '**.psm1'
+      - '**.psd1'
+      - '.github/workflows/**'
+      - 'Documentation/**'
+      - 'Templates/**'
+
+  # Allow manual trigger for testing
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write  # For PR comments
+  checks: write         # For check runs
+
+jobs:
+  powershell-quality-gates:
+    name: 'PowerShell Quality Gates'
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Full history for better analysis
+
+    - name: Setup PowerShell
+      shell: pwsh
+      run: |
+        # Install required modules
+        Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+        Install-Module -Name Pester -Force -Scope CurrentUser -SkipPublisherCheck
+
+        # Display PowerShell version for debugging
+        $PSVersionTable | ConvertTo-Json
+
+    - name: Run PowerShell Quality Analysis
+      id: quality-check
+      shell: pwsh
+      run: |
+        # Quality gate script with detailed reporting
+        $ErrorActionPreference = 'Stop'
+
+        try {
+            Write-Host "🔍 Starting PowerShell Quality Gate Analysis" -ForegroundColor Cyan
+
+            # Get PowerShell files, separating production code from tests
+            $allPsFiles = Get-ChildItem -Path . -Include "*.ps1", "*.psm1", "*.psd1" -Recurse | Where-Object {
+                $_.FullName -notlike "*\.git\*" -and
+                $_.FullName -notlike "*\node_modules\*"
+            }
+
+            $productionFiles = $allPsFiles | Where-Object {
+                $_.Name -notlike "*.Tests.ps1" -and
+                $_.Name -notlike "*test*" -and
+                $_.FullName -notlike "*\Tests\*"
+            }
+
+            $testFiles = $allPsFiles | Where-Object {
+                $_.Name -like "*.Tests.ps1" -or
+                $_.Name -like "*test*" -or
+                $_.FullName -like "*\Tests\*"
+            }
+
+            Write-Host "📊 Found $($allPsFiles.Count) total PowerShell files" -ForegroundColor Yellow
+            Write-Host "📦 Production files: $($productionFiles.Count)" -ForegroundColor Green
+            Write-Host "🧪 Test files: $($testFiles.Count)" -ForegroundColor Blue
+
+            $totalIssues = 0
+            $criticalIssues = 0
+
+            # Run PSScriptAnalyzer on production files with strict rules
+            if ($productionFiles.Count -gt 0) {
+                Write-Host "`n🔬 Running PSScriptAnalyzer on production files..." -ForegroundColor Cyan
+
+                $productionResults = $productionFiles | ForEach-Object {
+                    Invoke-ScriptAnalyzer -Path $_.FullName -Severity @('Error', 'Warning') -IncludeDefaultRules
+                }
+
+                if ($productionResults) {
+                    Write-Host "❌ Production Code Issues:" -ForegroundColor Red
+                    $productionResults | Format-Table RuleName, Severity, ScriptName, Message -AutoSize
+
+                    $errorCount = ($productionResults | Where-Object Severity -eq 'Error').Count
+                    $warningCount = ($productionResults | Where-Object Severity -eq 'Warning').Count
+
+                    $totalIssues += $productionResults.Count
+                    $criticalIssues += $errorCount
+
+                    Write-Host "📊 Production Issues: $errorCount errors, $warningCount warnings" -ForegroundColor Yellow
+                } else {
+                    Write-Host "✅ No PSScriptAnalyzer issues in production code" -ForegroundColor Green
+                }
+            }
+
+            # Run PSScriptAnalyzer on test files with relaxed rules
+            if ($testFiles.Count -gt 0) {
+                Write-Host "`n🧪 Running PSScriptAnalyzer on test files (relaxed rules)..." -ForegroundColor Cyan
+
+                $testResults = $testFiles | ForEach-Object {
+                    Invoke-ScriptAnalyzer -Path $_.FullName -Severity @('Error') -ExcludeRule @(
+                        'PSAvoidUsingComputerNameHardcoded',
+                        'PSReviewUnusedParameter',
+                        'PSUseDeclaredVarsMoreThanAssignments'
+                    )
+                }
+
+                if ($testResults) {
+                    Write-Host "⚠️ Test Code Issues (Critical Only):" -ForegroundColor Yellow
+                    $testResults | Format-Table RuleName, Severity, ScriptName, Message -AutoSize
+                    $criticalIssues += $testResults.Count
+                } else {
+                    Write-Host "✅ No critical PSScriptAnalyzer issues in test code" -ForegroundColor Green
+                }
+            }
+
+            # Check for approved PowerShell verbs
+            Write-Host "`n📝 Checking for approved PowerShell verbs in production code..." -ForegroundColor Cyan
+
+            $verbIssues = @()
+            $approvedVerbs = Get-Verb | Select-Object -ExpandProperty Verb
+
+            foreach ($file in $productionFiles) {
+                $content = Get-Content -Path $file.FullName -Raw -ErrorAction SilentlyContinue
+                if ($content) {
+                    # Find function definitions
+                    $functionMatches = [regex]::Matches($content, 'function\s+([A-Za-z]+)-([A-Za-z0-9]+)', 'IgnoreCase')
+
+                    foreach ($match in $functionMatches) {
+                        $verb = $match.Groups[1].Value
+                        if ($verb -notin $approvedVerbs) {
+                            $verbIssues += [PSCustomObject]@{
+                                File = $file.Name
+                                Function = $match.Groups[0].Value
+                                Verb = $verb
+                                Message = "Non-approved verb '$verb' used"
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ($verbIssues) {
+                Write-Host "❌ Verb Issues Found:" -ForegroundColor Red
+                $verbIssues | Format-Table File, Function, Verb, Message -AutoSize
+                $totalIssues += $verbIssues.Count
+            } else {
+                Write-Host "✅ All functions use approved PowerShell verbs" -ForegroundColor Green
+            }
+
+            # Run Pester tests if they exist
+            $pesterTestFiles = Get-ChildItem -Path . -Filter "*.Tests.ps1" -Recurse
+            if ($pesterTestFiles.Count -gt 0) {
+                Write-Host "`n🧪 Running Pester tests..." -ForegroundColor Cyan
+
+                $pesterConfig = New-PesterConfiguration
+                $pesterConfig.Run.Exit = $false
+                $pesterConfig.Output.Verbosity = 'Detailed'
+                $pesterConfig.CodeCoverage.Enabled = $true
+                $pesterConfig.CodeCoverage.Path = $productionFiles.FullName
+
+                $pesterResults = Invoke-Pester -Configuration $pesterConfig
+
+                if ($pesterResults.Failed -gt 0) {
+                    Write-Host "❌ Pester Tests Failed: $($pesterResults.Failed) of $($pesterResults.Total)" -ForegroundColor Red
+                    $criticalIssues += $pesterResults.Failed
+                } else {
+                    Write-Host "✅ All Pester tests passed: $($pesterResults.Passed) of $($pesterResults.Total)" -ForegroundColor Green
+                }
+
+                if ($pesterResults.CodeCoverage) {
+                    $coverage = [math]::Round($pesterResults.CodeCoverage.CoveragePercent, 2)
+                    Write-Host "📊 Code Coverage: $coverage%" -ForegroundColor $(if ($coverage -ge 80) { 'Green' } else { 'Yellow' })
+
+                    if ($coverage -lt 80) {
+                        Write-Host "⚠️ Code coverage below 80% threshold" -ForegroundColor Yellow
+                    }
+                }
+            }
+
+            # Security scan for common patterns
+            Write-Host "`n🔒 Running security scan on production code..." -ForegroundColor Cyan
+
+            $securityIssues = @()
+            $securityPatterns = @{
+                'Hardcoded Password' = 'password\s*[:=]\s*["\x27]\w{3,}["\x27]'
+                'Hardcoded API Key' = 'api[_-]?key\s*[:=]\s*["\x27]\w{10,}["\x27]'
+                'SQL Injection Risk' = '\$\w+\s*\+\s*["\x27].*SELECT.*FROM'
+                'Path Traversal Risk' = '\.\.[/\\]'
+                'Credential in Plain Text' = 'ConvertTo-SecureString.*-AsPlainText'
+            }
+
+            foreach ($file in $productionFiles) {
+                $content = Get-Content -Path $file.FullName -Raw -ErrorAction SilentlyContinue
+                if ($content) {
+                    foreach ($pattern in $securityPatterns.GetEnumerator()) {
+                        if ($content -match $pattern.Value) {
+                            $securityIssues += [PSCustomObject]@{
+                                File = $file.Name
+                                Issue = $pattern.Key
+                                Risk = "High"
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ($securityIssues) {
+                Write-Host "🚨 Security Issues Found:" -ForegroundColor Red
+                $securityIssues | Format-Table File, Issue, Risk -AutoSize
+                $criticalIssues += $securityIssues.Count
+            } else {
+                Write-Host "✅ No security issues detected" -ForegroundColor Green
+            }
+
+            # Final results
+            Write-Host "`n📊 Quality Gate Results:" -ForegroundColor Cyan
+            Write-Host "❌ Total Issues: $totalIssues" -ForegroundColor $(if ($totalIssues -eq 0) { 'Green' } else { 'Red' })
+            Write-Host "🚨 Critical Issues: $criticalIssues" -ForegroundColor $(if ($criticalIssues -eq 0) { 'Green' } else { 'Red' })
+
+            # Set outputs for other steps
+            echo "total-issues=$totalIssues" >> $env:GITHUB_OUTPUT
+            echo "critical-issues=$criticalIssues" >> $env:GITHUB_OUTPUT
+
+            if ($criticalIssues -gt 0) {
+                Write-Host "`n💡 Recommendations:" -ForegroundColor Yellow
+                Write-Host " - Use your Copilot prompts to fix issues:" -ForegroundColor Yellow
+                Write-Host "   /security-review for security issues" -ForegroundColor Yellow
+                Write-Host "   /code-analysis for comprehensive analysis" -ForegroundColor Yellow
+                Write-Host "   /optimize-performance for performance improvements" -ForegroundColor Yellow
+
+                throw "Quality gate failed: $criticalIssues critical issues found"
+            }
+
+            Write-Host "`n✅ Quality gate passed! Code meets enterprise standards." -ForegroundColor Green
+
+        } catch {
+            Write-Host "❌ Quality gate failed: $($_.Exception.Message)" -ForegroundColor Red
+            throw
+        }
+
+    - name: Comment PR Results
+      if: always() && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const totalIssues = '${{ steps.quality-check.outputs.total-issues }}';
+          const criticalIssues = '${{ steps.quality-check.outputs.critical-issues }}';
+          const success = '${{ steps.quality-check.outcome }}' === 'success';
+
+          const body = success
+            ? `✅ **Quality Gate: PASSED**
+
+          All PowerShell standards checks completed successfully!
+
+          - 📊 Total Issues: ${totalIssues}
+          - 🚨 Critical Issues: ${criticalIssues}
+
+          Your code meets enterprise PowerShell standards and is ready for merge.`
+            : `❌ **Quality Gate: FAILED**
+
+          PowerShell standards checks found issues that need to be addressed:
+
+          - 📊 Total Issues: ${totalIssues}
+          - 🚨 Critical Issues: ${criticalIssues}
+
+          💡 **Recommendations:**
+          - Use your Copilot prompts to fix issues:
+            - \`/security-review\` for security issues
+            - \`/code-analysis\` for comprehensive analysis
+            - \`/optimize-performance\` for performance improvements
+
+          Please fix the critical issues before this PR can be merged.`;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
+
+  security-scan:
+    name: 'Security Scan'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Run GitLeaks
+      uses: gitleaks/gitleaks-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload SARIF file
+      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: results.sarif
+
+  markdown-lint:
+    name: 'Documentation Quality'
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Lint Markdown
+      uses: DavidAnson/markdownlint-cli2-action@v14
+      with:
+        globs: '**/*.md'
+        config: '.markdownlint.json'

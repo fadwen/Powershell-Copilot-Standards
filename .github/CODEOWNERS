@@ -1,0 +1,43 @@
+# PowerShell Standards Repository Code Ownership
+# GitHub usernames: @fadwen
+
+# Global owners - require approval for all changes
+* @fadwen
+
+# GitHub configuration and workflows (critical infrastructure)
+/.github/ @fadwen
+
+# Documentation and guides
+/Documentation/ @fadwen
+*.md @fadwen
+
+# Templates and examples (high impact on adoption)
+/Templates/ @fadwen
+
+# Troubleshooting guides
+/Troubleshooting/ @fadwen
+
+# Security-related files (critical for enterprise)
+/Security/ @fadwen
+*security* @fadwen
+*Security* @fadwen
+
+# Tools and automation scripts
+/Tools/ @fadwen
+
+# Prompt files (affect AI-generated code quality)
+/.github/prompts/ @fadwen
+*.prompt.md @fadwen
+
+# Instruction files (core standards enforcement)
+/.github/instructions/ @fadwen
+*instructions.md @fadwen
+
+# Configuration files
+*.json @fadwen
+*.yml @fadwen
+*.yaml @fadwen
+
+# Module manifests and core module files
+*.psd1 @fadwen
+*.psm1 @fadwen
