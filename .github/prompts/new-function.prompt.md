@@ -1,28 +1,34 @@
 ---
 mode: 'agent'
-description: 'Creates enterprise-standard PowerShell function'
+description: 'Creates enterprise-standard PowerShell function with modern best practices'
 tools: ['codebase']
 ---
 
-Create a PowerShell function for the ${workspaceFolderBasename} project in ${fileBasename}:
+Create a PowerShell function with these specifications:
 
-**Function Specifications:**
-- **Name**: ${input:functionName:Get-Something}
-- **Purpose**: ${input:purpose:Describe what this function accomplishes for the business}
-- **Parameters**: ${input:parameters:List the main parameters (name:type:description)}
-- **Pipeline Support**: ${input:pipelineSupport:Yes}
-- **Returns**: ${input:returnType:PSCustomObject}
+**Function Details:**
+- Function name: ${input:functionName:Verb-Noun}
+- Purpose: ${input:purpose:Describe what this function accomplishes}
+- Parameters needed: ${input:parameters:List the parameters and their types}
+- Environment: ${input:environment:Development,Testing,Production:Development}
 
-**Enterprise Requirements:**
-- Use approved PowerShell verb from Get-Verb
-- Include comprehensive comment-based help with business value
-- Implement proper parameter validation with [ValidateNotNullOrEmpty()]
-- Add error handling with correlation IDs
-- Include SupportsShouldProcess if making changes
-- Reference troubleshooting docs in .\Troubleshooting\
+**Context:**
+- Current file: ${fileBasename}
+- Project: ${workspaceFolderBasename}
+- PowerShell version: ${input:psVersion:5.1,7.x:7.x}
 
-**Additional Context:**
-- Target PowerShell version: ${input:psVersion:5.1+}
-- Include basic Pester tests: ${input:includeTests:Yes}
+**Requirements:**
+- Use modern PowerShell patterns (PSCredential::new(), $_ in catch blocks)
+- Include proper comment-based help with complete syntax
+- Implement appropriate parameter validation (avoid redundant validation)
+- Use correlation IDs for enterprise logging
+- Apply context-appropriate performance patterns
+- Follow approved PowerShell verb usage
+- Use descriptive output types instead of [PSCustomObject]
 
-Generate the complete function implementation following our enterprise standards.
+**Standards Compliance:**
+- Error handling: Use $_ in catch blocks, not $Error[0]
+- String operations: Context-appropriate (simple concatenation vs StringBuilder)
+- Null handling: Simple null checks where appropriate, exceptions for operations that might fail
+- Documentation: Complete comment-based help blocks
+- Security: Modern credential handling patterns

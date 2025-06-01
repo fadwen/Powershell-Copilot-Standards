@@ -1,54 +1,60 @@
 ---
 mode: 'agent'
-description: 'Generate comprehensive Pester tests with coverage targets'
+description: 'Generate comprehensive tests following modern PowerShell patterns'
 tools: ['codebase']
 ---
 
-Create Pester test suite for PowerShell code in ${fileBasename} from ${workspaceFolderBasename} project:
+Create Pester tests for this PowerShell code:
 
-**Test Configuration:**
-- **Function Name**: ${input:functionName:Extract from selected code}
-- **Test Types**: ${input:testTypes:Unit,Integration,Performance,Security,All}
-- **Coverage Target**: ${input:coverageTarget:80%,90%,95%}
-- **Pester Version**: ${input:pesterVersion:5.x}
-- **Test Environment**: ${input:testEnvironment:Local,CI/CD,Both}
-
-**Selected Function:**
+**Code to Test:**
 ```powershell
 ${selection}
 ```
 
-**Test Suite Requirements:**
-1. **Parameter Validation Tests**
-   - Valid input scenarios with test cases
-   - Invalid input rejection with expected errors
-   - Boundary condition testing
+**Test Configuration:**
+- Test type: ${input:testType:Unit,Integration,Performance,Security:Unit}
+- Coverage target: ${input:coverage:80%,90%,95%:90%}
+- Environment: ${input:environment:Local,CI/CD,Both:Both}
+- Pester version: ${input:pesterVersion:5.x,4.x:5.x}
 
-2. **Functionality Tests**
-   - Success scenarios with mocked dependencies
-   - Expected output validation
-   - Pipeline input/output testing
+**Test Requirements:**
 
-3. **Error Handling Tests**
-   - Exception handling validation
-   - Graceful failure scenarios
-   - Correlation ID tracking verification
+**1. Modern Test Patterns ✅**
+- Use Pester 5.x syntax and features
+- Implement proper Arrange-Act-Assert structure
+- Include parameterized tests where appropriate
+- Use modern mocking techniques
 
-4. **Performance Tests** (if ${input:testTypes} includes Performance)
-   - Execution time benchmarks
-   - Memory usage validation
-   - Scalability testing
+**2. Comprehensive Coverage ✅**
+- Happy path scenarios
+- Edge cases and boundary conditions
+- Error handling verification (using $_ patterns)
+- Parameter validation testing
 
-5. **Security Tests** (if ${input:testTypes} includes Security)
-   - Input sanitization validation
-   - Credential handling verification
-   - Security logging tests
+**3. Enterprise Test Standards ✅**
+- Correlation ID tracking in tests
+- Environment-specific test configurations
+- Security validation tests
+- Performance assertion tests
 
-**Enterprise Standards:**
-- Achieve ${input:coverageTarget} code coverage minimum
-- Include BeforeAll/AfterAll setup and cleanup
-- Use proper mocking for external dependencies
-- Follow AAA pattern (Arrange, Act, Assert)
-- Include descriptive test names and documentation
+**4. Mock Strategy ✅**
+- External dependencies isolation
+- Credential handling tests (using modern patterns)
+- Database/API interaction mocking
+- File system operation mocking
 
-Generate complete Pester test file targeting ${input:coverageTarget} coverage for ${input:testEnvironment} execution.
+**5. Test Organization ✅**
+- Clear Describe/Context/It structure
+- Meaningful test names and descriptions
+- Proper test data management
+- Setup and teardown patterns
+
+**Generate tests that:**
+- ✅ Validate modern PowerShell patterns (PSCredential::new(), $_ usage)
+- ✅ Test error handling appropriately
+- ✅ Include security scenario validation
+- ✅ Provide clear failure diagnostics
+- ✅ Support CI/CD pipeline execution
+- ✅ Include performance benchmarks where relevant
+
+Provide complete test file with proper imports and configuration.
