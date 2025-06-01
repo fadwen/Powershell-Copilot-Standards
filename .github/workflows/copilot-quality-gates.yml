@@ -1,0 +1,236 @@
+name: PowerShell Quality Gates with Copilot Standards
+
+on:
+  pull_request:
+    paths: ['**/*.ps1', '**/*.psm1', '**/*.psd1']
+  push:
+    branches: [main, develop]
+
+jobs:
+  quality-validation:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup PowerShell
+        shell: pwsh
+        run: |
+          # Ensure we're using PowerShell 7+
+          $PSVersionTable
+          
+      - name: Install Required Modules
+        shell: pwsh
+        run: |
+          Install-Module PSScriptAnalyzer, Pester -Force -Scope CurrentUser -SkipPublisherCheck
+          Import-Module PSScriptAnalyzer, Pester
+          
+      - name: Validate Copilot Standards Compliance
+        shell: pwsh
+        run: |
+          # Get PowerShell files, separating production code from tests
+          $allPsFiles = Get-ChildItem -Path . -Include "*.ps1", "*.psm1", "*.psd1" -Recurse | Where-Object { 
+            $_.FullName -notlike "*\.git\*" -and 
+            $_.FullName -notlike "*\node_modules\*" 
+          }
+          
+          $productionFiles = $allPsFiles | Where-Object { 
+            $_.FullName -notlike "*test*" -and 
+            $_.FullName -notlike "*Test*" -and
+            $_.Name -notlike "*.Tests.ps1"
+          }
+          
+          $testFiles = $allPsFiles | Where-Object { 
+            $_.FullName -like "*test*" -or 
+            $_.FullName -like "*Test*" -or
+            $_.Name -like "*.Tests.ps1"
+          }
+          
+          Write-Host "Found $($allPsFiles.Count) total PowerShell files"
+          Write-Host "Production files: $($productionFiles.Count)"
+          Write-Host "Test files: $($testFiles.Count)"
+          
+          if ($allPsFiles.Count -eq 0) {
+            Write-Host "No PowerShell files found to analyze"
+            exit 0
+          }
+          
+          $totalIssues = 0
+          
+          # Analyze production files with strict rules
+          if ($productionFiles.Count -gt 0) {
+            Write-Host "`nRunning PSScriptAnalyzer on production files..."
+            $productionResults = $productionFiles | ForEach-Object {
+              Invoke-ScriptAnalyzer -Path $_.FullName -Severity @('Error', 'Warning')
+            }
+            
+            if ($productionResults) {
+              Write-Host "Production Code Issues:" -ForegroundColor Red
+              $productionResults | Format-Table RuleName, Severity, ScriptName, Message -AutoSize
+              $totalIssues += $productionResults.Count
+            } else {
+              Write-Host "✅ No PSScriptAnalyzer issues in production code" -ForegroundColor Green
+            }
+          }
+          
+          # Analyze test files with relaxed rules (exclude test-specific patterns)
+          if ($testFiles.Count -gt 0) {
+            Write-Host "`nRunning PSScriptAnalyzer on test files (relaxed rules)..."
+            $testResults = $testFiles | ForEach-Object {
+              Invoke-ScriptAnalyzer -Path $_.FullName -Severity @('Error') -ExcludeRule @(
+                'PSAvoidUsingComputerNameHardcoded',  # OK in tests for mocking
+                'PSReviewUnusedParameter',            # Test parameters often unused in test cases
+                'PSUseDeclaredVarsMoreThanAssignments' # Test variables may only be assigned
+              )
+            }
+            
+            if ($testResults) {
+              Write-Host "Test Code Issues (Critical Only):" -ForegroundColor Yellow
+              $testResults | Format-Table RuleName, Severity, ScriptName, Message -AutoSize
+              $totalIssues += $testResults.Count
+            } else {
+              Write-Host "✅ No critical PSScriptAnalyzer issues in test code" -ForegroundColor Green
+            }
+          }
+          
+          # Check for approved verbs in production code only
+          Write-Host "`nChecking for approved PowerShell verbs in production code..."
+          $approvedVerbs = Get-Verb | Select-Object -ExpandProperty Verb
+          $verbViolations = @()
+          
+          foreach ($file in $productionFiles) {
+            $content = Get-Content $file.FullName -Raw -ErrorAction SilentlyContinue
+            if ($content -and $content -match 'function\s+([^-\s]+)-') {
+              $verb = $Matches[1]
+              if ($verb -notin $approvedVerbs) {
+                $verbViolations += "File: $($file.Name) - Non-approved verb: $verb"
+              }
+            }
+          }
+          
+          if ($verbViolations) {
+            Write-Host "Verb Violations Found:" -ForegroundColor Red
+            $verbViolations | ForEach-Object { Write-Host "  - $_" -ForegroundColor Yellow }
+            $totalIssues += $verbViolations.Count
+          } else {
+            Write-Host "✅ All functions use approved PowerShell verbs" -ForegroundColor Green
+          }
+          
+          # Final result
+          if ($totalIssues -gt 0) {
+            Write-Host "`n❌ Total Issues: $totalIssues" -ForegroundColor Red
+            Write-Host "💡 Recommendations:" -ForegroundColor Cyan
+            Write-Host "  - Use your Copilot prompts to fix issues:" -ForegroundColor Gray
+            Write-Host "    /security-review for security issues" -ForegroundColor Gray
+            Write-Host "    /code-analysis for comprehensive analysis" -ForegroundColor Gray
+            Write-Host "    /optimize-performance for performance improvements" -ForegroundColor Gray
+            exit 1
+          } else {
+            Write-Host "`n🎉 All files comply with Copilot standards!" -ForegroundColor Green
+            exit 0
+          }
+
+      - name: Security Scan with Copilot Patterns
+        shell: pwsh
+        run: |
+          Write-Host "Running security scan on production code..."
+          
+          # Focus security scan on production files only
+          $productionFiles = Get-ChildItem -Path . -Include "*.ps1", "*.psm1" -Recurse | Where-Object { 
+            $_.FullName -notlike "*\.git\*" -and
+            $_.FullName -notlike "*test*" -and 
+            $_.FullName -notlike "*Test*" -and
+            $_.Name -notlike "*.Tests.ps1"
+          }
+          
+          $securityViolations = @()
+          
+          foreach ($file in $productionFiles) {
+            $content = Get-Content $file.FullName -Raw -ErrorAction SilentlyContinue
+            if (-not $content) { continue }
+            
+            # Check for hardcoded credentials - simplified patterns
+            if ($content -match 'password\s*[:=]\s*["\x27]\w{3,}["\x27]') {
+              $securityViolations += "Potential hardcoded password in $($file.Name)"
+            }
+            
+            if ($content -match 'pwd\s*[:=]\s*["\x27]\w{3,}["\x27]') {
+              $securityViolations += "Potential hardcoded password in $($file.Name)"
+            }
+            
+            # Check for API keys
+            if ($content -match 'apikey\s*[:=]\s*["\x27]\w{10,}["\x27]') {
+              $securityViolations += "Potential API key in $($file.Name)"
+            }
+            
+            if ($content -match 'api.key\s*[:=]\s*["\x27]\w{10,}["\x27]') {
+              $securityViolations += "Potential API key in $($file.Name)"
+            }
+            
+            # Check for dangerous functions
+            if ($content -match 'Invoke-Expression') {
+              $securityViolations += "Dangerous function usage (Invoke-Expression) in $($file.Name)"
+            }
+            
+            if ($content -match '\biex\s') {
+              $securityViolations += "Dangerous function usage (iex) in $($file.Name)"
+            }
+            
+            # Check for ConvertTo-SecureString with plaintext
+            if ($content -match 'ConvertTo-SecureString\s+-String\s+["\x27]\w+["\x27]') {
+              $securityViolations += "Hardcoded SecureString conversion in $($file.Name)"
+            }
+            
+            # Check for missing input validation on functions with parameters
+            if ($content -match 'function\s+\w+-\w+' -and 
+                $content -match 'param\s*\(' -and 
+                $content -notmatch 'Validate(NotNullOrEmpty|Pattern|Set|Range|Script)') {
+              $securityViolations += "Missing input validation in $($file.Name)"
+            }
+          }
+          
+          if ($securityViolations) {
+            Write-Host "Security Issues Found:" -ForegroundColor Red
+            $securityViolations | ForEach-Object { 
+              Write-Host "  - $_" -ForegroundColor Yellow 
+            }
+            Write-Host ""
+            Write-Host "Use /security-review prompt to fix these issues" -ForegroundColor Cyan
+            exit 1
+          } else {
+            Write-Host "No security issues detected in production code!" -ForegroundColor Green
+          }
+
+      - name: Generate Quality Report
+        if: always()
+        shell: pwsh
+        run: |
+          $reportData = @{
+            Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            Repository = "${{ github.repository }}"
+            Branch = "${{ github.ref_name }}"
+            Commit = "${{ github.sha }}"
+            RunId = "${{ github.run_id }}"
+            Status = if ($LASTEXITCODE -eq 0) { "PASSED" } else { "FAILED" }
+          }
+          
+          Write-Host "`n📊 Quality Gate Execution Summary:"
+          Write-Host "Repository: $($reportData.Repository)"
+          Write-Host "Branch: $($reportData.Branch)"
+          Write-Host "Commit: $($reportData.Commit)"
+          Write-Host "Status: $($reportData.Status)"
+          Write-Host "Timestamp: $($reportData.Timestamp)"
+          
+          # Create artifacts directory if it doesn't exist
+          if (-not (Test-Path "quality-reports")) {
+            New-Item -Path "quality-reports" -ItemType Directory
+          }
+          
+          $reportData | ConvertTo-Json | Out-File "quality-reports/quality-report.json"
+          
+      - name: Upload Quality Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-report-${{ github.run_id }}
+          path: quality-reports/
+          retention-days: 30

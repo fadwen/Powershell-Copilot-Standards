@@ -1,0 +1,7 @@
+*.ps1.bak
+*.psm1.bak
+*.psd1.bak
+.vscode/
+*.log
+Temp/
+*.tmp
