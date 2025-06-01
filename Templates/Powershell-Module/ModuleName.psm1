@@ -1,105 +1,80 @@
-#Requires -Version 5.1
-
 <#
 .SYNOPSIS
-    Root module file for ModuleName PowerShell module
+    Enterprise PowerShell module for [Business Purpose]
 
 .DESCRIPTION
-    This module provides enterprise-grade PowerShell functionality
-    with comprehensive error handling, security controls, and 
-    performance optimization.
+    This module provides enterprise-grade PowerShell functions for [specific business domain].
+    All functions follow established PowerShell community standards and enterprise security practices.
 
 .NOTES
-    Author: Your Name
-    Version: 1.0.0
-    Enterprise Standards: Compliant
-    
-    This module follows enterprise PowerShell development standards
-    and integrates with organizational monitoring and security systems.
+    Author: Jeffrey Stuhr
+    Blog: https://www.techbyjeff.net
+    LinkedIn: https://www.linkedin.com/in/jeffrey-stuhr-034214aa/
 #>
 
-# Module Variables
-$script:ModuleRoot = $PSScriptRoot
-$script:ModuleName = 'ModuleName'
-$script:ModuleVersion = '1.0.0'
+# Module initialization
+Write-Verbose "Loading Enterprise PowerShell Module: $($MyInvocation.MyCommand.Name)"
 
-# Module Initialization
-Write-Verbose "Initializing module: $script:ModuleName v$script:ModuleVersion"
+# Get module version from manifest if needed (expert feedback: use $MyInvocation, not hardcoded strings)
+# $ModuleVersion = (Get-Module $MyInvocation.MyCommand.ModuleName).Version
 
-# Import module components in correct order
-try {
-    # 1. Load Classes first (dependencies for functions)
-    $classPath = Join-Path $script:ModuleRoot 'Classes'
-    if (Test-Path $classPath) {
-        $classFiles = Get-ChildItem -Path $classPath -Filter '*.ps1' -ErrorAction SilentlyContinue
-        foreach ($class in $classFiles) {
-            Write-Verbose "Loading class: $($class.Name)"
-            . $class.FullName
-        }
+#region Private Functions
+# Load private functions - these are not exported
+$PrivateFunctions = Get-ChildItem -Path "$PSScriptRoot\Private\*.ps1" -ErrorAction SilentlyContinue
+foreach ($Function in $PrivateFunctions) {
+    try {
+        . $Function.FullName
+        Write-Verbose "Loaded private function: $($Function.BaseName)"
     }
-
-    # 2. Load Private functions (internal dependencies)
-    $privatePath = Join-Path $script:ModuleRoot 'Private'
-    if (Test-Path $privatePath) {
-        $privateFunctions = Get-ChildItem -Path $privatePath -Filter '*.ps1' -ErrorAction SilentlyContinue
-        foreach ($function in $privateFunctions) {
-            Write-Verbose "Loading private function: $($function.Name)"
-            . $function.FullName
-        }
+    catch {
+        Write-Warning "Failed to load private function $($Function.BaseName): $($_.Exception.Message)"
     }
-
-    # 3. Load Public functions (exported functionality)
-    $publicPath = Join-Path $script:ModuleRoot 'Public'
-    if (Test-Path $publicPath) {
-        $publicFunctions = Get-ChildItem -Path $publicPath -Filter '*.ps1' -ErrorAction SilentlyContinue
-        foreach ($function in $publicFunctions) {
-            Write-Verbose "Loading public function: $($function.Name)"
-            . $function.FullName
-        }
-    }
-
-    # 4. Load Configuration data
-    $configPath = Join-Path $script:ModuleRoot 'Configuration\DefaultConfiguration.psd1'
-    if (Test-Path $configPath) {
-        $script:ModuleConfiguration = Import-PowerShellDataFile -Path $configPath -ErrorAction SilentlyContinue
-        Write-Verbose "Loaded module configuration"
-    }
-
-    # Module load success
-    $loadSummary = @{
-        ModuleName = $script:ModuleName
-        Version = $script:ModuleVersion
-        ClassesLoaded = if ($classFiles) { $classFiles.Count } else { 0 }
-        PrivateFunctionsLoaded = if ($privateFunctions) { $privateFunctions.Count } else { 0 }
-        PublicFunctionsLoaded = if ($publicFunctions) { $publicFunctions.Count } else { 0 }
-        ConfigurationLoaded = Test-Path $configPath
-    }
-    
-    Write-Verbose "Module loaded successfully: $($loadSummary | ConvertTo-Json -Compress)"
 }
-catch {
-    Write-Error "Failed to load module components: $($_.Exception.Message)"
-    throw
-}
+#endregion
 
-# Module Cleanup on Removal
-$ExecutionContext.SessionState.Module.OnRemove = {
-    Write-Verbose "Cleaning up module: $script:ModuleName"
-    
-    # Clean up module variables
-    Remove-Variable -Name ModuleConfiguration -Scope Script -ErrorAction SilentlyContinue
-    Remove-Variable -Name ModuleRoot -Scope Script -ErrorAction SilentlyContinue
-    Remove-Variable -Name ModuleName -Scope Script -ErrorAction SilentlyContinue
-    Remove-Variable -Name ModuleVersion -Scope Script -ErrorAction SilentlyContinue
-    
-    # Additional cleanup for enterprise integration
-    # Example: Close database connections, clear caches, etc.
-    
-    Write-Verbose "Module cleanup completed: $script:ModuleName"
+#region Public Functions
+# Load public functions - these will be exported via manifest
+$PublicFunctions = Get-ChildItem -Path "$PSScriptRoot\Public\*.ps1" -ErrorAction SilentlyContinue
+foreach ($Function in $PublicFunctions) {
+    try {
+        . $Function.FullName
+        Write-Verbose "Loaded public function: $($Function.BaseName)"
+    }
+    catch {
+        Write-Warning "Failed to load public function $($Function.BaseName): $($_.Exception.Message)"
+    }
 }
+#endregion
 
-# Export module members (will be overridden by manifest)
-# This is mainly for development/testing scenarios
-if ($publicFunctions) {
-    Export-ModuleMember -Function $publicFunctions.BaseName
+#region Classes
+# Load PowerShell classes if present
+$ClassFiles = Get-ChildItem -Path "$PSScriptRoot\Classes\*.ps1" -ErrorAction SilentlyContinue
+foreach ($ClassFile in $ClassFiles) {
+    try {
+        . $ClassFile.FullName
+        Write-Verbose "Loaded class: $($ClassFile.BaseName)"
+    }
+    catch {
+        Write-Warning "Failed to load class $($ClassFile.BaseName): $($_.Exception.Message)"
+    }
 }
+#endregion
+
+#region Module Configuration
+# Load default configuration
+$DefaultConfigPath = Join-Path $PSScriptRoot "Configuration\DefaultConfiguration.psd1"
+if (Test-Path $DefaultConfigPath) {
+    try {
+        $ModuleConfig = Import-PowerShellDataFile -Path $DefaultConfigPath
+        Write-Verbose "Loaded module configuration from: $DefaultConfigPath"
+
+        # Store configuration in module scope for access by functions
+        Set-Variable -Name "ModuleConfiguration" -Value $ModuleConfig -Scope Script
+    }
+    catch {
+        Write-Warning "Failed to load module configuration: $($_.Exception.Message)"
+    }
+}
+#endregion
+
+Write-Verbose "Enterprise PowerShell Module loaded successfully"

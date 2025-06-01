@@ -1,32 +1,46 @@
 ---
 mode: 'edit'
-description: 'Comprehensive security analysis with compliance focus'
+description: 'Security analysis with modern PowerShell patterns'
 ---
 
-Perform security analysis on this PowerShell code from ${fileBasename}:
+Perform comprehensive security analysis on this PowerShell code:
 
 **Selected Code:**
 ```powershell
 ${selection}
 ```
 
-**Security Analysis Scope:**
-- **Compliance Framework**: ${input:complianceFramework:SOX,GDPR,HIPAA,PCI-DSS,General}
-- **Environment**: ${input:environment:Production,Development,Testing}
-- **Risk Tolerance**: ${input:riskLevel:Low,Medium,High}
+**Analysis Context:**
+- Compliance framework: ${input:complianceFramework:SOX,GDPR,HIPAA,PCI-DSS,General:General}
+- Environment: ${input:environment:Development,Testing,Production:Production}
+- File: ${fileBasename}
+- Project: ${workspaceFolderBasename}
 
-**Analysis Areas:**
-1. **Input Validation**: Check for proper validation and sanitization
-2. **Credential Security**: Verify no hardcoded credentials or secrets
-3. **Injection Prevention**: Look for potential code injection vulnerabilities
-4. **Path Security**: Validate file path handling and prevent traversal attacks
-5. **Security Logging**: Ensure security events are properly logged with correlation IDs
-6. **Compliance Alignment**: Verify alignment with ${input:complianceFramework} requirements
+**Security Review Areas:**
 
-**Output Requirements:**
-- List specific vulnerabilities found with severity levels
-- Provide remediation code examples
-- Reference relevant troubleshooting documentation in .\Troubleshooting\Security\
-- Include compliance validation steps
+1. **Modern Credential Handling**
+   - Check for [PSCredential]::new() usage vs legacy New-Object
+   - Validate SecureString implementation
+   - Identify hardcoded credentials or API keys
 
-Generate specific, actionable security recommendations for ${workspaceFolderBasename} project.
+2. **Input Validation**
+   - Verify appropriate parameter validation (not over-validated)
+   - Check for SQL injection in dynamic queries
+   - Validate file path and command injection risks
+
+3. **Error Handling Security**
+   - Ensure $_ usage in catch blocks (not $Error manipulation)
+   - Check for information disclosure in error messages
+   - Validate proper exception propagation
+
+4. **Enterprise Security Patterns**
+   - Audit trail implementation with correlation IDs
+   - Access control and privilege verification
+   - Data encryption and protection patterns
+
+5. **Compliance Alignment**
+   - Framework-specific requirements validation
+   - Data handling and retention compliance
+   - Security logging and monitoring requirements
+
+Provide specific remediation recommendations with corrected code examples following modern PowerShell best practices.

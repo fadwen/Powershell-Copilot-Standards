@@ -1,116 +1,130 @@
 ---
 mode: 'agent'
-description: 'Comprehensive PowerShell code analysis and quality assessment'
-tools: ['codebase', 'githubRepo']
+description: 'Comprehensive code quality analysis with expert-reviewed standards'
+tools: ['codebase']
 ---
 
-Perform comprehensive analysis of this PowerShell code using enterprise standards:
+Perform thorough analysis of this PowerShell code against modern best practices:
 
-## 🔍 Code Quality Analysis
+**Selected Code:**
+```powershell
+${selection}
+```
 
-### PowerShell Standards Compliance
-- **Verb Usage**: Verify all functions use approved PowerShell verbs from Get-Verb
-- **Naming Conventions**: Check PascalCase for functions, parameters, and variables
-- **CmdletBinding**: Ensure all functions use [CmdletBinding()] attribute
-- **Parameter Validation**: Validate comprehensive parameter attributes and validation
-- **Help Documentation**: Assess comment-based help completeness and quality
+**Analysis Framework:**
 
-### Best Practices Assessment
-- **Error Handling**: Evaluate try/catch blocks and correlation ID usage
-- **Pipeline Support**: Check ValueFromPipeline and process block implementation
-- **Resource Management**: Verify IDisposable objects are properly disposed
-- **Memory Efficiency**: Analyze string concatenation and collection handling
-- **Performance Patterns**: Review algorithm efficiency and scalability
+**1. Modern PowerShell Patterns ✅**
+- Error handling: Verify $_ usage in catch blocks (not $Error[0])
+- Credential creation: Check for [PSCredential]::new() vs New-Object
+- Parameter validation: Ensure appropriate validation without redundancy
+- String operations: Context-appropriate concatenation vs StringBuilder
 
-## 🛡️ Security Analysis
+**2. Comment-Based Help Quality ✅**
+- Proper block comment syntax with opening markers
+- Complete parameter documentation
+- Meaningful examples with descriptions
+- Appropriate .INPUTS and .OUTPUTS sections
+- Avoid maintenance-heavy versioning in .NOTES
 
-### Input Validation
-- **Parameter Sanitization**: Check for proper input validation and sanitization
-- **Path Traversal Prevention**: Validate file path handling security
-- **Injection Prevention**: Scan for potential code injection vulnerabilities
-- **Length Validation**: Ensure input length restrictions are implemented
+**3. Performance Patterns ✅**
+- Context-aware string operations (simple vs complex)
+- Efficient collection handling (avoid array += in loops)
+- Appropriate use of pipeline vs loops
+- Memory-conscious patterns for large datasets
 
-### Credential Security
-- **Hardcoded Secrets**: Scan for exposed passwords, API keys, or tokens
-- **Secure Credential Handling**: Verify PSCredential and SecretManagement usage
-- **Security Logging**: Check for appropriate security event logging
+**4. Output Type Design ✅**
+- Descriptive type names instead of misleading [PSCustomObject]
+- Custom classes for complex objects
+- Meaningful IntelliSense support
+- Proper type declarations
 
-### Dangerous Patterns
-- **Invoke-Expression Usage**: Flag dynamic code execution risks
-- **COM Object Handling**: Verify proper cleanup and security measures
-- **External Command Execution**: Assess command injection risks
+**5. Enterprise Standards ✅**
+- Correlation ID implementation
+- Structured logging patterns
+- Configuration-driven behavior
+- Environment-appropriate error handling
 
-## ⚡ Performance Evaluation
+**6. Security & Compliance ✅**
+- Modern security patterns
+- Input validation best practices
+- Audit trail requirements
+- Compliance framework alignment
 
-### Efficiency Patterns
-- **Pipeline vs ForEach**: Analyze loop implementations for large datasets
-- **Memory Allocation**: Check array initialization and growth patterns
-- **String Operations**: Evaluate string concatenation methods
-- **Resource Usage**: Assess CPU and memory consumption patterns
+**7. Code Quality Metrics ✅**
+- Approved PowerShell verb usage
+- Consistent style and formatting
+- Appropriate function complexity
+- Clear separation of concerns
 
-### Scalability Assessment
-- **Data Volume Handling**: Evaluate performance with large datasets
-- **Concurrent Processing**: Check for parallel processing opportunities
-- **Resource Leaks**: Identify potential memory or handle leaks
+**Analysis Output:**
+Provide prioritized recommendations with:
+- ❌ Issues found with severity rating
+- ✅ Best practices already implemented
+- 🔧 Specific code corrections
+- 💡 Optimization opportunities
+- 📋 Compliance gaps
 
-## 🏗️ Architecture Quality
+Include corrected code examples demonstrating proper modern PowerShell patterns.
+```
 
-### Design Patterns
-- **Single Responsibility**: Evaluate function focus and purpose clarity
-- **Dependency Management**: Assess module dependencies and coupling
-- **Configuration Management**: Review settings and parameter handling
-- **Error Propagation**: Analyze error handling and reporting patterns
+## optimize-performance.prompt.md
+```markdown
+---
+mode: 'agent'
+description: 'Performance optimization with context-aware recommendations'
+---
 
-### Enterprise Integration
-- **Logging Integration**: Check structured logging implementation
-- **Monitoring Hooks**: Assess telemetry and monitoring capabilities
-- **Compliance Alignment**: Verify alignment with organizational standards
+Analyze and optimize PowerShell code performance:
 
-## 📊 Analysis Output Format
+**Code to Optimize:**
+```powershell
+${selection}
+```
 
-Provide results in this structured format:
+**Performance Context:**
+- Data scale: ${input:dataScale:Small (<1K items),Medium (1K-100K),Large (>100K):Medium}
+- Performance target: ${input:target:Optimize for readability,Optimize for speed,Balance both:Balance both}
+- PowerShell version: ${input:psVersion:5.1,7.x:7.x}
+- Environment: ${input:environment:Development,Testing,Production:Production}
 
-### 🚨 Critical Issues (Fix Immediately)
-- Security vulnerabilities requiring immediate attention
-- Breaking errors or compatibility issues
-- Performance bottlenecks causing system impact
+**Analysis Areas:**
 
-### ⚠️ High Priority Issues
-- Standards violations affecting maintainability
-- Security concerns for production deployment
-- Performance issues affecting user experience
+**1. Context-Appropriate String Operations ✅**
+- Small operations: Simple concatenation acceptable
+- Large/repeated operations: StringBuilder or -join
+- Template strings vs concatenation efficiency
+- Memory allocation patterns
 
-### 📋 Medium Priority Recommendations
-- Code quality improvements
-- Documentation enhancements
-- Minor performance optimizations
+**2. Collection Handling ✅**
+- Avoid array += in loops for large datasets
+- Use appropriate collection types (ArrayList, List<T>, etc.)
+- Pipeline vs foreach performance trade-offs
+- Memory-efficient processing patterns
 
-### 💡 Enhancement Opportunities
-- Advanced feature implementations
-- Architecture improvements
-- Automation opportunities
+**3. Modern PowerShell Features ✅**
+- Leverage PowerShell 7.x performance improvements
+- Use efficient cmdlets and operators
+- Take advantage of parallel processing where appropriate
+- Optimize pipeline usage
 
-### 📈 Quality Metrics
-- **Overall Quality Score**: (1-100)
-- **Security Risk Level**: (Low/Medium/High/Critical)
-- **Performance Rating**: (Poor/Fair/Good/Excellent)
-- **Standards Compliance**: (Percentage)
-- **Test Coverage Estimate**: (Percentage)
+**4. Algorithm Efficiency ✅**
+- Identify O(n²) operations
+- Optimize filtering and searching
+- Reduce redundant operations
+- Improve data structure choices
 
-## 🔧 Remediation Guidance
+**5. Resource Management ✅**
+- Memory usage optimization
+- Proper disposal patterns
+- Efficient file I/O operations
+- Network call optimization
 
-For each issue identified:
-- **Specific Fix**: Provide exact code changes needed
-- **Code Examples**: Show before/after implementations
-- **Testing Requirements**: Suggest validation approaches
-- **Documentation Updates**: Reference troubleshooting docs in .\Troubleshooting\
-- **Performance Impact**: Estimate improvement gains
+**Optimization Strategy:**
+Based on data scale and target, provide:
+- 🚀 High-impact optimizations
+- ⚖️ Performance vs readability trade-offs
+- 📊 Expected performance improvements
+- 🔧 Specific code corrections
+- 📋 Benchmarking recommendations
 
-## 📚 Integration Requirements
-
-- **Troubleshooting Documentation**: Reference .\Troubleshooting\ folder structure
-- **Testing Requirements**: Suggest Pester test scenarios
-- **CI/CD Integration**: Recommend pipeline quality gates
-- **Security Scanning**: Integration with enterprise security tools
-
-Focus on actionable feedback that aligns with enterprise PowerShell development standards while improving security, performance, and maintainability.
+Include before/after examples with performance impact estimates.
