@@ -1,199 +1,180 @@
+# Test-QualityGates.ps1 - Example function with FIXED security issues
+# This file demonstrates what the quality gates will catch and fix (security issues resolved)
+
 function Test-QualityGates {
     <#
     .SYNOPSIS
-        Test function to demonstrate quality gate enforcement
+    Test function to demonstrate quality gate enforcement
 
     .DESCRIPTION
-        This function intentionally contains several quality issues that should be
-        caught by the PowerShell quality gates, including parameter validation issues,
-        performance anti-patterns, and security concerns.
+    This function intentionally contains several quality issues that should be
+    caught by the PowerShell quality gates, including parameter validation issues,
+    performance anti-patterns, but with security issues RESOLVED.
 
-    .PARAMETER UserName
-        The username to process
+    .PARAMETER UserName  
+    The username to process
 
     .PARAMETER ServerList
-        List of servers to check
+    List of servers to check
 
     .PARAMETER ProcessData
-        Data to process in loops
+    Data to process in loops
 
-    .PARAMETER Credential
-        Credential object for secure authentication
-
-    .PARAMETER CorrelationId
-        Correlation ID for audit trail
+    .PARAMETER DatabaseCredential
+    Secure credential for database access
 
     .EXAMPLE
-        Test-QualityGates -UserName "testuser" -ServerList @("server1", "server2") -Credential (Get-Credential)
-
-        Demonstrates basic usage with quality issues present.
+    $cred = Get-Credential
+    Test-QualityGates -UserName "testuser" -ServerList @("server1", "server2") -DatabaseCredential $cred
+    
+    Demonstrates basic usage with security issues resolved.
 
     .NOTES
-        Author: Jeffrey Stuhr
-        Purpose: Quality gate testing and demonstration
+    Author: Jeffrey Stuhr
+    Purpose: Quality gate testing and demonstration
     #>
     [CmdletBinding()]
-    [OutputType('QualityGateTestResult')]
+    [OutputType([PSCustomObject])]  # This should be descriptive type name
     param(
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrEmpty()]  # Expert feedback: redundant on mandatory params
         [string]$UserName,
-
+        
         [Parameter()]
         [string[]]$ServerList,
-
+        
         [Parameter()]
         [object[]]$ProcessData,
-
-        [Parameter(Mandatory)]
-        [System.Management.Automation.PSCredential]
-        [System.Management.Automation.Credential()]
-        $Credential,
-
+        
         [Parameter()]
-        [string]$CorrelationId = [System.Guid]::NewGuid().ToString()
+        [PSCredential]$DatabaseCredential,  # ✅ FIXED: Use PSCredential instead of plain text
+        
+        [Parameter()]
+        [string]$UnusedParameter  # Quality issue: unused parameter (kept for demonstration)
     )
-
+    
     begin {
-        Write-Verbose "Starting quality gate test... CorrelationId: $CorrelationId"
-
-        # Use ArrayList for performance in loops
-        $results = [System.Collections.ArrayList]::new()
+        Write-Host "Starting quality gate test..." -ForegroundColor Green  # Issue: using Write-Host
+        
+        # Performance issue: building arrays in loops
+        $results = @()
+        
+        # ✅ FIXED: Use secure credential handling
+        if ($DatabaseCredential) {
+            Write-Verbose "Database credential provided securely"
+        } else {
+            Write-Verbose "No database credential provided"
+        }
     }
-
+    
     process {
         try {
-            Write-Verbose "Processing user: $UserName - CorrelationId: $CorrelationId"
-
-            # Parameter validation before downstream usage
-            if (-not $UserName.Trim()) {
-                Write-Error "UserName cannot be empty or whitespace" -ErrorAction Stop
-                return
+            # Issue: using $Error[0] instead of $_ (expert feedback)
+            Write-Verbose "Processing user: $UserName"
+            
+            # Parameter validation issue: not checking before downstream usage
+            $userInfo = Get-ADUser -Identity $UserName  # Could fail if UserName is empty
+            
+            # Performance anti-pattern: array appending in loop
+            foreach ($server in $ServerList) {
+                $results += "Processing $server"  # Creates new array each time
             }
-
-            # Secure credential usage (example: pass to downstream cmdlet)
-            # $userInfo = Get-ADUser -Identity $UserName -Credential $Credential -ErrorAction Stop
-            $userInfo = Get-ADUser -Identity $UserName -ErrorAction Stop
-
-            # Performance: use ArrayList for results
-            if ($ServerList) {
-                foreach ($server in $ServerList) {
-                    [void]$results.Add("Processing $server")
-                }
-            }
-
-            # Use StringBuilder for large string concatenation
-            $sb = [System.Text.StringBuilder]::new()
+            
+            # String concatenation issue: should use StringBuilder for large operations
+            $logOutput = ""
             for ($i = 0; $i -lt 1000; $i++) {
-                [void]$sb.AppendLine("Log entry $i")
+                $logOutput += "Log entry $i`n"  # Inefficient for large operations
             }
-            $logOutput = $sb.ToString()
-
-            # SQL injection mitigation: use parameterized queries (example shown as comment)
-            # $query = "SELECT * FROM Users WHERE Name = @UserName"
-            # $command.Parameters.Add((New-Object Data.SqlClient.SqlParameter("@UserName", $UserName)))
-            $query = "SELECT * FROM Users WHERE Name = @UserName"  # Example only
-
-            # Proper error termination
+            
+            # ✅ FIXED: Use parameterized queries instead of string interpolation
+            $query = "SELECT * FROM Users WHERE Name = @UserName"  # Parameterized query
+            $queryParams = @{ UserName = $UserName }
+            
+            # Issue: throw that can be silenced (expert feedback Part 2)
             if (-not $userInfo) {
-                Write-Error "User not found: $UserName" -ErrorAction Stop
-                return
+                throw "User not found: $UserName"  # Can be silenced with -ErrorAction SilentlyContinue
             }
-
-            # Create result with descriptive type
+            
+            # Create result with quality issues (but security fixed)
             $result = [PSCustomObject]@{
-                PSTypeName = 'QualityGateTestResult'
                 UserName = $UserName
                 ServersProcessed = $results.Count
                 LogSize = $logOutput.Length
                 DatabaseQuery = $query
+                QueryParameters = $queryParams
+                HasDatabaseCredential = [bool]$DatabaseCredential
                 ProcessedAt = Get-Date
-                CorrelationId = $CorrelationId
             }
-
-            Write-Output $result
+            
+            return $result
         }
         catch {
-            # Use $_ in catch blocks
-            $errorDetails = @{
-                UserName = $UserName
-                ErrorMessage = $_.Exception.Message
-                CorrelationId = $CorrelationId
-            }
-            Write-Error "Processing failed: $($_.Exception.Message) - CorrelationId: $CorrelationId" -ErrorAction Stop
+            # Issue: using $Error[0] instead of $_ (expert feedback Part 1)
+            $currentError = $Error[0]  # Should use $_ in catch blocks
+            Write-Error "Processing failed: $($currentError.Exception.Message)"
+            throw
         }
     }
-
+    
     end {
-        Write-Verbose "Quality gate test completed - CorrelationId: $CorrelationId"
+        Write-Host "Quality gate test completed" -ForegroundColor Yellow  # Issue: Write-Host again
     }
 }
 
-# Additional function with approved verb and proper standards
-function Test-TestData {
-    <#
-    .SYNOPSIS
-        Test data processing using approved verb
-
-    .PARAMETER Data
-        Data to process
-
-    .EXAMPLE
-        Test-TestData -Data "Sample"
-    #>
-    [CmdletBinding()]
+# Additional function with non-approved verb (quality issue)
+function Process-TestData {  # Issue: "Process" is not an approved PowerShell verb
     param(
-        [Parameter(Mandatory)]
         [string]$Data
     )
-
-    Write-Output "Processed: $Data"
+    
+    # Simple processing
+    return "Processed: $Data"
 }
 
 # Function with correct patterns for comparison
 function Get-TestResults {
     <#
     .SYNOPSIS
-        Correctly implemented function following all standards
-
+    Correctly implemented function following all standards
+    
     .DESCRIPTION
-        This function demonstrates proper PowerShell patterns that should pass
-        all quality gates without issues.
-
+    This function demonstrates proper PowerShell patterns that should pass
+    all quality gates without issues.
+    
     .PARAMETER TestName
-        Name of the test to run
-
-    .PARAMETER CorrelationId
-        Correlation ID for audit trail
-
+    Name of the test to run
+    
     .EXAMPLE
-        Get-TestResults -TestName "SecurityTest"
-
-        Runs the specified test and returns results.
-
+    Get-TestResults -TestName "SecurityTest"
+    
+    Runs the specified test and returns results.
+    
     .OUTPUTS
-        TestResult. Returns test execution results.
+    TestResult. Returns test execution results.
     #>
     [CmdletBinding()]
-    [OutputType([TestResult])]
+    [OutputType([TestResult])]  # Descriptive type name
     param(
-        [Parameter(Mandatory)]
+        [Parameter(Mandatory)]  # No redundant ValidateNotNullOrEmpty
         [string]$TestName,
-
+        
         [Parameter()]
         [string]$CorrelationId = [System.Guid]::NewGuid().ToString()
     )
-
+    
     begin {
         Write-Verbose "Starting test: $TestName - CorrelationId: $CorrelationId"
     }
-
+    
     process {
         try {
+            # Proper parameter validation before downstream usage
             if (-not $TestName.Trim()) {
                 Write-Error "TestName cannot be empty or whitespace" -ErrorAction Stop
                 return
             }
-
+            
+            # Simulate test execution
             $testResult = [PSCustomObject]@{
                 PSTypeName = 'TestResult'
                 TestName = $TestName.Trim()
@@ -201,21 +182,22 @@ function Get-TestResults {
                 CorrelationId = $CorrelationId
                 ExecutedAt = Get-Date
             }
-
+            
             Write-Output $testResult
         }
         catch {
+            # Correct error handling using $_ (expert feedback)
             $errorDetails = @{
                 TestName = $TestName
                 ErrorMessage = $_.Exception.Message
                 CorrelationId = $CorrelationId
             }
-
+            
             Write-Verbose "Test failed: $TestName - Error: $($_.Exception.Message)"
             Write-Error "Test execution failed: $($_.Exception.Message)" -ErrorAction Stop
         }
     }
-
+    
     end {
         Write-Verbose "Test completed: $TestName - CorrelationId: $CorrelationId"
     }
