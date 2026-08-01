@@ -5,3 +5,9 @@
 *.log
 Temp/
 *.tmp
+
+# Test and coverage artifacts. Install-CopilotStandards.ps1 already writes these
+# into the .gitignore it generates for consumers; this repo was missing them.
+TestResults/
+coverage.xml
+Tests/Results/
