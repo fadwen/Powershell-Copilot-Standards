@@ -23,6 +23,11 @@
 .PARAMETER OutputPath
     Path to save detailed results (when using JSON, XML, or HTML format)
 
+.PARAMETER PassThru
+    Return the results object instead of exiting with a status code. Without it the
+    script exits 1 when any issue is found and 0 otherwise, which suits CI but
+    prevents a caller from reading the results.
+
 .EXAMPLE
     .\Test-StandardsCompliance.ps1 -Path "." -Detailed
     
@@ -114,7 +119,15 @@ begin {
         SecurityIssues = @()
         PerformanceIssues = @()
         ComplianceIssues = @()
-        Summary = @{}
+        # Populated with defaults so an early return - no files found - still yields
+        # a coherent object. Previously the summary stayed empty and the console
+        # printed "Compliance: %".
+        Summary = @{
+            CompliancePercentage = 0
+            OverallStatus        = 'NOT-RUN'
+            TotalAnalysisTime    = [TimeSpan]::Zero
+            AverageFileSize      = 0
+        }
     }
 }
 
@@ -133,10 +146,13 @@ process {
         
         # Exclude test files if requested
         if ($ExcludeTests) {
-            $psFiles = $psFiles | Where-Object { 
-                $_.FullName -notlike "*test*" -and 
-                $_.FullName -notlike "*Test*" -and
-                $_.Name -notlike "*.Tests.ps1"
+            # Match the file name and the Tests directory, never the whole path.
+            # Testing $_.FullName meant a project living under any path containing
+            # "test" - C:\testing\MyProject - excluded every file and analysed
+            # nothing, while still reporting success.
+            $psFiles = $psFiles | Where-Object {
+                $_.Name -notlike "*.Tests.ps1" -and
+                $_.FullName -notlike "*$([IO.Path]::DirectorySeparatorChar)Tests$([IO.Path]::DirectorySeparatorChar)*"
             }
         }
         
@@ -198,19 +214,48 @@ process {
                     # Community standards check
                     $content = Get-Content $file.FullName -Raw -ErrorAction SilentlyContinue
                     if ($content) {
+
+                        # Anti-pattern rules run against code with comments and string
+                        # literals blanked out. Matching raw text flagged every file
+                        # that *documents* an anti-pattern - including this script,
+                        # whose rule table names the patterns it looks for, and the
+                        # examples whose comments explain what not to do.
+                        $codeOnly = $content
+                        $tokens = $null
+                        $null = [System.Management.Automation.Language.Parser]::ParseInput(
+                            $content, [ref]$tokens, [ref]$null)
+                        if ($tokens) {
+                            $sb = [System.Text.StringBuilder]::new($content)
+                            foreach ($tok in ($tokens | Where-Object {
+                                    $_.Kind -eq 'Comment' -or $_.Kind -eq 'StringLiteral' -or $_.Kind -eq 'StringExpandable'
+                                })) {
+                                $start = $tok.Extent.StartOffset
+                                $len = $tok.Extent.EndOffset - $start
+                                if ($len -gt 0 -and ($start + $len) -le $sb.Length) {
+                                    $replacement = (($tok.Extent.Text -replace '[^\r\n]', ' '))
+                                    $null = $sb.Remove($start, $len).Insert($start, $replacement)
+                                }
+                            }
+                            $codeOnly = $sb.ToString()
+                        }
                         
-                        # Check for approved verbs
-                        if ($content -match 'function\s+([^-\s]+)-') {
-                            $verb = $Matches[1]
-                            $approvedVerbs = Get-Verb | Select-Object -ExpandProperty Verb
+                        # Check for approved verbs on EVERY function.
+                        # -match returns only the first match in a multi-line string,
+                        # so the previous form inspected the first function and
+                        # ignored the rest: a file whose first function used an
+                        # approved verb passed however many later ones did not.
+                        $approvedVerbs = Get-Verb | Select-Object -ExpandProperty Verb
+                        foreach ($m in [regex]::Matches($codeOnly, '(?im)^\s*function\s+([^-\s]+)-(\S+)')) {
+                            $verb = $m.Groups[1].Value
                             if ($verb -notin $approvedVerbs) {
+                                $line = ($content.Substring(0, $m.Index) -split "`n").Count
                                 $complianceIssue = [PSCustomObject]@{
                                     RuleName = 'UseApprovedVerbs'
                                     Severity = 'Error'
                                     ScriptName = $file.Name
-                                    Line = 0
+                                    Line = $line
                                     Column = 0
-                                    Message = "Function uses non-approved verb: $verb"
+                                    Message = "Function uses non-approved verb: $verb ($verb-$($m.Groups[2].Value))"
                                     ScriptPath = $file.FullName
                                 }
                                 $fileResult.Issues += $complianceIssue
@@ -218,6 +263,82 @@ process {
                                 $results.CriticalIssues++
                                 $fileResult.Passed = $false
                             }
+                        }
+
+                        # Anti-patterns copilot-instructions.md names explicitly but
+                        # nothing enforced. Each maps to a line in "Anti-Patterns to
+                        # Avoid" or "Modern PowerShell Features".
+                        $antiPatterns = @{
+                            'UseDollarUnderscoreInCatch' = @{
+                                Pattern  = '(?s)catch\s*\{[^}]*\$Error\[0\]'
+                                Message  = 'Uses $Error[0] in a catch block; use $_ instead'
+                                Severity = 'Error'
+                            }
+                            'AvoidPSCustomObjectOutputType' = @{
+                                Pattern  = '\[OutputType\(\[PSCustomObject\]\)\]'
+                                Message  = 'Misleading [OutputType([PSCustomObject])]; name the type instead'
+                                Severity = 'Error'
+                            }
+                            'UseModernCredentialCreation' = @{
+                                Pattern  = 'New-Object\s+(-TypeName\s+)?(System\.Management\.Automation\.)?PSCredential'
+                                Message  = 'Uses New-Object for a credential; use [PSCredential]::new()'
+                                Severity = 'Warning'
+                            }
+                        }
+
+                        foreach ($rule in $antiPatterns.GetEnumerator()) {
+                            if ($codeOnly -match $rule.Value.Pattern) {
+                                $complianceIssue = [PSCustomObject]@{
+                                    RuleName   = $rule.Key
+                                    Severity   = $rule.Value.Severity
+                                    ScriptName = $file.Name
+                                    Line       = 0
+                                    Column     = 0
+                                    Message    = $rule.Value.Message
+                                    ScriptPath = $file.FullName
+                                }
+                                $fileResult.Issues += $complianceIssue
+                                $results.ComplianceIssues += $complianceIssue
+                                if ($rule.Value.Severity -eq 'Error') { $results.CriticalIssues++ } else { $results.HighIssues++ }
+                                $fileResult.Passed = $false
+                            }
+                        }
+
+                        # #requires is itself a comment, so this runs against raw
+                        # content rather than $codeOnly.
+                        if ($content -match '(?im)^\s*#requires\s+-Version\s+(6\.\d+|7\.[0-3])\b') {
+                            $complianceIssue = [PSCustomObject]@{
+                                RuleName   = 'AvoidRetiredVersionRequires'
+                                Severity   = 'Warning'
+                                ScriptName = $file.Name
+                                Line       = 0
+                                Column     = 0
+                                Message    = 'Targets a retired PowerShell version; 7.4 is the lowest supported floor'
+                                ScriptPath = $file.FullName
+                            }
+                            $fileResult.Issues += $complianceIssue
+                            $results.ComplianceIssues += $complianceIssue
+                            $results.HighIssues++
+                            $fileResult.Passed = $false
+                        }
+
+                        # Comment-based help that opens with # instead of <# is
+                        # silently ignored by Get-Help, so the function ships with no
+                        # discoverable help at all.
+                        if ($content -match '(?m)^\s*#\s*\.(SYNOPSIS|DESCRIPTION)\b') {
+                            $complianceIssue = [PSCustomObject]@{
+                                RuleName   = 'UseBlockCommentBasedHelp'
+                                Severity   = 'Error'
+                                ScriptName = $file.Name
+                                Line       = 0
+                                Column     = 0
+                                Message    = 'Comment-based help uses # rather than a <# ... #> block; Get-Help will not see it'
+                                ScriptPath = $file.FullName
+                            }
+                            $fileResult.Issues += $complianceIssue
+                            $results.ComplianceIssues += $complianceIssue
+                            $results.CriticalIssues++
+                            $fileResult.Passed = $false
                         }
                         
                         # Security checks
@@ -452,8 +573,14 @@ end {
         Write-Information "    /code-analysis for comprehensive analysis" -InformationAction Continue
         Write-Information "    /validate-standards for community standards compliance" -InformationAction Continue
     }
+    elseif ($results.TotalFiles -eq 0) {
+        # Analysing nothing is not compliance. Previously this printed the success
+        # message and exited 0, so a misconfigured path or an over-broad
+        # -ExcludeTests filter looked like a clean pass.
+        Write-Warning "No PowerShell files were analysed - nothing has been verified. Check -Path and -ExcludeTests."
+    }
     else {
-        Write-Information "`nAll files meet PowerShell enterprise standards!" -InformationAction Continue
+        Write-Information "`nAll $($results.TotalFiles) file(s) meet PowerShell enterprise standards!" -InformationAction Continue
     }
 
     Write-Verbose "Analysis completed in $([math]::Round($results.Summary.TotalAnalysisTime.TotalSeconds, 2)) seconds"

@@ -108,6 +108,145 @@ function Get-Thing {
         }
     }
 
+    Context 'Approved verb detection' {
+
+        It 'Flags a non-approved verb that is not the first function in the file' {
+            # -match returns only the first match in a multi-line string, so the
+            # previous implementation inspected function one and ignored the rest.
+            New-Fixture -Name 'SecondBad.ps1' -Content @'
+function Get-Good {
+    param([Parameter(Mandatory)][string]$Name)
+    Write-Output $Name
+}
+
+function Process-Bad {
+    param([Parameter(Mandatory)][string]$Name)
+    Write-Output $Name
+}
+'@
+            $result = Invoke-Compliance -Path $script:FixturePath
+
+            $result.ComplianceIssues.RuleName | Should-ContainCollection 'UseApprovedVerbs'
+            ($result.ComplianceIssues | Where-Object RuleName -eq 'UseApprovedVerbs').Message |
+                Should-MatchString 'Process'
+        }
+
+        It 'Flags every offending function, not just one' {
+            New-Fixture -Name 'TwoBad.ps1' -Content @'
+function Process-One { param([Parameter(Mandatory)][string]$A) $A }
+function Handle-Two { param([Parameter(Mandatory)][string]$A) $A }
+'@
+            $verbIssues = (Invoke-Compliance -Path $script:FixturePath).ComplianceIssues |
+                Where-Object RuleName -eq 'UseApprovedVerbs'
+
+            $verbIssues | Should-BeCollection -Count 2
+        }
+
+        It 'Ignores a function name that only appears in a comment' {
+            New-Fixture -Name 'CommentedVerb.ps1' -Content @'
+# Do not write: function Process-Thing { }
+function Get-Thing {
+    param([Parameter(Mandatory)][string]$Name)
+    Write-Output $Name
+}
+'@
+            (Invoke-Compliance -Path $script:FixturePath).ComplianceIssues.RuleName |
+                Should-NotContainCollection 'UseApprovedVerbs'
+        }
+    }
+
+    Context 'Documented anti-patterns' {
+
+        It 'Flags $Error[0] used in a catch block' {
+            New-Fixture -Name 'ErrorZero.ps1' -Content @'
+function Get-Thing {
+    param([Parameter(Mandatory)][string]$Name)
+    try { Get-Item $Name } catch { Write-Error $Error[0].Exception.Message }
+}
+'@
+            (Invoke-Compliance -Path $script:FixturePath).ComplianceIssues.RuleName |
+                Should-ContainCollection 'UseDollarUnderscoreInCatch'
+        }
+
+        It 'Flags a misleading PSCustomObject output type' {
+            New-Fixture -Name 'BadOutputType.ps1' -Content @'
+function Get-Thing {
+    [OutputType([PSCustomObject])]
+    param([Parameter(Mandatory)][string]$Name)
+    [PSCustomObject]@{ Name = $Name }
+}
+'@
+            (Invoke-Compliance -Path $script:FixturePath).ComplianceIssues.RuleName |
+                Should-ContainCollection 'AvoidPSCustomObjectOutputType'
+        }
+
+        It 'Flags New-Object credential creation' {
+            New-Fixture -Name 'OldCred.ps1' -Content @'
+function Get-Thing {
+    param([Parameter(Mandatory)][string]$User, [Parameter(Mandatory)][securestring]$Pass)
+    New-Object PSCredential $User, $Pass
+}
+'@
+            (Invoke-Compliance -Path $script:FixturePath).ComplianceIssues.RuleName |
+                Should-ContainCollection 'UseModernCredentialCreation'
+        }
+
+        It 'Flags a requires directive targeting a retired version' {
+            New-Fixture -Name 'Retired.ps1' -Content @'
+#requires -Version 7.0
+function Get-Thing { param([Parameter(Mandatory)][string]$A) $A }
+'@
+            (Invoke-Compliance -Path $script:FixturePath).ComplianceIssues.RuleName |
+                Should-ContainCollection 'AvoidRetiredVersionRequires'
+        }
+
+        It 'Does not flag a requires directive targeting a supported version' {
+            New-Fixture -Name 'Supported.ps1' -Content @'
+#requires -Version 7.6
+function Get-Thing { param([Parameter(Mandatory)][string]$A) $A }
+'@
+            (Invoke-Compliance -Path $script:FixturePath).ComplianceIssues.RuleName |
+                Should-NotContainCollection 'AvoidRetiredVersionRequires'
+        }
+
+        It 'Flags comment-based help that Get-Help cannot see' {
+            New-Fixture -Name 'BrokenHelp.ps1' -Content @'
+# .SYNOPSIS
+#     This never reaches Get-Help - it needs a <# ... #> block
+function Get-Thing {
+    param([Parameter(Mandatory)][string]$A)
+    $A
+}
+'@
+            (Invoke-Compliance -Path $script:FixturePath).ComplianceIssues.RuleName |
+                Should-ContainCollection 'UseBlockCommentBasedHelp'
+        }
+    }
+
+    Context 'Anti-pattern rules ignore comments and strings' {
+
+        It 'Does not flag a file that merely documents an anti-pattern' {
+            # Every rule below appears here only inside a comment or a string. A
+            # naive text match flagged the repository's own examples and this very
+            # script, whose rule table names the patterns it searches for.
+            New-Fixture -Name 'DocumentsThem.ps1' -Content @'
+function Get-Thing {
+    <#
+        .SYNOPSIS
+            Documents what not to do.
+        .DESCRIPTION
+            Avoid [OutputType([PSCustomObject])]. Use $_ in catch, never $Error[0].
+            Prefer [PSCredential]::new() over New-Object PSCredential.
+    #>
+    param([Parameter(Mandatory)][string]$Name)
+    $guidance = 'do not use $Error[0] in a catch block'
+    Write-Output "$Name $guidance"
+}
+'@
+            (Invoke-Compliance -Path $script:FixturePath).ComplianceIssues | Should-BeFalsy
+        }
+    }
+
     Context 'Security detection' {
 
         It 'Flags a hardcoded password' {
@@ -199,6 +338,24 @@ Write-Output $items
             $result.TotalFiles | Should-Be 0
         }
 
+        It 'Does not claim success when nothing was analysed' {
+            # Analysing zero files is not compliance. It previously printed
+            # "All files meet PowerShell enterprise standards!" and exited 0.
+            & $script:ScriptPath -Path $script:FixturePath -PassThru `
+                -InformationAction SilentlyContinue -WarningVariable warned | Out-Null
+
+            "$warned" | Should-MatchString 'nothing has been verified'
+        }
+
+        It 'Reports a coherent summary when nothing was analysed' {
+            $result = & $script:ScriptPath -Path $script:FixturePath -PassThru `
+                -InformationAction SilentlyContinue -WarningAction SilentlyContinue
+
+            # Previously the summary stayed empty and the console printed "Compliance: %"
+            $result.Summary.CompliancePercentage | Should-Be 0
+            $result.Summary.OverallStatus | Should-Be 'NOT-RUN'
+        }
+
         It 'Emits exactly one results object, not one per code path' {
             New-Fixture -Name 'Sample.ps1' -Content 'Write-Output 1'
 
@@ -261,6 +418,25 @@ function Get-Clean {
                 -InformationAction Continue 6>&1 | Out-String
 
             $output | Should-MatchString 'BadVerb\.ps1'
+        }
+
+        It 'Does not exclude everything when the project path contains "test"' {
+            # Regression: the filter tested $_.FullName, so a project under
+            # C:\testing\... excluded every file and still reported success.
+            $pathWithTest = Join-Path ([System.IO.Path]::GetTempPath()) "testing-$([guid]::NewGuid().ToString('N'))"
+            New-Item -Path $pathWithTest -ItemType Directory -Force | Out-Null
+            try {
+                Set-Content (Join-Path $pathWithTest 'Get-Real.ps1') 'function Get-Real { param([Parameter(Mandatory)][string]$N) $N }'
+                Set-Content (Join-Path $pathWithTest 'Thing.Tests.ps1') 'Describe "x" { It "y" { $true } }'
+
+                $result = & $script:ScriptPath -Path $pathWithTest -ExcludeTests -PassThru `
+                    -InformationAction SilentlyContinue -WarningAction SilentlyContinue
+
+                $result.TotalFiles | Should-Be 1
+            }
+            finally {
+                Remove-Item $pathWithTest -Recurse -Force -ErrorAction SilentlyContinue
+            }
         }
 
         It 'Skips test files when -ExcludeTests is supplied' {
