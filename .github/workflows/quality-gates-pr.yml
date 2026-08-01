@@ -163,17 +163,43 @@ jobs:
 
                 $pesterConfig = New-PesterConfiguration
                 $pesterConfig.Run.Exit = $false
+                # Required - without PassThru, Invoke-Pester returns nothing and every
+                # check below silently evaluates against $null.
+                $pesterConfig.Run.PassThru = $true
                 $pesterConfig.Output.Verbosity = 'Detailed'
                 $pesterConfig.CodeCoverage.Enabled = $true
                 $pesterConfig.CodeCoverage.Path = $productionFiles.FullName
 
                 $pesterResults = Invoke-Pester -Configuration $pesterConfig
 
-                if ($pesterResults.Failed -gt 0) {
-                    Write-Host "❌ Pester Tests Failed: $($pesterResults.Failed) of $($pesterResults.Total)" -ForegroundColor Red
-                    $criticalIssues += $pesterResults.Failed
-                } else {
-                    Write-Host "✅ All Pester tests passed: $($pesterResults.Passed) of $($pesterResults.Total)" -ForegroundColor Green
+                # Pester sets $LASTEXITCODE to the failure count. GitHub's pwsh wrapper
+                # exits with it, which would fail the step regardless of the logic below.
+                # Failures are accounted for through $criticalIssues instead.
+                $global:LASTEXITCODE = 0
+
+                if ($null -eq $pesterResults) {
+                    Write-Host "❌ Pester returned no result object - treating as failure" -ForegroundColor Red
+                    $criticalIssues += 1
+                }
+                else {
+                    # Use the *Count properties. $pesterResults.Failed is a collection of
+                    # test objects, so "-gt 0" compares objects to an int, errors as
+                    # non-IComparable, yields empty, and reads as false - which is why
+                    # this gate reported success against 24 failing tests.
+                    if ($pesterResults.FailedCount -gt 0) {
+                        Write-Host "❌ Pester Tests Failed: $($pesterResults.FailedCount) of $($pesterResults.TotalCount)" -ForegroundColor Red
+                        $criticalIssues += $pesterResults.FailedCount
+                    }
+                    else {
+                        Write-Host "✅ All Pester tests passed: $($pesterResults.PassedCount) of $($pesterResults.TotalCount)" -ForegroundColor Green
+                    }
+
+                    # A file that fails discovery contributes zero failed tests, so
+                    # FailedCount alone can report green on a suite that never ran.
+                    if ($pesterResults.FailedContainersCount -gt 0) {
+                        Write-Host "❌ Pester containers failed discovery: $($pesterResults.FailedContainersCount)" -ForegroundColor Red
+                        $criticalIssues += $pesterResults.FailedContainersCount
+                    }
                 }
 
                 if ($pesterResults.CodeCoverage) {
