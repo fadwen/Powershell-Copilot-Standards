@@ -41,19 +41,21 @@ Describe "Test-QualityGates Function" -Tag "Unit", "QualityDemo" {
         }
 
         It "Should accept valid UserName parameter" {
-            { Test-QualityGates -UserName "testuser" } | Should -Not -Throw
+            # Pester 6 has no Should-NotThrow. Calling the code is the assertion -
+            # an unhandled exception fails the test.
+            Test-QualityGates -UserName "testuser"
         }
 
         It "Should handle empty ServerList gracefully" {
             $result = Test-QualityGates -UserName "testuser" -ServerList @()
-            $result | Should -Not -BeNullOrEmpty
-            $result.ServersProcessed | Should -Be 0
+            $result | Should-NotBeNull
+            $result.ServersProcessed | Should-Be 0
         }
 
         It "Should process multiple servers" {
             $servers = @("server1", "server2", "server3")
             $result = Test-QualityGates -UserName "testuser" -ServerList $servers
-            $result.ServersProcessed | Should -Be 3
+            $result.ServersProcessed | Should-Be 3
         }
     }
 
@@ -66,7 +68,10 @@ Describe "Test-QualityGates Function" -Tag "Unit", "QualityDemo" {
         }
 
         It "Should handle user not found errors" {
-            { Test-QualityGates -UserName "nonexistentuser" } | Should -Throw "*User not found*"
+            # -ExceptionMessage matches with wildcards, so the leading/trailing * are
+            # needed for a substring match - unlike classic Should -Throw.
+            { Test-QualityGates -UserName "nonexistentuser" } |
+                Should-Throw -ExceptionMessage '*User not found*'
         }
     }
 
@@ -85,20 +90,20 @@ Describe "Test-QualityGates Function" -Tag "Unit", "QualityDemo" {
         It "Should return PSCustomObject with required properties" {
             $result = Test-QualityGates -UserName "testuser" -ServerList @("server1")
 
-            $result | Should -BeOfType [PSCustomObject]
-            $result.UserName | Should -Be "testuser"
-            $result.ServersProcessed | Should -Be 1
-            $result.ProcessedAt | Should -BeOfType [DateTime]
+            $result | Should-NotBeNull
+            $result.UserName | Should-Be "testuser"
+            $result.ServersProcessed | Should-Be 1
+            $result.ProcessedAt | Should-HaveType ([datetime])
         }
 
         It "Should include log size information" {
             $result = Test-QualityGates -UserName "testuser"
-            $result.LogSize | Should -BeGreaterThan 0
+            $result.LogSize | Should-BeGreaterThan 0
         }
 
         It "Should include database query information" {
             $result = Test-QualityGates -UserName "testuser"
-            $result.DatabaseQuery | Should -Match "SELECT.*FROM.*Users"
+            $result.DatabaseQuery | Should-MatchString "SELECT.*FROM.*Users"
         }
     }
 }
@@ -107,60 +112,62 @@ Describe "Get-TestResults Function" -Tag "Unit", "GoodExample" {
 
     Context "Proper Implementation Validation" {
         It "Should use approved PowerShell verb" {
-            # Verify the function name uses an approved verb
+            # Should -BeIn has no 1:1 replacement; Should-Any expresses the same check
             $approvedVerbs = Get-Verb | Select-Object -ExpandProperty Verb
-            "Get" | Should -BeIn $approvedVerbs
+            $approvedVerbs | Should-Any { $_ -eq 'Get' }
         }
 
         It "Should accept mandatory TestName parameter" {
-            { Get-TestResults -TestName "SecurityTest" } | Should -Not -Throw
+            Get-TestResults -TestName "SecurityTest"
         }
 
         It "Should generate correlation ID automatically" {
             $result = Get-TestResults -TestName "AutoTest"
-            $result.CorrelationId | Should -Not -BeNullOrEmpty
-            $result.CorrelationId | Should -Match "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+            $result.CorrelationId | Should-NotBeEmptyString
+            $result.CorrelationId |
+                Should-MatchString "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
         }
 
         It "Should handle empty test name appropriately" {
             # A Mandatory [string] rejects '' during binding, before the body runs,
             # so the message comes from PowerShell - not the function's own guard.
-            { Get-TestResults -TestName "" } | Should -Throw "*empty string*"
+            { Get-TestResults -TestName "" } | Should-Throw -ExceptionMessage '*empty string*'
         }
 
         It "Should handle whitespace-only test name" {
             # Whitespace binds fine, so the function's own validation produces this one
-            { Get-TestResults -TestName "   " } | Should -Throw "*cannot be empty or whitespace*"
+            { Get-TestResults -TestName "   " } |
+                Should-Throw -ExceptionMessage '*cannot be empty or whitespace*'
         }
 
         It "Should return properly typed result" {
             $result = Get-TestResults -TestName "TypeTest"
             # PSTypeName is consumed when constructing the object; it sets the type
             # name rather than remaining as a readable property.
-            $result.PSObject.TypeNames[0] | Should -Be "TestResult"
-            $result.Status | Should -Be "Passed"
+            $result.PSObject.TypeNames[0] | Should-Be "TestResult"
+            $result.Status | Should-Be "Passed"
         }
 
         It "Should include all required properties" {
             $result = Get-TestResults -TestName "PropertyTest"
 
-            $result.TestName | Should -Be "PropertyTest"
-            $result.Status | Should -Not -BeNullOrEmpty
-            $result.CorrelationId | Should -Not -BeNullOrEmpty
-            $result.ExecutedAt | Should -BeOfType [DateTime]
+            $result.TestName | Should-Be "PropertyTest"
+            $result.Status | Should-NotBeEmptyString
+            $result.CorrelationId | Should-NotBeEmptyString
+            $result.ExecutedAt | Should-HaveType ([datetime])
         }
     }
 
     Context "Parameter Validation Best Practices" {
         It "Should trim whitespace from TestName parameter" {
             $result = Get-TestResults -TestName "  TrimTest  "
-            $result.TestName | Should -Be "TrimTest"
+            $result.TestName | Should-Be "TrimTest"
         }
 
         It "Should accept custom correlation ID" {
             $customId = [System.Guid]::NewGuid().ToString()
             $result = Get-TestResults -TestName "CustomIdTest" -CorrelationId $customId
-            $result.CorrelationId | Should -Be $customId
+            $result.CorrelationId | Should-Be $customId
         }
     }
 }
@@ -171,14 +178,14 @@ Describe "Process-TestData Function" -Tag "Unit", "QualityIssue" {
         It "Should use non-approved verb (demonstrates quality issue)" {
             # This test documents the quality issue for educational purposes
             $approvedVerbs = Get-Verb | Select-Object -ExpandProperty Verb
-            "Process" | Should -Not -BeIn $approvedVerbs
+            $approvedVerbs | Should-All { $_ -ne 'Process' }
         }
     }
 
     Context "Basic Functionality" {
         It "Should process simple data" {
             $result = Process-TestData -Data "test"
-            $result | Should -Be "Processed: test"
+            $result | Should-Be "Processed: test"
         }
     }
 }
