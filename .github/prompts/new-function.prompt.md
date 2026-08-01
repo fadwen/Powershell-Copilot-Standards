@@ -7,17 +7,20 @@ tools: ['codebase']
 Create a PowerShell function with these specifications:
 
 **Function Details:**
+
 - Function name: ${input:functionName:Verb-Noun}
 - Purpose: ${input:purpose:Describe what this function accomplishes}
 - Parameters needed: ${input:parameters:List the parameters and their types}
 - Environment: ${input:environment:Development,Testing,Production:Development}
 
 **Context:**
+
 - Current file: ${fileBasename}
 - Project: ${workspaceFolderBasename}
 - PowerShell version: ${input:psVersion:7.6,5.1+7.6:7.6}
 
 **Requirements:**
+
 - Use modern PowerShell patterns (PSCredential::new(), $_ in catch blocks)
 - Include proper comment-based help with complete syntax
 - Implement appropriate parameter validation (avoid redundant validation)
@@ -27,6 +30,7 @@ Create a PowerShell function with these specifications:
 - Use descriptive output types instead of [PSCustomObject]
 
 **Standards Compliance:**
+
 - Error handling: Use $_ in catch blocks, not $Error[0]
 - String operations: Context-appropriate (simple concatenation vs StringBuilder)
 - Null handling: Simple null checks where appropriate, exceptions for operations that might fail

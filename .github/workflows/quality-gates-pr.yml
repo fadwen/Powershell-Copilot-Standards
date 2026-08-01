@@ -190,9 +190,18 @@ jobs:
             Write-Host "`n🔒 Running security scan on production code..." -ForegroundColor Cyan
 
             $securityIssues = @()
-            $securityPatterns = @{
+
+            # Secrets can be embedded in any file, including .psd1 data files.
+            $secretPatterns = @{
                 'Hardcoded Password' = 'password\s*[:=]\s*["\x27]\w{3,}["\x27]'
                 'Hardcoded API Key' = 'api[_-]?key\s*[:=]\s*["\x27]\w{10,}["\x27]'
+            }
+
+            # These describe executable behaviour. A .psd1 is restricted data - it
+            # cannot invoke a cmdlet or build a query - so applying them there only
+            # produces false positives when a config legitimately *lists* the
+            # patterns it wants prohibited.
+            $codePatterns = @{
                 'SQL Injection Risk' = '\$\w+\s*\+\s*["\x27].*SELECT.*FROM'
                 'Path Traversal Risk' = '\.\.[/\\]'
                 'Credential in Plain Text' = 'ConvertTo-SecureString.*-AsPlainText'
@@ -200,14 +209,20 @@ jobs:
 
             foreach ($file in $productionFiles) {
                 $content = Get-Content -Path $file.FullName -Raw -ErrorAction SilentlyContinue
-                if ($content) {
-                    foreach ($pattern in $securityPatterns.GetEnumerator()) {
-                        if ($content -match $pattern.Value) {
-                            $securityIssues += [PSCustomObject]@{
-                                File = $file.Name
-                                Issue = $pattern.Key
-                                Risk = "High"
-                            }
+                if (-not $content) { continue }
+
+                $applicable = if ($file.Extension -eq '.psd1') {
+                    $secretPatterns
+                } else {
+                    $secretPatterns + $codePatterns
+                }
+
+                foreach ($pattern in $applicable.GetEnumerator()) {
+                    if ($content -match $pattern.Value) {
+                        $securityIssues += [PSCustomObject]@{
+                            File = $file.Name
+                            Issue = $pattern.Key
+                            Risk = "High"
                         }
                     }
                 }

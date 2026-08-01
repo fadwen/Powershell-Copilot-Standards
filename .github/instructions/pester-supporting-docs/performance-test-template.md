@@ -307,6 +307,7 @@ AfterAll {
 ## Pester 6 Notes for Performance Tests
 
 ### Always opt out of parallel execution
+
 Put `#pester:no-parallel` at the top of every performance test file. Timing measurements taken while
 other test files compete for CPU are noise. Opted-out files run serially in the parent session while
 other files run in parallel, so you keep the speedup elsewhere without corrupting the benchmarks.
@@ -326,6 +327,7 @@ for single-shot limits. Keep `Measure-Command` where you need the measurement it
 averages, or coefficient-of-variation math.
 
 ### Compare like with like
+
 The most common bug in hand-rolled performance assertions is comparing a `TimeSpan` against a raw
 number:
 
@@ -344,10 +346,12 @@ Pester 6's type-aware assertions make the mismatch visible in the failure messag
 not write it in the first place.
 
 ### Keep assertions out of `Measure-Command`
+
 An assertion inside the measured scriptblock adds its own cost to the measurement, and a failure
 there reports a confusing location. Capture the result, measure, then assert.
 
 ### Coverage is never collected in parallel
+
 When `CodeCoverage` is enabled the whole run falls back to sequential, with a warning. Do not enable
 coverage on the performance job - it will not parallelize and the tracer adds overhead to exactly
 the thing you are measuring.
@@ -355,30 +359,35 @@ the thing you are measuring.
 ## Performance Test Guidelines
 
 ### Baseline Establishment
+
 - Warm up functions before measurement
 - Run multiple iterations for accuracy
 - Force garbage collection for consistency
 - Establish realistic performance targets
 
 ### Memory Testing
+
 - Measure memory usage during execution
 - Verify memory release after completion
 - Test for memory leaks with repeated calls
 - Monitor garbage collection patterns
 
 ### Scalability Testing
+
 - Test with increasing data sizes
 - Measure throughput and response time
 - Validate concurrent execution performance
 - Test resource utilization limits
 
 ### Regression Detection
+
 - Compare against historical baselines
 - Track performance trends over time
 - Alert on significant performance degradation
 - Maintain performance metrics database
 
 ### Resource Monitoring
+
 - Monitor CPU utilization
 - Track temporary file creation
 - Measure network usage (if applicable)

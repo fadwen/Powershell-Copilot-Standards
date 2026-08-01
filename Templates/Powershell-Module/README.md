@@ -2,11 +2,14 @@
 
 ## 📖 Overview
 
-**ModuleName** is an enterprise-grade PowerShell module that provides [describe primary functionality and business value]. This module follows organizational standards for security, performance, and maintainability.
+**ModuleName** is an enterprise-grade PowerShell module that provides
+[describe primary functionality and business value]. This module follows organizational standards for security,
+performance, and maintainability.
 
 ## 🚀 Quick Start
 
 ### Installation
+
 ```powershell
 # From PowerShell Gallery
 Install-Module ModuleName -Scope CurrentUser
@@ -16,6 +19,7 @@ Import-Module ModuleName
 ```
 
 ### Basic Usage
+
 ```powershell
 # Basic function usage
 Get-TemplateFunction -Name "ExampleItem"
@@ -48,6 +52,7 @@ Get-TemplateFunction -Name "ExampleItem"
 ## 🔍 Troubleshooting
 
 For common issues and solutions, see:
+
 - [Common Issues](./Troubleshooting/Common/)
 - [Performance Issues](./Troubleshooting/Performance/)
 - [Security Issues](./Troubleshooting/Security/)

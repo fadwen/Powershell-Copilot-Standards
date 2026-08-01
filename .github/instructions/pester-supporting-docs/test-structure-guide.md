@@ -106,6 +106,7 @@ discoverable.
 ## File Naming Conventions
 
 ### Test Files
+
 - **Unit Tests**: `FunctionName.Tests.ps1`
 - **Integration Tests**: `ComponentName.Tests.ps1`
 - **Performance Tests**: `PerformanceArea.Tests.ps1`
@@ -114,6 +115,7 @@ discoverable.
 The `.Tests.ps1` suffix is configurable via `Run.TestExtension` but should not be changed.
 
 ### Test Organization
+
 - **Public Functions**: One test file per public function
 - **Private Functions**: Group related private functions in single test file
 - **Classes**: One test file per class
@@ -198,6 +200,7 @@ inside strings.
 ## Quality Organization Standards
 
 ### Test File Requirements
+
 - Each test file must import its own modules in `BeforeAll` (and `BeforeDiscovery` when discovery
   needs them)
 - All external dependencies must be mocked appropriately
@@ -224,6 +227,7 @@ Invoke-Pester -Configuration $config
 Run this in CI before the real test job. It is fast and catches structural breakage early.
 
 ### Documentation Integration
+
 - Reference troubleshooting guides in `./Troubleshooting/` folder
 - Include performance baselines and expectations
 - Document test data requirements and setup

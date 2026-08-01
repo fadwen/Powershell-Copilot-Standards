@@ -6,14 +6,18 @@ description: 'Creates comprehensive, enterprise-grade README documentation for P
 
 # PowerShell README Documentation Generator
 
-Create comprehensive, enterprise-grade README documentation that serves as both technical reference and business communication tool. Generate documentation that supports automatic integration, provides clear value proposition, and maintains consistency with organizational standards.
+Create comprehensive, enterprise-grade README documentation that serves as both technical reference and business
+communication tool. Generate documentation that supports automatic integration, provides clear value proposition, and
+maintains consistency with organizational standards.
 
 ## README Generation Requirements
 
 ### Content Assessment
+
 Gather information needed for complete README generation:
 
 #### Project Information
+
 - **Project Name**: Clear, descriptive name following PowerShell conventions
 - **Primary Purpose**: Business value and technical function
 - **Target Audience**: System administrators, developers, end users, or automation systems
@@ -22,7 +26,9 @@ Gather information needed for complete README generation:
 - **Current Status**: Development phase, version, and maturity level
 
 #### Technical Specifications
-- **PowerShell Versions**: State the supported range explicitly — PowerShell 7.6 (LTS) is the current target; note Windows PowerShell 5.1 support only if actually tested
+
+- **PowerShell Versions**: State the supported range explicitly — PowerShell 7.6 (LTS) is the current target; note
+  Windows PowerShell 5.1 support only if actually tested
 - **Platform Support**: Windows, Linux, macOS, or cross-platform
 - **Installation Methods**: PowerShell Gallery, manual installation, or enterprise deployment
 - **Configuration Requirements**: Environment setup, credentials, and permissions
@@ -33,6 +39,7 @@ Gather information needed for complete README generation:
 ### Generate Complete README with Required Sections
 
 #### Header Section with Badges
+
 ```markdown
 # Project Title
 
@@ -43,6 +50,7 @@ Gather information needed for complete README generation:
 ```
 
 #### 📖 Overview Section
+
 Create compelling overview with business focus:
 
 ```markdown
@@ -67,9 +75,10 @@ Create compelling overview with business focus:
 ```
 
 #### 🚀 Quick Start Section
+
 Provide immediate value with copy-paste examples:
 
-```markdown
+````markdown
 ## 🚀 Quick Start
 
 **TL;DR for experienced users:**
@@ -81,19 +90,22 @@ Get-ModuleFunction -Parameter "Value" -ExportFormat HTML
 ```
 
 **Expected Output:**
-```
+
+```text
 ✅ Processing completed successfully
 📊 Results: 15 items processed in 2.3 seconds
 📄 Report: .\Reports\Output_2024-01-15.html
 ```
 
 **Next Steps:** See [Configuration](#️-configuration) for enterprise setup and [Advanced Examples](#advanced-scenarios) for automation patterns.
-```
+
+````
 
 #### 📋 Prerequisites Section
+
 Comprehensive requirements documentation:
 
-```markdown
+````markdown
 ## 📋 Prerequisites
 
 ### System Requirements
@@ -121,15 +133,18 @@ Install-PSResource ImportExcel -Scope CurrentUser -TrustRepository
 > `Microsoft.PowerShell.PSResourceGet` first, or fall back to `Install-Module`.
 
 ### Permissions & Access
+
 <details>
 <summary>🔐 Detailed Permission Requirements</summary>
 
 #### Service Account Setup
+
 1. **Domain Account**: Recommended for enterprise environments
 2. **Local Administrator**: Required on target systems
 3. **WinRM Access**: Remote PowerShell connectivity
 
 #### Network Requirements
+
 | Protocol | Port | Direction | Purpose |
 |----------|------|-----------|---------|
 | **WinRM HTTP** | 5985 | Outbound | Remote PowerShell (default) |
@@ -137,12 +152,14 @@ Install-PSResource ImportExcel -Scope CurrentUser -TrustRepository
 | **SMTP** | 25/587 | Outbound | Email reporting |
 
 </details>
-```
+
+````
 
 #### 🔧 Installation Section
+
 Multiple installation methods with validation:
 
-```markdown
+````markdown
 ## 🔧 Installation
 
 ### Method 1: PowerShell Gallery (Recommended)
@@ -155,13 +172,16 @@ Get-Module ModuleName -ListAvailable
 ```
 
 ### Method 2: Manual Installation
+
 1. **Download Latest Release**
+
    ```powershell
    $url = "https://github.com/user/repo/releases/latest/download/ModuleName.zip"
    Invoke-WebRequest -Uri $url -OutFile "ModuleName.zip"
    ```
 
 2. **Extract and Verify**
+
    ```powershell
    Expand-Archive -Path "ModuleName.zip" -DestinationPath "C:\Scripts\ModuleName"
 
@@ -170,16 +190,19 @@ Get-Module ModuleName -ListAvailable
    ```
 
 ### Method 3: Enterprise Deployment
+
 ```powershell
 # Using organizational package manager or deployment system
 Deploy-EnterpriseModule -ModuleName "ModuleName" -Version "1.0.0" -TargetComputers $ServerList
 ```
-```
+
+````
 
 #### ⚙️ Configuration Section
+
 Environment-specific configuration guidance:
 
-```markdown
+````markdown
 ## ⚙️ Configuration
 
 ### Basic Configuration
@@ -192,6 +215,7 @@ notepad ".\config.json"
 ```
 
 ### Configuration File Structure
+
 ```json
 {
   "environment": "Production",
@@ -214,17 +238,20 @@ notepad ".\config.json"
 ```
 
 ### Environment Variables
+
 ```powershell
 # Set environment-specific variables
 $env:MODULE_CONFIG_PATH = "C:\Config\production-config.json"
 $env:MODULE_LOG_LEVEL = "Information"
 ```
-```
+
+````
 
 #### 💡 Usage Section
+
 Progressive examples from basic to enterprise:
 
-```markdown
+````markdown
 ## 💡 Usage
 
 ### Basic Operations
@@ -236,7 +263,8 @@ Get-ModuleFunction -ComputerName "SERVER01"
 ```
 
 **Expected Output:**
-```
+
+```text
 🔍 Analyzing SERVER01...
 ✅ Status: Healthy (Score: 92%)
 📊 CPU: 45% | Memory: 62% | Disk: 78%
@@ -244,6 +272,7 @@ Get-ModuleFunction -ComputerName "SERVER01"
 ```
 
 #### Example 2: Multiple Targets with Custom Settings
+
 ```powershell
 # Advanced scenario with multiple servers and custom thresholds
 $servers = "WEB01", "WEB02", "WEB03"
@@ -255,6 +284,7 @@ Get-ModuleFunction -ComputerName $servers -Threshold 75 -ExportFormat HTML -Verb
 ### Advanced Scenarios
 
 #### Enterprise Active Directory Integration
+
 ```powershell
 # Automated discovery and monitoring of domain servers
 Get-ADComputer -Filter "OperatingSystem -like '*Server*'" -SearchBase "OU=Servers,DC=contoso,DC=com" |
@@ -265,6 +295,7 @@ Get-ADComputer -Filter "OperatingSystem -like '*Server*'" -SearchBase "OU=Server
 **ROI Impact:** Eliminates manual server inventory maintenance, ensures comprehensive coverage
 
 #### CI/CD Pipeline Integration
+
 ```yaml
 # Azure DevOps Pipeline Example
 - task: PowerShell@2
@@ -280,6 +311,7 @@ Get-ADComputer -Filter "OperatingSystem -like '*Server*'" -SearchBase "OU=Server
 ```
 
 #### Scheduled Automation with Error Handling
+
 ```powershell
 # Enterprise scheduled monitoring with comprehensive error handling
 try {
@@ -293,12 +325,14 @@ catch {
     Send-MailMessage -To "alerts@company.com" -Subject "🚨 Monitoring Alert" -Body $_.Exception.Message
 }
 ```
-```
+
+````
 
 #### 🔍 Troubleshooting Section
+
 Comprehensive problem-solving guidance:
 
-```markdown
+````markdown
 ## 🔍 Troubleshooting
 
 ### Quick Diagnostics
@@ -315,12 +349,14 @@ Test-ModuleHealth -Verbose -ExportDiagnostics
 **Symptoms:** Script fails with "Access is denied" or authentication errors
 
 **Root Causes:**
+
 1. Insufficient user privileges on target systems
 2. WinRM not enabled or configured
 3. Firewall blocking required ports
 4. Credential delegation issues
 
 **Solutions:**
+
 ```powershell
 # Test connectivity and permissions
 Test-WSMan -ComputerName "SERVER01" -Credential (Get-Credential)
@@ -340,6 +376,7 @@ Set-WSManQuickConfig -Force
 **Symptoms:** Slow execution, timeout errors, high memory usage
 
 **Diagnostic Commands:**
+
 ```powershell
 # Enable detailed performance logging
 Get-ModuleFunction -ComputerName $servers -Verbose -Debug -PerformanceLogging
@@ -349,6 +386,7 @@ Get-Process -Name powershell | Select-Object CPU, WorkingSet, VirtualMemorySize
 ```
 
 **Optimization Strategies:**
+
 ```powershell
 # Process servers in batches for large environments
 $serverBatches = $allServers | Group-Object {[math]::Floor($_.ReadCount / 10)}
@@ -363,6 +401,7 @@ foreach ($batch in $serverBatches) {
 </details>
 
 ### Error Code Reference
+
 | Error Code | Description | Immediate Action | Documentation |
 |------------|-------------|------------------|---------------|
 | **E001** | Connection timeout | Verify network connectivity and WinRM | [Connectivity Guide](./Troubleshooting/Connectivity/) |
@@ -370,16 +409,19 @@ foreach ($batch in $serverBatches) {
 | **E003** | Invalid parameter format | Review parameter syntax and examples | [Usage Examples](#-usage) |
 
 ### Self-Diagnostic Tools
+
 ```powershell
 # Comprehensive environment validation
 Test-ModuleEnvironment -IncludeNetworkTest -IncludePermissionTest -ExportReport
 ```
-```
+
+````
 
 #### Performance & Monitoring Section
+
 Document performance characteristics and monitoring integration:
 
-```markdown
+````markdown
 ## 📊 Performance & Monitoring
 
 ### Performance Characteristics
@@ -407,14 +449,17 @@ $servers | ForEach-Object {
     Get-ModuleFunction -ComputerName $_ -StreamOutput
 } | Export-Csv "results.csv" -NoTypeInformation
 ```
-```
+
+````
 
 ## Quality Assurance Integration
 
 ### Documentation Validation
+
 Ensure README meets enterprise standards:
 
 #### Content Verification Checklist
+
 - [ ] Business value clearly articulated in overview
 - [ ] All prerequisites documented with specific versions
 - [ ] Installation instructions tested on clean environment
@@ -425,6 +470,7 @@ Ensure README meets enterprise standards:
 - [ ] Integration with `./Troubleshooting/` folder structure maintained
 
 #### Technical Accuracy Standards
+
 - [ ] All code examples executed and output verified
 - [ ] Links reference existing files and documentation
 - [ ] Version numbers current and consistent
@@ -433,6 +479,7 @@ Ensure README meets enterprise standards:
 - [ ] Performance metrics realistic and measured
 
 #### Accessibility and Usability
+
 - [ ] Table of contents functional and complete
 - [ ] Heading hierarchy logical and consistent
 - [ ] Language appropriate for target audience
@@ -442,9 +489,10 @@ Ensure README meets enterprise standards:
 ## Enhanced Features
 
 ### Interactive Elements
+
 Add collapsible sections for detailed information:
 
-```markdown
+````markdown
 <details>
 <summary>🔧 Advanced Configuration Options</summary>
 
@@ -463,9 +511,11 @@ Add collapsible sections for detailed information:
 **Security Note:** These settings affect compliance and should be reviewed by security teams.
 
 </details>
-```
+
+````
 
 ### Visual Enhancements
+
 - **Status badges** for build, version, downloads, and coverage
 - **Emoji icons** for section headers and visual navigation
 - **Code syntax highlighting** with language specification
@@ -473,9 +523,12 @@ Add collapsible sections for detailed information:
 - **Mermaid diagrams** for workflow and architecture visualization
 
 ### Business Integration
+
 - **ROI calculations** and cost-benefit analysis
 - **Compliance mapping** to regulatory requirements
 - **Executive summary** sections for management audiences
 - **Success metrics** and KPI tracking integration
 
-Generate comprehensive README documentation that serves multiple audiences, provides immediate value through quick start sections, includes thorough troubleshooting guidance with proper references to `./Troubleshooting/` folder structure, and maintains consistency with enterprise PowerShell development standards.
+Generate comprehensive README documentation that serves multiple audiences, provides immediate value through quick start
+sections, includes thorough troubleshooting guidance with proper references to `./Troubleshooting/` folder structure,
+and maintains consistency with enterprise PowerShell development standards.

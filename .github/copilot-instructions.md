@@ -1,7 +1,9 @@
 # PowerShell Copilot Instructions
 
 ## 🎯 Core Principles
-You are assisting with enterprise PowerShell development that prioritizes security, maintainability, and performance. Always follow these foundational principles:
+
+You are assisting with enterprise PowerShell development that prioritizes security, maintainability, and performance.
+Always follow these foundational principles:
 
 1. **Security by Design**: Implement comprehensive input validation and secure credential handling
 2. **Correlation Tracking**: Include correlation IDs for audit trails and troubleshooting
@@ -13,50 +15,74 @@ You are assisting with enterprise PowerShell development that prioritizes securi
 ## 📋 Community Standards Integration
 
 ### PowerShell Community Standards Compliance
-All code generation must comply with established PowerShell community best practices and style guidelines, incorporating expert feedback for accuracy:
+
+All code generation must comply with established PowerShell community best practices and style guidelines, incorporating
+expert feedback for accuracy:
 
 #### Best Practices Enforcement
+
 - **Tool vs Controller Design**: Create reusable functions (tools) vs one-time automation scripts (controllers)
 - **Modular Architecture**: Functions accept input via parameters, output to pipeline for maximum reusability
 - **Error Handling Standards**: Use proper `$_` handling in catch blocks, appropriate null checking patterns
-- **Performance Optimization**: Context-dependent string operations, test when it matters, use language features over cmdlets
+- **Performance Optimization**: Context-dependent string operations, test when it matters, use language features over
+  cmdlets
 - **Security by Design**: Modern credential handling with `[PSCredential]::new()`, validate all inputs, sanitize data
 
 #### Style Guide Compliance
+
 - **Code Layout**: One True Brace Style (opening brace at end of line), 4-space indentation, 115-character line limit
-- **Function Structure**: Advanced functions with CmdletBinding, appropriate parameter validation (no redundant attributes)
-- **Naming Conventions**: Approved PowerShell verbs only (use `Get-Verb`), full command names, explicit parameter names, PascalCase
-- **Documentation Standards**: Proper comment-based help format with opening `<#`, no maintenance-heavy versioning in NOTES
+- **Function Structure**: Advanced functions with CmdletBinding, appropriate parameter validation (no redundant
+  attributes)
+- **Naming Conventions**: Approved PowerShell verbs only (use `Get-Verb`), full command names, explicit parameter names,
+  PascalCase
+- **Documentation Standards**: Proper comment-based help format with opening `<#`, no maintenance-heavy versioning in
+  NOTES
 
 #### Anti-Patterns to Avoid
-- **Error Handling**: Don't use `$Error[0]` in catch blocks (use `$_`), don't force exceptions for simple existence checks
-- **Throw Behavior**: Be aware that `throw` statements can be silenced by `-ErrorAction SilentlyContinue` - use `Write-Error -ErrorAction Stop` for proper termination when needed
-- **Parameter Usage**: Don't pass parameters to functions without validating they have values, especially when parameters might be empty strings or whitespace
-- **Performance**: Don't use StringBuilder for small string operations (< 100 concatenations), don't use array appending in large loops
-- **Validation**: Don't add ValidateNotNullOrEmpty to mandatory parameters unless they'll be used in downstream function calls where empty strings matter
+
+- **Error Handling**: Don't use `$Error[0]` in catch blocks (use `$_`), don't force exceptions for simple existence
+  checks
+- **Throw Behavior**: Be aware that `throw` statements can be silenced by `-ErrorAction SilentlyContinue` - use
+  `Write-Error -ErrorAction Stop` for proper termination when needed
+- **Parameter Usage**: Don't pass parameters to functions without validating they have values, especially when
+  parameters might be empty strings or whitespace
+- **Performance**: Don't use StringBuilder for small string operations (< 100 concatenations), don't use array appending
+  in large loops
+- **Validation**: Don't add ValidateNotNullOrEmpty to mandatory parameters unless they'll be used in downstream function
+  calls where empty strings matter
 - **Output**: Don't use misleading `[OutputType([PSCustomObject])]` declarations
 - **Documentation**: Don't use broken comment-based help (missing `<#` opener)
 
 ### Script Development Guidelines
+
 - **Approved Verbs Only**: Use Microsoft's approved PowerShell verbs (`Get-Verb`) for ALL function names consistently
-- **Version Compatibility**: Default target is **PowerShell 7.6 (LTS)**. Maintain Windows PowerShell 5.1 compatibility only when the project must run on estates without pwsh installed — decide this deliberately, not by habit
-- **Version Annotations**: Declare the target with `#requires -Version 7.6` at the script header. Never emit `#requires -Version 7.0` — PowerShell 7.0–7.3 are retired, and 7.4/7.5 lose support on 10-Nov-2026
-- **Version-Dependent Features**: Before emitting a cmdlet or parameter added in 7.5 or 7.6, confirm the declared target supports it — see [powershell-version.instructions.md](instructions/powershell-version.instructions.md)
+- **Version Compatibility**: Default target is **PowerShell 7.6 (LTS)**. Maintain Windows PowerShell 5.1 compatibility
+  only when the project must run on estates without pwsh installed — decide this deliberately, not by habit
+- **Version Annotations**: Declare the target with `#requires -Version 7.6` at the script header. Never emit
+  `#requires -Version 7.0` — PowerShell 7.0–7.3 are retired, and 7.4/7.5 lose support on 10-Nov-2026
+- **Version-Dependent Features**: Before emitting a cmdlet or parameter added in 7.5 or 7.6, confirm the declared target
+  supports it — see [powershell-version.instructions.md](instructions/powershell-version.instructions.md)
 - **Output Standards**: Avoid `Write-Host` except when colored console output is explicitly required
   - Use `Write-Verbose`, `Write-Debug`, `Write-Information`, `Write-Warning`, or `Write-Error` instead
   - Leverage pipeline output for data flow
 - **Pipeline Efficiency**: Always design functions to work efficiently in the pipeline
 
 ### Modern PowerShell Features
+
 - Use `[PSCredential]::new()` instead of `New-Object` for credential creation
-- Use `Install-PSResource` / `Find-PSResource` (Microsoft.PowerShell.PSResourceGet, in-box since 7.4) over PowerShellGet v2 `Install-Module` / `Find-Module`
-- Call `Start-ThreadJob` unqualified — the module was renamed to `Microsoft.PowerShell.ThreadJob` in 7.6, so the old `ThreadJob\` qualifier breaks
-- Leverage current-version features when the declared target allows: `ConvertTo-CliXml`/`ConvertFrom-CliXml`, `ConvertFrom-Json -DateKind`, `Test-Json -IgnoreComments` (7.5+); `Get-Command -ExcludeModule`, `Get-Clipboard -Delimiter` (7.6+)
+- Use `Install-PSResource` / `Find-PSResource` (Microsoft.PowerShell.PSResourceGet, in-box since 7.4) over PowerShellGet
+  v2 `Install-Module` / `Find-Module`
+- Call `Start-ThreadJob` unqualified — the module was renamed to `Microsoft.PowerShell.ThreadJob` in 7.6, so the old
+  `ThreadJob\` qualifier breaks
+- Leverage current-version features when the declared target allows: `ConvertTo-CliXml`/`ConvertFrom-CliXml`,
+  `ConvertFrom-Json -DateKind`, `Test-Json -IgnoreComments` (7.5+); `Get-Command -ExcludeModule`,
+  `Get-Clipboard -Delimiter` (7.6+)
 - Avoid redundant parameter validation (mandatory parameters are implicitly not null/empty)
 
 ## 🛡️ Security Requirements
 
 ### Input Validation
+
 ```powershell
 # Appropriate validation patterns
 param(
@@ -77,6 +103,7 @@ if ($safePath.Path.Contains('..')) {
 ```
 
 ### Credential Management
+
 ```powershell
 # Modern credential creation (PowerShell 5+)
 $credential = [PSCredential]::new($username, $securePassword)
@@ -86,13 +113,16 @@ $secureString = ConvertTo-SecureString $Password -AsPlainText -Force
 ```
 
 ### Security Scanning Patterns
+
 Avoid these patterns in production code:
+
 - Hardcoded passwords or API keys
 - Plain text credential storage
 - SQL injection vulnerabilities in dynamic queries
 - Unvalidated user input in file paths or commands
 
 ### Security Logging
+
 ```powershell
 # Log security-relevant activities with correlation IDs
 Write-Warning "Security event: $SecurityEventDescription - User: $env:USERNAME - Time: $(Get-Date)"
@@ -233,7 +263,7 @@ function Get-ExampleData {
 
 All PowerShell projects must follow this standardized structure:
 
-```
+```text
 ProjectRoot/
 ├── Public/                     # Exported functions (tools for reuse)
 │   └── Get-SomethingData.ps1   # Use approved verbs consistently
@@ -257,11 +287,13 @@ ProjectRoot/
 └── README.md                  # Main documentation
 ```
 
-**Critical**: All troubleshooting documentation must be organized in the `Troubleshooting/` folder with appropriate subfolders for consistent reference.
+**Critical**: All troubleshooting documentation must be organized in the `Troubleshooting/` folder with appropriate
+subfolders for consistent reference.
 
 ## 🚀 Performance Guidelines
 
 ### Context-Dependent String Operations
+
 ```powershell
 # For small operations (< 100 concatenations), += is fine and more readable
 if ($items.Count -lt 100) {
@@ -281,6 +313,7 @@ if ($items.Count -lt 100) {
 ```
 
 ### Array Accumulation (version-dependent — read this before flagging `+=`)
+
 ```powershell
 # ✅ Best on every version — assign the loop output directly, no per-iteration allocation
 $results = foreach ($item in $collection) {
@@ -309,6 +342,7 @@ $results = [System.Collections.ArrayList]::new()
 ```
 
 ### Pipeline Optimization (Community Best Practice)
+
 ```powershell
 # Prefer pipeline operations over foreach loops for large datasets
 $results = $largeCollection |
@@ -324,6 +358,7 @@ $results = $largeCollection |
 ## ⚠️ Error Handling Standards
 
 ### Proper Error Handling Pattern
+
 ```powershell
 # Set appropriate error action preference
 $ErrorActionPreference = 'Stop'
@@ -366,7 +401,9 @@ finally {
 ### Advanced Error Handling Considerations
 
 #### Throw Behavior with ErrorAction SilentlyContinue
-**Important**: Be aware that `throw` statements can be silenced by `-ErrorAction SilentlyContinue`, even though `throw` creates terminating errors:
+
+**Important**: Be aware that `throw` statements can be silenced by `-ErrorAction SilentlyContinue`, even though `throw`
+creates terminating errors:
 
 ```powershell
 # ⚠️ This throw will be silenced and execution continues
@@ -399,6 +436,7 @@ function Test-ErrorHandling {
 ```
 
 #### Parameter Validation Before Usage
+
 **Best Practice**: Always validate parameters have values before using them in function calls:
 
 ```powershell
@@ -442,6 +480,7 @@ function Process-Data {
 ```
 
 ### Appropriate Null Checking vs Exception Handling
+
 ```powershell
 # VALID: Simple existence check for optional data
 $optionalUser = Get-ADUser -Identity $username -ErrorAction SilentlyContinue
@@ -468,6 +507,7 @@ try {
 ## 🧪 Testing Standards
 
 ### Minimum Testing Requirements
+
 - **Unit Tests**: Required for all public functions (minimum 80% coverage)
 - **Integration Tests**: Required for external dependencies
 - **Performance Tests**: Required for functions processing >100 items
@@ -524,6 +564,7 @@ Describe "Get-ExampleData" -Tag "Unit" {
 ## 🏗️ Module Development Standards
 
 ### Module Manifest Requirements
+
 ```powershell
 # ModuleName.psd1
 @{
@@ -556,24 +597,34 @@ Describe "Get-ExampleData" -Tag "Unit" {
     }
 }
 ```
+
 ## 🎯 Community Standards Integration
 
 ### Automatic Validation
+
 All generated code must automatically comply with:
-- [ ] **Error Handling**: Use `$_` in catch blocks, appropriate null checking patterns, be aware of `throw` behavior with ErrorAction
-- [ ] **Parameter Validation**: Validate parameters before using in function calls, especially for empty/whitespace values
+
+- [ ] **Error Handling**: Use `$_` in catch blocks, appropriate null checking patterns, be aware of `throw` behavior
+  with ErrorAction
+- [ ] **Parameter Validation**: Validate parameters before using in function calls, especially for empty/whitespace
+  values
 - [ ] **Approved Verbs**: Only Microsoft-approved verbs from Get-Verb (consistently in ALL examples)
 - [ ] **String Operations**: Context-appropriate choice between += and StringBuilder
-- [ ] **Modern PowerShell**: Use `[PSCredential]::new()` instead of New-Object; `Install-PSResource` over `Install-Module`
-- [ ] **Version Targeting**: Declared `#requires -Version` / `PowerShellVersion` matches the features actually used, and is 7.6 unless 5.1 support is a stated requirement
+- [ ] **Modern PowerShell**: Use `[PSCredential]::new()` instead of New-Object; `Install-PSResource` over
+  `Install-Module`
+- [ ] **Version Targeting**: Declared `#requires -Version` / `PowerShellVersion` matches the features actually used, and
+  is 7.6 unless 5.1 support is a stated requirement
 - [ ] **Output Types**: Use descriptive type names or custom classes, not misleading [PSCustomObject]
 - [ ] **Documentation**: Proper comment-based help format with opening `<#` marker
-- [ ] **Performance**: Loop output assigned directly where possible; no `ArrayList`; `+=` only where the target version makes it safe
-- [ ] **Error Termination**: Use `Write-Error -ErrorAction Stop` instead of bare `throw` when ErrorAction compliance is needed
+- [ ] **Performance**: Loop output assigned directly where possible; no `ArrayList`; `+=` only where the target version
+  makes it safe
+- [ ] **Error Termination**: Use `Write-Error -ErrorAction Stop` instead of bare `throw` when ErrorAction compliance is
+  needed
 
 ## 🔍 Quality Standards
 
 ### Code Review Checklist
+
 - ✅ Uses approved PowerShell verbs and follows community naming conventions consistently
 - ✅ Implements proper error handling with `$_` usage and appropriate null checking
 - ✅ Includes comprehensive comment-based help with proper `<#` opening format
@@ -592,7 +643,9 @@ All generated code must automatically comply with:
 - ✅ Supports enterprise compliance requirements
 
 ### Validation Commands
+
 Use these prompts for quality assurance:
+
 - `/validate-standards` - Check against community standards
 - `/security-review` - Security and compliance analysis
 - `/code-analysis` - Comprehensive quality review
@@ -601,6 +654,7 @@ Use these prompts for quality assurance:
 ## 📚 Comprehensive Reference Documentation
 
 ### Quick Reference Links
+
 - **Community Standards**: Reference `.github/instructions/community-standards.instructions.md`
 - **Style Guide**: Reference `.github/instructions/style-enforcement.instructions.md`
 - **Troubleshooting**: Always organized in `./Troubleshooting/` folder structure
@@ -609,7 +663,9 @@ Use these prompts for quality assurance:
 - **Performance**: Optimize using community-identified best practices and expert feedback
 
 ### Detailed Guidance
+
 For specialized scenarios, reference these instruction files:
+
 - **Security & Compliance**: [Security Guidelines](./instructions/securitycompliance-instructions.md)
 - **Testing Standards**: [Testing Framework](./instructions/pester-instructions.md)
 - **Architecture Design**: [Design Patterns](./instructions/architecturedesign-instructions.md)
@@ -623,6 +679,7 @@ For specialized scenarios, reference these instruction files:
 - **Style Enforcement**: [Style Guide Compliance](./instructions/style-enforcement.instructions.md)
 
 ### Implementation Documentation
+
 - [Implementation Guide](./Documentation/Implementation-Guide.md): Step-by-step setup and adoption
 - [PowerShell Best Practices](./Documentation/PowerShell-Best-Practices.md): Comprehensive community standards
 - [Enterprise Extensions](./Documentation/Enterprise-Extensions.md): Organizational customizations
@@ -630,4 +687,7 @@ For specialized scenarios, reference these instruction files:
 
 ---
 
-*This file provides core standards automatically applied by GitHub Copilot, integrating established PowerShell community best practices with expert feedback corrections. For detailed guidance on specific topics, reference the individual instruction files and comprehensive documentation structure.*
+_This file provides core standards automatically applied by GitHub Copilot, integrating established
+PowerShell community best practices with expert feedback corrections. For detailed guidance on
+specific topics, reference the individual instruction files and comprehensive documentation
+structure._

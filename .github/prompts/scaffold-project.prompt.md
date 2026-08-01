@@ -11,6 +11,7 @@ Generate complete project scaffold for ${input:projectName:PowerShell-Project}:
 **Deployment Target**: ${input:deployment:PowerShell Gallery,Internal Repository,Direct Deployment}
 
 **Generate Complete Structure:**
+
 - Project folder organization following enterprise standards
 - CI/CD pipeline configuration for ${input:cicd}
 - Quality gates and security scanning integration
@@ -20,6 +21,7 @@ Generate complete project scaffold for ${input:projectName:PowerShell-Project}:
 - License and governance files
 
 **Include Enterprise Integrations:**
+
 - Code signing setup for ${input:deployment}
 - Security scanning and compliance validation
 - Performance benchmarking and monitoring

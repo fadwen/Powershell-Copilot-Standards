@@ -10,6 +10,7 @@ Integrate established PowerShell community best practices and style guidelines i
 ## Best Practices Implementation
 
 ### Tool Design Patterns
+
 ```powershell
 # Tools (reusable functions) - accept input via parameters, output to pipeline
 function Get-ServerInfo {
@@ -39,6 +40,7 @@ $results | Format-Table -AutoSize  # Controller can format for display
 ```
 
 ### Error Handling Patterns
+
 ```powershell
 # Use -ErrorAction Stop for trappable exceptions
 try {
@@ -60,6 +62,7 @@ try {
 ```
 
 ### Performance Patterns
+
 ```powershell
 # Prefer language features over cmdlets for performance
 # Instead of: Get-Service | Where-Object Status -eq 'Running'
@@ -81,6 +84,7 @@ $results = foreach ($item in $collection) {
 ## Style Guide Implementation
 
 ### Code Layout Standards
+
 ```powershell
 # One True Brace Style - opening brace at end of line
 function Test-Example {
@@ -109,6 +113,7 @@ Invoke-Command @splat
 ```
 
 ### Function Structure Standards
+
 ```powershell
 function Verb-Noun {
      Verb-Noun -ParameterName "Value"
@@ -147,6 +152,7 @@ function Verb-Noun {
 ```
 
 ### Naming Conventions
+
 ```powershell
 # Use full command names and parameter names - no aliases
 Get-Process -Name "powershell"  # Not: gps -n "powershell"
@@ -161,6 +167,7 @@ function Retrieve-UserInfo { }  # ✗ Non-approved verb
 ```
 
 ### Security Implementation
+
 ```powershell
 # Always use PSCredential for credentials
 param(
@@ -181,7 +188,9 @@ $connection.SetCredential($credential.GetNetworkCredential())
 ## Integration Requirements
 
 ### Automatic Validation
+
 When generating or reviewing PowerShell code, always verify:
+
 - [ ] Uses approved PowerShell verbs from Get-Verb
 - [ ] Follows One True Brace Style formatting
 - [ ] Implements proper error handling with -ErrorAction Stop
@@ -193,6 +202,7 @@ When generating or reviewing PowerShell code, always verify:
 - [ ] Implements secure credential handling
 
 ### Quality Standards
+
 - Minimum 80% code coverage with Pester tests
 - Zero PSScriptAnalyzer violations with default rules
 - Complete comment-based help for all public functions
@@ -200,7 +210,9 @@ When generating or reviewing PowerShell code, always verify:
 - Correlation ID tracking in error handling
 
 ### Enterprise Extensions
+
 Extend community standards with enterprise requirements:
+
 - Structured logging with correlation IDs
 - Integration with enterprise monitoring systems
 - Compliance framework alignment (SOX, GDPR, HIPAA)
