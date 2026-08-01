@@ -41,6 +41,7 @@ ${selection}
 - Edge cases and boundary conditions
 - Error handling verification (using $_ patterns)
 - Parameter validation testing
+- Pipeline input and output behaviour (ValueFromPipeline binding, per-item emission)
 
 **3. Enterprise Test Standards ✅**
 

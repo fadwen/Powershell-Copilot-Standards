@@ -24,8 +24,9 @@ ${selection}
 1. **Memory Usage**: Resource disposal, StringBuilder usage, collection handling
 2. **Pipeline Efficiency**: Pipeline vs. foreach loops for dataset size: ${input:datasetSize}
 3. **String Operations**: Concatenation methods and efficiency
-4. **Algorithm Complexity**: Performance patterns and scalability
-5. **Resource Management**: COM objects, file handles, database connections
+4. **Algorithm Complexity**: Identify O(n²) operations, inefficient filtering and searching, redundant
+   work, and poor data structure choices
+5. **Resource Management**: COM objects, file handles, database connections, network call batching
 6. **Parallel Processing**: PowerShell 7+ ForEach-Object -Parallel opportunities
 
 **Deliverables:**
