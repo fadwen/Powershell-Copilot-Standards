@@ -12,7 +12,7 @@
     Blog: https://www.techbyjeff.net
     LinkedIn: https://www.linkedin.com/in/jeffrey-stuhr-034214aa/
 
-    Quality Standards: https://github.com/EntraVantage/PowerShell-Copilot-Standards
+    Quality Standards: https://github.com/fadwen/Powershell-Copilot-Standards
 #>
 
 # Module initialization

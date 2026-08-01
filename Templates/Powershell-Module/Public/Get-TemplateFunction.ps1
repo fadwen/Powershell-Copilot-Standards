@@ -31,7 +31,10 @@ function Get-TemplateFunction {
     ServiceProcessingResult. Returns processing results with status and data.
     #>
     [CmdletBinding()]
-    [OutputType([ServiceProcessingResult])]
+    # Quoted: the function returns a PSCustomObject carrying PSTypeName =
+    # 'ServiceProcessingResult'. [ServiceProcessingResult] would be a .NET type
+    # reference and fails with "Unable to find type".
+    [OutputType('ServiceProcessingResult')]
     param(
         [Parameter(Mandatory, ValueFromPipeline)]
         [ValidateNotNullOrEmpty()]

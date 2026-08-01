@@ -12,7 +12,7 @@ performance, and maintainability.
 
 ```powershell
 # From PowerShell Gallery
-Install-Module ModuleName -Scope CurrentUser
+Install-PSResource ModuleName -Scope CurrentUser -TrustRepository
 
 # Import the module
 Import-Module ModuleName
@@ -39,7 +39,7 @@ Get-TemplateFunction -Name "ExampleItem"
 - ✅ Enterprise security controls and audit logging
 - ✅ Comprehensive error handling with correlation IDs
 - ✅ Performance optimization and monitoring
-- ✅ Cross-platform compatibility (PowerShell 7+)
+- ✅ Cross-platform compatibility (PowerShell 7.6 LTS; the manifest targets `Core`)
 - ✅ Integration with enterprise systems
 - ✅ Comprehensive Pester test coverage
 
@@ -66,4 +66,4 @@ For common issues and solutions, see:
 
 ## 📄 License
 
-See [LICENSE](../LICENSE) file for details.
+See [LICENSE](../../LICENSE) file for details.
