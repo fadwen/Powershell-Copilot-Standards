@@ -284,23 +284,19 @@ Create function for infrastructure management with:
 3. Update documentation and examples
 4. Include performance impact analysis
 
-## 📊 Metrics and Success
+## 📊 Measuring Adoption
 
-### Quality Improvements
+No benchmark study backs this repository, so it makes no claims about what adopting it will do for
+your team. Measure it in your own environment instead — the quality gates emit most of what you
+need:
 
-Teams using these standards typically see:
+- **PSScriptAnalyzer findings** per pull request, split by severity
+- **Test coverage** and pass rate from the Pester gate
+- **Security scan findings** — hardcoded secrets and unsafe patterns caught before merge
+- **Documentation completeness** — comment-based help present on exported functions, markdownlint
+  clean
 
-- **40% faster** function development
-- **60% reduction** in code review cycles
-- **80% fewer** security vulnerabilities
-- **90% improvement** in documentation completeness
-
-### Adoption Tracking
-
-- Code quality scores (PSScriptAnalyzer compliance)
-- Security posture improvements
-- Development velocity gains
-- Team satisfaction ratings
+Track these before and after adoption if you want a real before/after comparison.
 
 ## 🆘 Support
 
