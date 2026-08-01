@@ -2,14 +2,18 @@
 mode: 'agent'
 applyTo: "**/*.ps1,**/*.psm1,**/Security/**/*.ps1"
 tools: ['codebase', 'githubRepo']
-description: 'Implements comprehensive security controls and compliance frameworks for PowerShell solutions'
+description: 'Implements security controls and compliance-support patterns for PowerShell solutions'
 ---
 
 # PowerShell Security and Compliance Implementation
 
-Implement robust security controls and compliance frameworks for PowerShell solutions that ensure enterprise-grade
-security, regulatory compliance, threat mitigation, and comprehensive audit capabilities. Apply security-by-design
-principles throughout development.
+Implement security controls for PowerShell solutions: input validation, credential handling, audit
+logging, and threat mitigation. Apply security-by-design principles throughout development.
+
+These patterns support regulatory work such as SOX, GDPR, and HIPAA by producing the audit trails,
+access controls, and data-handling evidence those programmes rely on. They do not make a system
+compliant on their own — that depends on controls, evidence, and audit outside this codebase. Do not
+describe generated code as compliant with any regulation.
 
 ## Security Assessment and Implementation
 
@@ -708,14 +712,17 @@ When implementing security and compliance controls:
 - [ ] **Access controls** implementing principle of least privilege
 - [ ] **Audit trail** maintenance for compliance and forensic requirements
 
-#### Compliance Framework Integration
+#### Compliance Framework Support
 
-- [ ] **SOX compliance** for financial data operations with management approval workflows
-- [ ] **GDPR compliance** for personal data processing with consent management
-- [ ] **HIPAA compliance** for healthcare information with comprehensive safeguards
-- [ ] **PCI DSS compliance** for payment card data (if applicable)
+Controls these programmes depend on. Implementing them supports an audit; it does not by itself
+establish compliance with any of these regulations.
+
+- [ ] **SOX** — approval workflows and tamper-evident audit trails for financial data operations
+- [ ] **GDPR** — consent capture and verification for personal data processing
+- [ ] **GDPR Article 17** — right-to-erasure handling
+- [ ] **HIPAA** — administrative, physical, and technical safeguards for health information
+- [ ] **PCI DSS** — cardholder data handling (if applicable)
 - [ ] **Data retention** policies and automated enforcement
-- [ ] **Right to erasure** implementation for GDPR Article 17 compliance
 
 #### Enterprise Integration Points
 
