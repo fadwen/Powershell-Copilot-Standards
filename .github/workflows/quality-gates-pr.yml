@@ -64,21 +64,40 @@ jobs:
                 $_.FullName -notlike "*\node_modules\*"
             }
 
-            $productionFiles = $allPsFiles | Where-Object {
-                $_.Name -notlike "*.Tests.ps1" -and
-                $_.Name -notlike "*test*" -and
-                $_.FullName -notlike "*\Tests\*"
+            # Files that intentionally demonstrate violations. Excluded from
+            # production analysis on purpose, and listed explicitly so the reason is
+            # visible - the previous "*test*" name filter excluded them by accident,
+            # and excluded Test-StandardsCompliance.ps1 with them. Test- is an
+            # approved PowerShell verb, so a name filter cannot tell a test file from
+            # a tool named with it.
+            $demonstrationFiles = @(
+                'Test-QualityGates.ps1'
+            )
+
+            $isTestFile = {
+                param($f)
+                $f.Name -like "*.Tests.ps1" -or $f.FullName -like "*\Tests\*"
             }
 
-            $testFiles = $allPsFiles | Where-Object {
-                $_.Name -like "*.Tests.ps1" -or
-                $_.Name -like "*test*" -or
-                $_.FullName -like "*\Tests\*"
+            $testFiles = $allPsFiles | Where-Object { & $isTestFile $_ }
+
+            $productionFiles = $allPsFiles | Where-Object {
+                -not (& $isTestFile $_) -and $demonstrationFiles -notcontains $_.Name
+            }
+
+            # Coverage is measured only over code this repository ships and executes.
+            # Templates are scaffolding meant to be copied and filled in, and
+            # Documentation examples are illustrations - covering either measures
+            # nothing. Including them was why coverage read 22.77% while the one
+            # tested file sat at 98%.
+            $coverageFiles = $productionFiles | Where-Object {
+                $_.Extension -eq '.ps1' -and $_.FullName -like "*$([IO.Path]::DirectorySeparatorChar)Tools$([IO.Path]::DirectorySeparatorChar)*"
             }
 
             Write-Host "📊 Found $($allPsFiles.Count) total PowerShell files" -ForegroundColor Yellow
             Write-Host "📦 Production files: $($productionFiles.Count)" -ForegroundColor Green
             Write-Host "🧪 Test files: $($testFiles.Count)" -ForegroundColor Blue
+            Write-Host "📈 Coverage scope: $($coverageFiles.Count) file(s) under Tools/" -ForegroundColor Blue
 
             $totalIssues = 0
             $criticalIssues = 0
@@ -174,7 +193,7 @@ jobs:
                 $pesterConfig.Run.PassThru = $true
                 $pesterConfig.Output.Verbosity = 'Detailed'
                 $pesterConfig.CodeCoverage.Enabled = $true
-                $pesterConfig.CodeCoverage.Path = $productionFiles.FullName
+                $pesterConfig.CodeCoverage.Path = $coverageFiles.FullName
 
                 $pesterResults = Invoke-Pester -Configuration $pesterConfig
 

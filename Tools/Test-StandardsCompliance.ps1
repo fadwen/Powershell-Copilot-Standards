@@ -59,7 +59,10 @@ param(
     [string]$OutputFormat = 'Console',
     
     [Parameter(HelpMessage = "Path to save detailed results")]
-    [string]$OutputPath
+    [string]$OutputPath,
+
+    [Parameter(HelpMessage = "Return the results object instead of exiting with a status code")]
+    [switch]$PassThru
 )
 
 begin {
@@ -141,8 +144,10 @@ process {
         Write-Information "Found $($psFiles.Count) PowerShell files to analyze" -InformationAction Continue
         
         if ($psFiles.Count -eq 0) {
+            # Do not emit $results here - the end block owns the single return, and
+            # emitting from both produced two objects on the pipeline.
             Write-Warning "No PowerShell files found to analyze"
-            return $results
+            return
         }
         
         # Progress tracking
@@ -155,6 +160,11 @@ process {
             Write-Progress -Activity "Analyzing PowerShell Files" -Status "Processing $($file.Name)" -PercentComplete $percentComplete
             Write-Verbose "Analyzing: $($file.Name) ($currentFile/$($psFiles.Count))"
             
+            # $fileResult must exist before the analysis runs. Previously the whole
+            # analysis lived inside this hashtable's initializer, assigned to
+            # AnalysisTime, and mutated $fileResult.Issues while $fileResult was
+            # still being constructed - so the first file threw "property 'Issues'
+            # cannot be found" and later files mutated the *previous* file's result.
             $fileResult = @{
                 FileName = $file.Name
                 FilePath = $file.FullName
@@ -162,8 +172,11 @@ process {
                 FileSize = $file.Length
                 Issues = @()
                 Passed = $true
-                AnalysisTime = Measure-Command {
-                    
+                AnalysisTime = [TimeSpan]::Zero
+            }
+
+            $fileResult.AnalysisTime = Measure-Command {
+
                     # PSScriptAnalyzer analysis
                     $fileAnalysisResults = Invoke-ScriptAnalyzer -Path $file.FullName -Severity @('Error', 'Warning', 'Information')
                     
@@ -292,19 +305,18 @@ process {
                         }
                     }
                 }
-            }
-            
+
             $results.FileResults += $fileResult
             
             if ($fileResult.Passed) {
                 $results.PassedFiles++
                 if ($Detailed) {
-                    Write-Information "✅ $($file.Name)" -InformationAction Continue
+                    Write-Information "[PASS] $($file.Name)" -InformationAction Continue
                 }
             } else {
                 $results.FailedFiles++
                 if ($Detailed) {
-                    Write-Information "❌ $($file.Name) - $($fileResult.Issues.Count) issues" -InformationAction Continue
+                    Write-Information "[FAIL] $($file.Name) - $($fileResult.Issues.Count) issues" -InformationAction Continue
                 }
             }
         }
@@ -316,7 +328,12 @@ process {
         $results.Summary = @{
             CompliancePercentage = if ($results.TotalFiles -gt 0) { [math]::Round(($results.PassedFiles / $results.TotalFiles) * 100, 1) } else { 0 }
             OverallStatus = if ($results.CriticalIssues -eq 0 -and $results.HighIssues -eq 0) { 'PASSED' } elseif ($results.CriticalIssues -eq 0) { 'WARNING' } else { 'FAILED' }
-            TotalAnalysisTime = ($results.FileResults | Measure-Object -Property AnalysisTime -Sum).Sum
+            # Measure-Object -Sum cannot total TimeSpan values ("Input object ... is
+            # not numeric"), and $ErrorActionPreference is Stop, so this aborted the
+            # whole analysis. Sum the ticks and rebuild the TimeSpan.
+            TotalAnalysisTime = [TimeSpan]::FromTicks(
+                ($results.FileResults | ForEach-Object { $_.AnalysisTime.Ticks } | Measure-Object -Sum).Sum
+            )
             AverageFileSize = if ($results.TotalFiles -gt 0) { [math]::Round(($results.FileResults | Measure-Object -Property FileSize -Average).Average / 1KB, 2) } else { 0 }
         }
     }
@@ -434,16 +451,22 @@ end {
         Write-Information "    /optimize-performance for performance issues" -InformationAction Continue
         Write-Information "    /code-analysis for comprehensive analysis" -InformationAction Continue
         Write-Information "    /validate-standards for community standards compliance" -InformationAction Continue
-        
-        # Exit with error code for CI/CD integration
-        exit 1
-    } else {
-        Write-Information "`nAll files meet PowerShell enterprise standards!" -InformationAction Continue
-        exit 0
     }
-    
+    else {
+        Write-Information "`nAll files meet PowerShell enterprise standards!" -InformationAction Continue
+    }
+
     Write-Verbose "Analysis completed in $([math]::Round($results.Summary.TotalAnalysisTime.TotalSeconds, 2)) seconds"
-    
-    # Return results object for programmatic use
-    return $results
+
+    # Return the results object for programmatic use. `exit` terminates the whole
+    # host, so a caller that wants the data - a test, or another script - cannot
+    # use the CLI path. This is why the original `return` below the exits was
+    # unreachable.
+    if ($PassThru) {
+        return $results
+    }
+
+    # CLI/CI contract, unchanged when -PassThru is not supplied: non-zero exit
+    # when any issue was found.
+    if ($results.TotalIssues -gt 0) { exit 1 } else { exit 0 }
 }

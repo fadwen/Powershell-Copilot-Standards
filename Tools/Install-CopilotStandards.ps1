@@ -229,9 +229,8 @@ coverage.xml
 
         Write-Information "PowerShell Copilot Standards installed successfully!" -InformationAction Continue
         Write-Information "Next steps:" -InformationAction Continue
-        Write-Information "  1. Enable prompt files in VS Code settings:" -InformationAction Continue
-        Write-Information "     `"chat.promptFiles`": true" -InformationAction Continue
-        Write-Information "     `"github.copilot.chat.codeGeneration.useInstructionFiles`": true" -InformationAction Continue
+        Write-Information "  1. No VS Code settings needed - .github/copilot-instructions.md," -InformationAction Continue
+        Write-Information "     .github/instructions/ and .github/prompts/ are picked up by default" -InformationAction Continue
         Write-Information "  2. Test with /new-function in Copilot Chat" -InformationAction Continue
         Write-Information "  3. Run .\Tools\Test-StandardsCompliance.ps1 to validate" -InformationAction Continue
         Write-Information "  4. Create your first function using enterprise standards" -InformationAction Continue
