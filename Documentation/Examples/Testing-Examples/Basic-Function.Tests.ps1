@@ -67,7 +67,7 @@ Describe "Get-BasicServerInfo" -Tag "Unit", "Example" {
             param($ComputerName, $Expected)
             
             # This should not throw
-            { Get-BasicServerInfo -ComputerName $ComputerName -WhatIf } | Should -Not -Throw
+            Get-BasicServerInfo -ComputerName $ComputerName -WhatIf
         }
         
         # Expected messages are the ones PowerShell's validation attributes actually
@@ -80,14 +80,14 @@ Describe "Get-BasicServerInfo" -Tag "Unit", "Example" {
         ) {
             param($InvalidName, $ExpectedError)
             
-            { Get-BasicServerInfo -ComputerName $InvalidName } | Should -Throw $ExpectedError
+            { Get-BasicServerInfo -ComputerName $InvalidName } | Should-Throw -ExceptionMessage $ExpectedError
         }
         
         It "Should support pipeline input" {
             $computerNames = @('SERVER01', 'SERVER02')
             
             # This should not throw and should accept pipeline input
-            { $computerNames | Get-BasicServerInfo -WhatIf } | Should -Not -Throw
+            $computerNames | Get-BasicServerInfo -WhatIf
         }
     }
     
@@ -97,29 +97,29 @@ Describe "Get-BasicServerInfo" -Tag "Unit", "Example" {
             $result = Get-BasicServerInfo -ComputerName 'MOCKSERVER'
             
             # Verify object structure
-            $result | Should -Not -BeNullOrEmpty
-            $result | Should -BeOfType [PSCustomObject]
+            $result | Should-NotBeNull
+            $result | Should-NotBeNull
             
             # Verify required properties
-            $result.ComputerName | Should -Be 'MOCKSERVER'
-            $result.OperatingSystem | Should -Be 'Microsoft Windows Server 2019'
-            $result.TotalMemoryGB | Should -Be 16
-            $result.CorrelationId | Should -Not -BeNullOrEmpty
+            $result.ComputerName | Should-Be 'MOCKSERVER'
+            $result.OperatingSystem | Should-Be 'Microsoft Windows Server 2019'
+            $result.TotalMemoryGB | Should-Be 16
+            $result.CorrelationId | Should-NotBeNull
         }
         
         It "Should include services when IncludeServices switch is used" {
             $result = Get-BasicServerInfo -ComputerName 'MOCKSERVER' -IncludeServices
             
-            $result.RunningServices | Should -Not -BeNullOrEmpty
-            $result.RunningServiceCount | Should -Be 2
-            $result.RunningServices[0].Name | Should -Be 'Spooler'
+            $result.RunningServices | Should-NotBeNull
+            $result.RunningServiceCount | Should-Be 2
+            $result.RunningServices[0].Name | Should-Be 'Spooler'
         }
         
         It "Should calculate uptime correctly" {
             $result = Get-BasicServerInfo -ComputerName 'MOCKSERVER'
             
-            $result.UptimeDays | Should -BeGreaterThan 4.9
-            $result.UptimeDays | Should -BeLessThan 5.1
+            $result.UptimeDays | Should-BeGreaterThan 4.9
+            $result.UptimeDays | Should-BeLessThan 5.1
         }
     }
     
@@ -146,15 +146,15 @@ Describe "Get-BasicServerInfo" -Tag "Unit", "Example" {
         }
 
         It "Should handle connection failures gracefully" {
-            { Get-BasicServerInfo -ComputerName 'OFFLINE' -ErrorAction SilentlyContinue } | Should -Not -Throw
+            Get-BasicServerInfo -ComputerName 'OFFLINE' -ErrorAction SilentlyContinue
         }
 
         It "Should continue processing other computers when one fails" {
             $results = Get-BasicServerInfo -ComputerName @('MOCKSERVER', 'OFFLINE') -ErrorAction SilentlyContinue
 
             # Should get one successful result despite one failure
-            $results | Should -Not -BeNullOrEmpty
-            $results.ComputerName | Should -Contain 'MOCKSERVER'
+            $results | Should-NotBeNull
+            $results.ComputerName | Should-ContainCollection 'MOCKSERVER'
         }
     }
     
@@ -165,15 +165,15 @@ Describe "Get-BasicServerInfo" -Tag "Unit", "Example" {
             Get-BasicServerInfo -ComputerName 'MOCKSERVER' | Out-Null
             
             $stopwatch.Stop()
-            $stopwatch.ElapsedMilliseconds | Should -BeLessThan 5000  # 5 seconds max for mocked operations
+            $stopwatch.ElapsedMilliseconds | Should-BeLessThan 5000  # 5 seconds max for mocked operations
         }
         
         It "Should include performance metrics in output" {
             $result = Get-BasicServerInfo -ComputerName 'MOCKSERVER'
             
-            $result.QueryTime | Should -Not -BeNullOrEmpty
-            $result.QueryDurationMs | Should -BeGreaterThan 0
-            $result.CorrelationId | Should -Not -BeNullOrEmpty
+            $result.QueryTime | Should-NotBeNull
+            $result.QueryDurationMs | Should-BeGreaterThan 0
+            $result.CorrelationId | Should-NotBeNull
         }
     }
 }

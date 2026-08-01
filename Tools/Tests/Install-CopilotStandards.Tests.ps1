@@ -24,24 +24,24 @@ Describe 'Install-CopilotStandards' -Tag 'Unit', 'Tools' {
         It 'Rejects a ProjectPath that does not exist' {
             $missing = Join-Path $script:ProjectPath 'no-such-directory'
             { & $script:ScriptPath -ProjectPath $missing -InformationAction SilentlyContinue } |
-                Should -Throw '*does not exist*'
+                Should-Throw -ExceptionMessage '*does not exist*'
         }
 
         It 'Rejects a ProjectPath that is a file rather than a directory' {
             $file = Join-Path $script:ProjectPath 'a-file.txt'
             Set-Content -Path $file -Value 'not a directory'
             { & $script:ScriptPath -ProjectPath $file -InformationAction SilentlyContinue } |
-                Should -Throw '*does not exist*'
+                Should-Throw -ExceptionMessage '*does not exist*'
         }
 
         It 'Rejects an unknown StandardsType' {
             { & $script:ScriptPath -ProjectPath $script:ProjectPath -StandardsType 'NotAType' -InformationAction SilentlyContinue } |
-                Should -Throw '*ValidateSet*'
+                Should-Throw -ExceptionMessage '*ValidateSet*'
         }
 
         It 'Rejects an unknown LinkType' {
             { & $script:ScriptPath -ProjectPath $script:ProjectPath -LinkType 'Telepathy' -InformationAction SilentlyContinue } |
-                Should -Throw '*ValidateSet*'
+                Should-Throw -ExceptionMessage '*ValidateSet*'
         }
     }
 
@@ -52,31 +52,31 @@ Describe 'Install-CopilotStandards' -Tag 'Unit', 'Tools' {
         }
 
         It 'Creates the .github directory' {
-            Join-Path $script:ProjectPath '.github' | Should -Exist
+            Test-Path (Join-Path $script:ProjectPath '.github') | Should-BeTrue
         }
 
         It 'Copies the main Copilot instructions' {
-            Join-Path $script:ProjectPath '.github/copilot-instructions.md' | Should -Exist
+            Test-Path (Join-Path $script:ProjectPath '.github/copilot-instructions.md') | Should-BeTrue
         }
 
         It 'Copies the instructions directory with its content' {
             $dir = Join-Path $script:ProjectPath '.github/instructions'
-            $dir | Should -Exist
-            (Get-ChildItem $dir -Filter '*.instructions.md').Count | Should -BeGreaterThan 0
+            Test-Path $dir | Should-BeTrue
+            (Get-ChildItem $dir -Filter '*.instructions.md').Count | Should-BeGreaterThan 0
         }
 
         It 'Copies the prompts directory with its content' {
             $dir = Join-Path $script:ProjectPath '.github/prompts'
-            $dir | Should -Exist
-            (Get-ChildItem $dir -Filter '*.prompt.md').Count | Should -BeGreaterThan 0
+            Test-Path $dir | Should-BeTrue
+            (Get-ChildItem $dir -Filter '*.prompt.md').Count | Should-BeGreaterThan 0
         }
 
         It 'Creates a .gitignore covering PowerShell and test artifacts' {
             $gitignore = Join-Path $script:ProjectPath '.gitignore'
-            $gitignore | Should -Exist
+            Test-Path $gitignore | Should-BeTrue
             $content = Get-Content $gitignore -Raw
-            $content | Should -Match '\*\.ps1\.bak'
-            $content | Should -Match 'TestResults/'
+            $content | Should-MatchString '\*\.ps1\.bak'
+            $content | Should-MatchString 'TestResults/'
         }
     }
 
@@ -85,28 +85,28 @@ Describe 'Install-CopilotStandards' -Tag 'Unit', 'Tools' {
         It 'Basic creates Tests and Troubleshooting' {
             & $script:ScriptPath -ProjectPath $script:ProjectPath -StandardsType 'Basic' -InformationAction SilentlyContinue
 
-            Join-Path $script:ProjectPath 'Tests' | Should -Exist
-            Join-Path $script:ProjectPath 'Troubleshooting' | Should -Exist
+            Test-Path (Join-Path $script:ProjectPath 'Tests') | Should-BeTrue
+            Test-Path (Join-Path $script:ProjectPath 'Troubleshooting') | Should-BeTrue
         }
 
         It 'Module adds the module layout' {
             & $script:ScriptPath -ProjectPath $script:ProjectPath -StandardsType 'Module' -InformationAction SilentlyContinue
 
             foreach ($folder in 'Public', 'Private', 'Classes', 'Documentation') {
-                Join-Path $script:ProjectPath $folder | Should -Exist
+                Test-Path (Join-Path $script:ProjectPath $folder) | Should-BeTrue
             }
-            Join-Path $script:ProjectPath 'Tests/Unit' | Should -Exist
-            Join-Path $script:ProjectPath 'Tests/Integration' | Should -Exist
+            Test-Path (Join-Path $script:ProjectPath 'Tests/Unit') | Should-BeTrue
+            Test-Path (Join-Path $script:ProjectPath 'Tests/Integration') | Should-BeTrue
         }
 
         It 'Enterprise adds Configuration, Scripts, Tools and a security test folder' {
             & $script:ScriptPath -ProjectPath $script:ProjectPath -StandardsType 'Enterprise' -InformationAction SilentlyContinue
 
             foreach ($folder in 'Configuration', 'Scripts', 'Tools') {
-                Join-Path $script:ProjectPath $folder | Should -Exist
+                Test-Path (Join-Path $script:ProjectPath $folder) | Should-BeTrue
             }
-            Join-Path $script:ProjectPath 'Tests/Security' | Should -Exist
-            Join-Path $script:ProjectPath 'Troubleshooting/Integration' | Should -Exist
+            Test-Path (Join-Path $script:ProjectPath 'Tests/Security') | Should-BeTrue
+            Test-Path (Join-Path $script:ProjectPath 'Troubleshooting/Integration') | Should-BeTrue
         }
     }
 
@@ -118,13 +118,13 @@ Describe 'Install-CopilotStandards' -Tag 'Unit', 'Tools' {
 
             & $script:ScriptPath -ProjectPath $script:ProjectPath -InformationAction SilentlyContinue
 
-            Get-Content $gitignore -Raw | Should -Match 'hand-written, keep me'
+            Get-Content $gitignore -Raw | Should-MatchString 'hand-written, keep me'
         }
 
         It 'Can run twice without error' {
+            # Pester 6 has no Should-NotThrow; a second run that throws fails the test
             & $script:ScriptPath -ProjectPath $script:ProjectPath -StandardsType 'Module' -InformationAction SilentlyContinue
-            { & $script:ScriptPath -ProjectPath $script:ProjectPath -StandardsType 'Module' -InformationAction SilentlyContinue } |
-                Should -Not -Throw
+            & $script:ScriptPath -ProjectPath $script:ProjectPath -StandardsType 'Module' -InformationAction SilentlyContinue
         }
     }
 
@@ -133,9 +133,9 @@ Describe 'Install-CopilotStandards' -Tag 'Unit', 'Tools' {
         It 'Creates nothing when -WhatIf is supplied' {
             & $script:ScriptPath -ProjectPath $script:ProjectPath -StandardsType 'Enterprise' -WhatIf -InformationAction SilentlyContinue
 
-            Join-Path $script:ProjectPath '.github' | Should -Not -Exist
-            Join-Path $script:ProjectPath 'Public' | Should -Not -Exist
-            Join-Path $script:ProjectPath '.gitignore' | Should -Not -Exist
+            Test-Path (Join-Path $script:ProjectPath '.github') | Should-BeFalse
+            Test-Path (Join-Path $script:ProjectPath 'Public') | Should-BeFalse
+            Test-Path (Join-Path $script:ProjectPath '.gitignore') | Should-BeFalse
         }
     }
 
@@ -148,7 +148,7 @@ Describe 'Install-CopilotStandards' -Tag 'Unit', 'Tools' {
             & $script:ScriptPath -ProjectPath $script:ProjectPath -LinkType 'Symlink' `
                 -InformationAction SilentlyContinue -WarningAction SilentlyContinue
 
-            Join-Path $script:ProjectPath '.github/copilot-instructions.md' | Should -Exist
+            Test-Path (Join-Path $script:ProjectPath '.github/copilot-instructions.md') | Should-BeTrue
         }
     }
 
@@ -158,7 +158,7 @@ Describe 'Install-CopilotStandards' -Tag 'Unit', 'Tools' {
             {
                 & $script:ScriptPath -ProjectPath $script:ProjectPath -LinkType 'Submodule' `
                     -InformationAction SilentlyContinue
-            } | Should -Throw '*not a git repository*'
+            } | Should-Throw -ExceptionMessage '*not a git repository*'
         }
 
         It 'Leaves the working directory unchanged after failing' {
@@ -168,7 +168,7 @@ Describe 'Install-CopilotStandards' -Tag 'Unit', 'Tools' {
                     -InformationAction SilentlyContinue -ErrorAction SilentlyContinue
             }
             catch { }
-            (Get-Location).Path | Should -Be $before
+            (Get-Location).Path | Should-Be $before
         }
     }
 
@@ -178,8 +178,8 @@ Describe 'Install-CopilotStandards' -Tag 'Unit', 'Tools' {
             $output = & $script:ScriptPath -ProjectPath $script:ProjectPath -InformationAction Continue 6>&1 |
                 Out-String
 
-            $output | Should -Not -Match 'chat\.promptFiles'
-            $output | Should -Not -Match 'useInstructionFiles'
+            $output | Should-NotMatchString 'chat\.promptFiles'
+            $output | Should-NotMatchString 'useInstructionFiles'
         }
     }
 }

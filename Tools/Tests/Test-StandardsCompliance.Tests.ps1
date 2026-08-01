@@ -35,12 +35,12 @@ Describe 'Test-StandardsCompliance' -Tag 'Unit', 'Tools' {
 
         It 'Rejects a Path that does not exist' {
             { & $script:ScriptPath -Path (Join-Path $script:FixturePath 'nope') -PassThru -InformationAction SilentlyContinue } |
-                Should -Throw
+                Should-Throw
         }
 
         It 'Rejects an unsupported OutputFormat' {
             { & $script:ScriptPath -Path $script:FixturePath -OutputFormat 'Interpretive-Dance' -PassThru -InformationAction SilentlyContinue } |
-                Should -Throw '*ValidateSet*'
+                Should-Throw -ExceptionMessage '*ValidateSet*'
         }
     }
 
@@ -59,10 +59,10 @@ function Get-Clean {
 '@
             $result = Invoke-Compliance -Path $script:FixturePath
 
-            $result | Should -Not -BeNullOrEmpty
-            $result.TotalFiles | Should -Be 1
-            $result.CorrelationId | Should -Not -BeNullOrEmpty
-            $result.Summary.OverallStatus | Should -BeIn @('PASSED', 'WARNING', 'FAILED')
+            $result | Should-NotBeNull
+            $result.TotalFiles | Should-Be 1
+            $result.CorrelationId | Should-NotBeNull
+            @('PASSED', 'WARNING', 'FAILED') | Should-Any { $_ -eq $result.Summary.OverallStatus }
         }
 
         It 'Counts every PowerShell file it finds' {
@@ -70,13 +70,13 @@ function Get-Clean {
             New-Fixture -Name 'Two.psm1' -Content 'Write-Output 2'
             New-Fixture -Name 'Three.psd1' -Content '@{ ModuleVersion = ''1.0.0'' }'
 
-            (Invoke-Compliance -Path $script:FixturePath).TotalFiles | Should -Be 3
+            (Invoke-Compliance -Path $script:FixturePath).TotalFiles | Should-Be 3
         }
 
         It 'Accepts a single file as the Path' {
             $file = New-Fixture -Name 'Single.ps1' -Content 'Write-Output 1'
 
-            (Invoke-Compliance -Path $file).TotalFiles | Should -Be 1
+            (Invoke-Compliance -Path $file).TotalFiles | Should-Be 1
         }
     }
 
@@ -91,9 +91,8 @@ function Process-Thing {
 '@
             $result = Invoke-Compliance -Path $script:FixturePath
 
-            $result.ComplianceIssues.RuleName | Should -Contain 'UseApprovedVerbs'
-            ($result.ComplianceIssues | Where-Object RuleName -eq 'UseApprovedVerbs').Message |
-                Should -Match 'Process'
+            $result.ComplianceIssues.RuleName | Should-ContainCollection 'UseApprovedVerbs'
+            ($result.ComplianceIssues | Where-Object RuleName -eq 'UseApprovedVerbs').Message | Should-MatchString 'Process'
         }
 
         It 'Does not flag a function using an approved verb' {
@@ -105,7 +104,7 @@ function Get-Thing {
 '@
             $result = Invoke-Compliance -Path $script:FixturePath
 
-            $result.ComplianceIssues.RuleName | Should -Not -Contain 'UseApprovedVerbs'
+            $result.ComplianceIssues.RuleName | Should-NotContainCollection 'UseApprovedVerbs'
         }
     }
 
@@ -120,14 +119,14 @@ Write-Output $config
 '@
             $result = Invoke-Compliance -Path $script:FixturePath
 
-            $result.SecurityIssues | Should -Not -BeNullOrEmpty
-            $result.SecurityIssues.Type | Should -Contain 'HardcodedPassword'
+            $result.SecurityIssues | Should-NotBeNull
+            $result.SecurityIssues.Type | Should-ContainCollection 'HardcodedPassword'
         }
 
         It 'Does not flag a file with no secrets' {
             New-Fixture -Name 'NoSecret.ps1' -Content 'Write-Output "nothing to see"'
 
-            (Invoke-Compliance -Path $script:FixturePath).SecurityIssues | Should -BeNullOrEmpty
+            (Invoke-Compliance -Path $script:FixturePath).SecurityIssues | Should-BeFalsy
         }
     }
 
@@ -144,7 +143,7 @@ Write-Output $items
 '@
             $result = Invoke-Compliance -Path $script:FixturePath
 
-            $result.PerformanceIssues.Type | Should -Contain 'ArrayAppending'
+            $result.PerformanceIssues.Type | Should-ContainCollection 'ArrayAppending'
         }
 
         It 'Flags += when the file targets 5.1' {
@@ -154,8 +153,7 @@ $items = @()
 foreach ($x in 1..10) { $items += $x }
 Write-Output $items
 '@
-            (Invoke-Compliance -Path $script:FixturePath).PerformanceIssues.Type |
-                Should -Contain 'ArrayAppending'
+            (Invoke-Compliance -Path $script:FixturePath).PerformanceIssues.Type | Should-ContainCollection 'ArrayAppending'
         }
 
         It 'Does not flag += when the file targets 7.6' {
@@ -165,8 +163,7 @@ $items = @()
 foreach ($x in 1..10) { $items += $x }
 Write-Output $items
 '@
-            (Invoke-Compliance -Path $script:FixturePath).PerformanceIssues.Type |
-                Should -Not -Contain 'ArrayAppending'
+            (Invoke-Compliance -Path $script:FixturePath).PerformanceIssues.Type | Should-NotContainCollection 'ArrayAppending'
         }
 
         It 'Flags ArrayList on any version' {
@@ -176,8 +173,7 @@ $items = [System.Collections.ArrayList]::new()
 [void]$items.Add(1)
 Write-Output $items
 '@
-            (Invoke-Compliance -Path $script:FixturePath).PerformanceIssues.Type |
-                Should -Contain 'LegacyCollectionType'
+            (Invoke-Compliance -Path $script:FixturePath).PerformanceIssues.Type | Should-ContainCollection 'LegacyCollectionType'
         }
     }
 
@@ -189,9 +185,9 @@ Write-Output $items
 
             Invoke-Compliance -Path $script:FixturePath -Extra @{ OutputFormat = 'JSON'; OutputPath = $out } | Out-Null
 
-            $out | Should -Exist
-            { Get-Content $out -Raw | ConvertFrom-Json } | Should -Not -Throw
-            (Get-Content $out -Raw | ConvertFrom-Json).TotalFiles | Should -Be 1
+            Test-Path $out | Should-BeTrue
+            $null = Get-Content $out -Raw | ConvertFrom-Json   # invalid JSON throws, failing the test
+            (Get-Content $out -Raw | ConvertFrom-Json).TotalFiles | Should-Be 1
         }
     }
 
@@ -200,13 +196,13 @@ Write-Output $items
         It 'Handles a directory with no PowerShell files' {
             $result = Invoke-Compliance -Path $script:FixturePath
 
-            $result.TotalFiles | Should -Be 0
+            $result.TotalFiles | Should-Be 0
         }
 
         It 'Emits exactly one results object, not one per code path' {
             New-Fixture -Name 'Sample.ps1' -Content 'Write-Output 1'
 
-            @(Invoke-Compliance -Path $script:FixturePath).Count | Should -Be 1
+            @(Invoke-Compliance -Path $script:FixturePath).Count | Should-Be 1
         }
     }
 
@@ -222,18 +218,18 @@ function Get-Clean {
 '@
             $result = Invoke-Compliance -Path $script:FixturePath
 
-            $result.Summary.OverallStatus | Should -Be 'PASSED'
-            $result.PassedFiles | Should -Be 1
-            $result.FailedFiles | Should -Be 0
+            $result.Summary.OverallStatus | Should-Be 'PASSED'
+            $result.PassedFiles | Should-Be 1
+            $result.FailedFiles | Should-Be 0
         }
 
         It 'Reports a run with a non-approved verb as FAILED' {
             New-Fixture -Name 'BadVerb.ps1' -Content 'function Process-Thing { Write-Output 1 }'
             $result = Invoke-Compliance -Path $script:FixturePath
 
-            $result.Summary.OverallStatus | Should -Be 'FAILED'
-            $result.FailedFiles | Should -Be 1
-            $result.Summary.CompliancePercentage | Should -Be 0
+            $result.Summary.OverallStatus | Should-Be 'FAILED'
+            $result.FailedFiles | Should-Be 1
+            $result.Summary.CompliancePercentage | Should-Be 0
         }
 
         It 'Totals analysis time across files as a TimeSpan' {
@@ -241,8 +237,8 @@ function Get-Clean {
             New-Fixture -Name 'B.ps1' -Content 'Write-Output 2'
             $result = Invoke-Compliance -Path $script:FixturePath
 
-            $result.Summary.TotalAnalysisTime | Should -BeOfType [TimeSpan]
-            $result.Summary.TotalAnalysisTime.Ticks | Should -BeGreaterThan 0
+            $result.Summary.TotalAnalysisTime | Should-HaveType ([TimeSpan])
+            $result.Summary.TotalAnalysisTime.Ticks | Should-BeGreaterThan 0
         }
 
         It 'Produces per-file results with distinct issue sets' {
@@ -254,8 +250,8 @@ function Get-Clean {
             # so issues leaked between files.
             $bad = $result.FileResults | Where-Object FileName -eq 'BadVerb.ps1'
             $clean = $result.FileResults | Where-Object FileName -eq 'Clean.ps1'
-            $bad.Issues.Count | Should -BeGreaterThan 0
-            $clean.Issues.Count | Should -Be 0
+            $bad.Issues.Count | Should-BeGreaterThan 0
+            $clean.Issues.Count | Should-Be 0
         }
 
         It 'Writes detailed output when -Detailed is supplied' {
@@ -264,7 +260,7 @@ function Get-Clean {
             $output = & $script:ScriptPath -Path $script:FixturePath -PassThru -Detailed `
                 -InformationAction Continue 6>&1 | Out-String
 
-            $output | Should -Match 'BadVerb\.ps1'
+            $output | Should-MatchString 'BadVerb\.ps1'
         }
 
         It 'Skips test files when -ExcludeTests is supplied' {
@@ -274,8 +270,8 @@ function Get-Clean {
             $withTests = Invoke-Compliance -Path $script:FixturePath
             $withoutTests = Invoke-Compliance -Path $script:FixturePath -Extra @{ ExcludeTests = $true }
 
-            $withTests.TotalFiles | Should -Be 2
-            $withoutTests.TotalFiles | Should -BeLessThan $withTests.TotalFiles
+            $withTests.TotalFiles | Should-Be 2
+            $withoutTests.TotalFiles | Should-BeLessThan $withTests.TotalFiles
         }
     }
 
@@ -287,8 +283,8 @@ function Get-Clean {
 
             Invoke-Compliance -Path $script:FixturePath -Extra @{ OutputFormat = 'XML'; OutputPath = $out } | Out-Null
 
-            $out | Should -Exist
-            (Get-Item $out).Length | Should -BeGreaterThan 0
+            Test-Path $out | Should-BeTrue
+            (Get-Item $out).Length | Should-BeGreaterThan 0
         }
 
         It 'Writes an HTML report' {
@@ -297,8 +293,8 @@ function Get-Clean {
 
             Invoke-Compliance -Path $script:FixturePath -Extra @{ OutputFormat = 'HTML'; OutputPath = $out } | Out-Null
 
-            $out | Should -Exist
-            Get-Content $out -Raw | Should -Match '<html'
+            Test-Path $out | Should-BeTrue
+            Get-Content $out -Raw | Should-MatchString '<html'
         }
     }
 }
