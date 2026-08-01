@@ -275,6 +275,87 @@ function Get-Clean {
         }
     }
 
+    Context 'Issue severity classification' {
+
+        It 'Counts an analyzer Error as critical' {
+            # PSAvoidUsingComputerNameHardcoded is an Error-severity rule
+            New-Fixture -Name 'HardCoded.ps1' -Content @'
+function Get-Thing {
+    Get-CimInstance -ComputerName "SERVER01" -ClassName Win32_OperatingSystem
+}
+'@
+            (Invoke-Compliance -Path $script:FixturePath).CriticalIssues | Should-BeGreaterThan 0
+        }
+
+        It 'Counts an analyzer Information finding as low' {
+            New-Fixture -Name 'Positional.ps1' -Content @'
+function Get-Thing {
+    Write-Output "a" "b" "c"
+}
+Get-Thing
+'@
+            $result = Invoke-Compliance -Path $script:FixturePath
+            ($result.LowIssues + $result.HighIssues) | Should-BeGreaterThan 0
+        }
+
+        It 'Counts a High-severity security pattern separately from Critical' {
+            # Invoke-Expression is classified High, not Critical
+            New-Fixture -Name 'Iex.ps1' -Content 'Invoke-Expression "Get-Date"'
+            $result = Invoke-Compliance -Path $script:FixturePath
+
+            $result.SecurityIssues.Type | Should-ContainCollection 'InvokeExpression'
+            $result.HighIssues | Should-BeGreaterThan 0
+        }
+    }
+
+    Context 'Detailed output' {
+
+        It 'Marks a compliant file as passing' {
+            New-Fixture -Name 'Clean.ps1' -Content @'
+function Get-Clean {
+    [CmdletBinding()]
+    param([Parameter(Mandatory)][string]$Name)
+    Write-Output $Name
+}
+'@
+            $output = & $script:ScriptPath -Path $script:FixturePath -PassThru -Detailed `
+                -InformationAction Continue 6>&1 | Out-String
+
+            $output | Should-MatchString '\[PASS\]'
+        }
+
+        It 'Lists security and performance findings when -Detailed is supplied' {
+            New-Fixture -Name 'Messy.ps1' -Content @'
+#requires -Version 5.1
+Invoke-Expression "Get-Date"
+$items = @()
+foreach ($x in 1..5) { $items += $x }
+Write-Output $items
+'@
+            $output = & $script:ScriptPath -Path $script:FixturePath -PassThru -Detailed `
+                -InformationAction Continue 6>&1 | Out-String
+
+            $output | Should-MatchString 'Security Issues'
+            $output | Should-MatchString 'Performance Issues'
+        }
+    }
+
+    Context 'Output failures' {
+
+        It 'Warns rather than throwing when the report cannot be written' {
+            New-Fixture -Name 'Sample.ps1' -Content 'Write-Output 1'
+            $unwritable = Join-Path $script:FixturePath 'no-such-directory\report.json'
+
+            $result = & $script:ScriptPath -Path $script:FixturePath -PassThru `
+                -OutputFormat 'JSON' -OutputPath $unwritable `
+                -InformationAction SilentlyContinue -WarningAction SilentlyContinue -WarningVariable warned
+
+            # The analysis result still comes back; only the file write failed
+            $result.TotalFiles | Should-Be 1
+            "$warned" | Should-MatchString 'Failed to save results'
+        }
+    }
+
     Context 'Additional output formats' {
 
         It 'Writes an XML report' {

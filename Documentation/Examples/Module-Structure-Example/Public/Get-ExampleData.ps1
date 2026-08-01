@@ -71,13 +71,11 @@ function Get-ExampleData {
     process {
         foreach ($name in $ServiceName) {
             try {
-                Write-Verbose "Querying $name via $($session.Endpoint)"
-
                 $result = [ExampleServiceResult]::new($name, $Environment, $CorrelationId)
 
-                # Stands in for a real query. Production is treated as degraded purely
-                # to show a non-uniform result set.
-                $result.Status = if ($Environment -eq 'Production') { 'Degraded' } else { 'Healthy' }
+                # The one fallible call in the loop. Keeping it in a helper is what
+                # makes the catch below reachable - and therefore testable.
+                $result.Status = Get-ExampleServiceStatus -ServiceName $name -Session $session
 
                 $result
             }
