@@ -26,7 +26,7 @@ Get-TemplateFunction -Name "ExampleItem"
 
 ## 📋 Prerequisites
 
-- PowerShell 5.1+ or PowerShell 7.x
+- PowerShell 7.6 (LTS) — or Windows PowerShell 5.1 if the manifest is configured for it
 - Required modules: PSFramework
 - Appropriate permissions for target operations
 

@@ -31,7 +31,7 @@
     Version: 1.0.0
 
     REQUIREMENTS:
-    - PowerShell 5.1+ or PowerShell 7.x
+    - PowerShell 7.6 (LTS) or Windows PowerShell 5.1
     - Write permissions to target directory
     - For Symlink: Administrator privileges (Windows)
 #>

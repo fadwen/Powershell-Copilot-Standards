@@ -24,7 +24,7 @@ Collect essential information for module development:
 - **Performance Targets**: Expected load, scalability, and response time requirements
 
 #### Technical Requirements
-- **PowerShell Versions**: Windows PowerShell 5.1, PowerShell 7.x, or both
+- **PowerShell Versions**: PowerShell 7.6 (LTS, default for new modules), or 5.1 + 7.6 when the module must run on Windows estates without pwsh. Do not target 7.4/7.5 alone — both lose support 10-Nov-2026
 - **Platform Support**: Windows, Linux, macOS, or cross-platform
 - **Integration Points**: External APIs, databases, file systems, or services
 - **Deployment Method**: PowerShell Gallery, internal repository, or direct installation
@@ -81,8 +81,10 @@ Generate comprehensive module manifest (ModuleName.psd1):
     Description = 'Comprehensive description of module functionality and business value'
 
     # PowerShell Version Requirements
-    PowerShellVersion = '5.1'
-    CompatiblePSEditions = @('Desktop', 'Core')
+    # Default to 7.6 (LTS). Switch to '5.1' + @('Desktop','Core') only when Windows PowerShell
+    # support is an explicit requirement — see instructions/powershell-version.instructions.md
+    PowerShellVersion = '7.6'
+    CompatiblePSEditions = @('Core')
 
     # Dependencies
     RequiredModules = @(

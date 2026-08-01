@@ -273,21 +273,39 @@ function Get-EnterpriseData {
 
 ### Collection Operations ✅
 ```powershell
-# ✅ For small collections (< 1000 items), simple approaches work fine
-$results = @()
-foreach ($item in $smallCollection) {
-    $results += Process-Item $item  # Acceptable for small collections
+# ✅ Best on every version: assign the loop output directly - zero per-iteration allocation
+$results = foreach ($item in $collection) {
+    Get-ProcessedItem -Item $item
 }
 
-# ✅ For large collections, use efficient approaches
+# ✅ Also good: pipeline output
+$results = $collection | ForEach-Object { Get-ProcessedItem -Item $_ }
+
+# ✅ When accumulation is genuinely conditional, use the generic List
 $results = [System.Collections.Generic.List[object]]::new()
 foreach ($item in $largeCollection) {
-    $results.Add((Process-Item $item))
+    if (Test-ItemRelevant -Item $item) {
+        $results.Add((Get-ProcessedItem -Item $item))
+    }
 }
 
-# ✅ Best: Use pipeline when possible
-$results = $collection | ForEach-Object { Process-Item $_ }
+# ⚠️ `+=` is version-dependent, not universally bad
+$results = @()
+foreach ($item in $smallCollection) { $results += Get-ProcessedItem -Item $item }
 ```
+
+**The `+=` rule changed in PowerShell 7.5.** PowerShell 7.5 optimized `+=` on object arrays; it
+now outperforms `List<T>.Add()` for that case. On Windows PowerShell 5.1 and PowerShell 7.4 it
+remains O(n²) and collapses on large collections.
+
+| Target | `+=` verdict |
+|--------|--------------|
+| 7.5+ | Fine for small and mid-size collections; still avoid in unbounded loops |
+| 5.1 / 7.4 | Avoid beyond a few hundred items |
+| Any | Direct loop assignment is always faster - prefer it |
+
+Do not generate `[System.Collections.ArrayList]`. It is a non-generic .NET 1.1 type that boxes
+values and forces `[void]` noise on every `.Add()`. Use `[System.Collections.Generic.List[T]]`.
 
 ### String Building - Context Matters
 ```powershell

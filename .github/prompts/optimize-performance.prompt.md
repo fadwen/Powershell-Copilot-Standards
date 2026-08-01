@@ -9,7 +9,7 @@ Analyze and optimize this PowerShell code from ${fileBasename} in the ${workspac
 **Performance Context:**
 - **Dataset Size**: ${input:datasetSize:Small (<100 items),Medium (100-1000 items),Large (1000+ items)}
 - **Performance Target**: ${input:performanceTarget:Execution time,Memory usage,Throughput,All}
-- **Current Environment**: ${input:environment:PowerShell 5.1,PowerShell 7.x,Cross-platform}
+- **Current Environment**: ${input:environment:PowerShell 7.6,Windows PowerShell 5.1,Cross-platform}
 - **Criticality**: ${input:criticality:Development,Production,Mission-critical}
 
 **Selected Code:**

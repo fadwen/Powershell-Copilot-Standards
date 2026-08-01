@@ -5,7 +5,7 @@
 ### Prerequisites
 - GitHub Copilot subscription
 - VS Code with GitHub Copilot extension
-- PowerShell 5.1+ or PowerShell 7.x
+- PowerShell 7.6 (LTS) recommended; Windows PowerShell 5.1 supported for legacy estates
 - Git for version control
 
 ### Step 1: Enable Copilot Instructions in VS Code

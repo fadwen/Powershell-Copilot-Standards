@@ -4,6 +4,11 @@ Targets **Pester 6.0+**. Pester 6 supports **Windows PowerShell 5.1** and **Powe
 support for PowerShell 3, 4, 6, and early/unsupported 7.x was removed, so drop `7.2` and `7.3` from
 existing test matrices.
 
+**Matrix targets (verified 2026-08-01):** build against **PowerShell 7.6 (LTS)**. PowerShell 7.4 and
+7.5 both reach end of support on **10-Nov-2026** - keep them in the matrix only while you still
+support consumers on those versions, and plan their removal. See
+[powershell-version.instructions.md](../powershell-version.instructions.md).
+
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
 
@@ -125,9 +130,16 @@ jobs:
     - name: Install Dependencies
       shell: ${{ matrix.shell }}
       run: |
-        Set-PSRepository PSGallery -InstallationPolicy Trusted
-        Install-Module Pester -MinimumVersion $env:PESTER_VERSION -Force -Scope CurrentUser
-        Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+        # Install-PSResource is in-box on PowerShell 7.4+; Windows PowerShell 5.1 needs PowerShellGet.
+        if (Get-Command Install-PSResource -ErrorAction SilentlyContinue) {
+            Install-PSResource Pester -Version "[$env:PESTER_VERSION,)" -Scope CurrentUser -TrustRepository
+            Install-PSResource PSScriptAnalyzer -Scope CurrentUser -TrustRepository
+        }
+        else {
+            Set-PSRepository PSGallery -InstallationPolicy Trusted
+            Install-Module Pester -MinimumVersion $env:PESTER_VERSION -Force -Scope CurrentUser
+            Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+        }
 
     - name: Run PSScriptAnalyzer
       shell: ${{ matrix.shell }}
@@ -271,9 +283,16 @@ jobs:
     - name: Install Dependencies
       shell: pwsh
       run: |
-        Set-PSRepository PSGallery -InstallationPolicy Trusted
-        Install-Module Pester -MinimumVersion $env:PESTER_VERSION -Force -Scope CurrentUser
-        Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+        # Install-PSResource is in-box on PowerShell 7.4+; Windows PowerShell 5.1 needs PowerShellGet.
+        if (Get-Command Install-PSResource -ErrorAction SilentlyContinue) {
+            Install-PSResource Pester -Version "[$env:PESTER_VERSION,)" -Scope CurrentUser -TrustRepository
+            Install-PSResource PSScriptAnalyzer -Scope CurrentUser -TrustRepository
+        }
+        else {
+            Set-PSRepository PSGallery -InstallationPolicy Trusted
+            Install-Module Pester -MinimumVersion $env:PESTER_VERSION -Force -Scope CurrentUser
+            Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+        }
 
     - name: Run Security Tests
       shell: pwsh
@@ -385,9 +404,12 @@ jobs:
 
 ### GitHub Actions Notes
 
-- `actions/setup-powershell` is not an official action. GitHub-hosted runners ship PowerShell 7.4+
-  preinstalled (`shell: pwsh`), and `windows-latest` also has Windows PowerShell 5.1
-  (`shell: powershell`). Select the shell rather than installing a version.
+- `actions/setup-powershell` is not an official action. GitHub-hosted runners ship a supported
+  PowerShell 7 preinstalled (`shell: pwsh`), and `windows-latest` also has Windows PowerShell 5.1
+  (`shell: powershell`). Select the shell rather than installing a version. If your gate requires a
+  specific release (for example 7.6 for `Join-Path` multi-segment or `Get-Command -ExcludeModule`),
+  assert it rather than assuming the runner image:
+  `if ($PSVersionTable.PSVersion -lt [version]'7.6') { throw "Need PowerShell 7.6+, got $($PSVersionTable.PSVersion)" }`
 - `::set-output` was disabled by GitHub in 2023. Write to `$GITHUB_OUTPUT` instead:
   `"name=value" | Out-File $env:GITHUB_OUTPUT -Append`.
 - `$config.Output.CIFormat = 'GithubActions'` makes Pester emit `::error` and `::warning`
@@ -744,9 +766,14 @@ variables:
 # GitLab needs JUnit for test results and Cobertura for coverage. Pester 6
 # supports both natively - set TestResult.OutputFormat = 'JUnitXml' and
 # CodeCoverage.OutputFormat = 'Cobertura' in PesterConfiguration.CI.psd1.
+#
+# Container images: the `mcr.microsoft.com/powershell` images are DEPRECATED. PowerShell now
+# ships inside the .NET SDK images - `mcr.microsoft.com/dotnet/sdk:10.0` carries PowerShell 7.6
+# (.NET 10 LTS). Microsoft publishes these for development and testing only; build and maintain
+# your own image for production pipelines.
 test:windows:
   stage: test
-  image: mcr.microsoft.com/powershell:lts-windowsservercore-ltsc2019
+  image: mcr.microsoft.com/dotnet/sdk:10.0-windowsservercore-ltsc2022
   <<: *powershell_template
   script:
     - ./Invoke-Tests.ps1 -TestType Unit -Environment CI -CodeCoverage
@@ -763,7 +790,7 @@ test:windows:
 
 test:linux:
   stage: test
-  image: mcr.microsoft.com/powershell:lts-ubuntu-22.04
+  image: mcr.microsoft.com/dotnet/sdk:10.0
   <<: *powershell_template
   script:
     # Parallel is safe here - no coverage on this job
@@ -774,7 +801,7 @@ test:linux:
 
 security:
   stage: security
-  image: mcr.microsoft.com/powershell:lts-windowsservercore-ltsc2019
+  image: mcr.microsoft.com/dotnet/sdk:10.0-windowsservercore-ltsc2022
   <<: *powershell_template
   script:
     - ./Invoke-Tests.ps1 -TestType Security -Environment CI
@@ -782,7 +809,7 @@ security:
 
 deploy:
   stage: deploy
-  image: mcr.microsoft.com/powershell:lts-windowsservercore-ltsc2019
+  image: mcr.microsoft.com/dotnet/sdk:10.0-windowsservercore-ltsc2022
   script:
     - Write-Host "Deploying to PowerShell Gallery..."
   only:

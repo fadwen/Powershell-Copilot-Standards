@@ -15,7 +15,7 @@ First, determine the pipeline requirements:
 
 ### Project Information Needed
 - **Platform Preference**: Azure DevOps, GitHub Actions, GitLab CI, or Jenkins
-- **PowerShell Versions**: Windows PowerShell 5.1, PowerShell 7.x, or both
+- **PowerShell Versions**: PowerShell 7.6 (LTS, default), or 5.1 + 7.6 when Windows PowerShell support is required. Retire 7.4/7.5-only matrices before 10-Nov-2026, when both reach end of support
 - **Target Environments**: Development, Testing, Staging, Production
 - **Deployment Targets**: PowerShell Gallery, internal repositories, or direct deployment
 - **Security Requirements**: Code signing, credential management, compliance scanning
