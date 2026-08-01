@@ -679,12 +679,27 @@ For specialized scenarios, reference these instruction files:
 - **Community Standards**: [Best Practices Integration](./instructions/community-standards.instructions.md)
 - **Style Enforcement**: [Style Guide Compliance](./instructions/style-enforcement.instructions.md)
 
+### Worked Examples
+
+Prefer matching these over inventing a shape. Each is complete, runs, and passes the quality gates
+described above:
+
+| Need | Example |
+|---|---|
+| A complete advanced function | [Basic-Function-Example.ps1](../Documentation/Examples/Basic-Function-Example.ps1) |
+| Module layout and export boundary | [Module-Structure-Example](../Documentation/Examples/Module-Structure-Example/) |
+| Pester 6 tests, including private functions | [Module-Structure-Example/Tests](../Documentation/Examples/Module-Structure-Example/Tests/) |
+| Mocking CIM and typed parameters | [Testing-Examples](../Documentation/Examples/Testing-Examples/) |
+| A module template to copy | [Templates/Powershell-Module](../Templates/Powershell-Module/) |
+
+[Test-QualityGates.ps1](../Documentation/Examples/Test-QualityGates.ps1) is the exception: it
+intentionally violates these standards so the gates have something to catch. Never use it as a model.
+
 ### Implementation Documentation
 
 - [Implementation Guide](../Documentation/Implementation-Guide.md): Step-by-step setup and adoption
 - [PowerShell Best Practices](../Documentation/PowerShell-Best-Practices.md): Comprehensive community standards
 - [Enterprise Extensions](../Documentation/Enterprise-Extensions.md): Organizational customizations
-- [Examples](../Documentation/Examples/): Working code demonstrating these standards
 - [Troubleshooting Guides](../Troubleshooting/): Organized problem-solving resources
 
 ---

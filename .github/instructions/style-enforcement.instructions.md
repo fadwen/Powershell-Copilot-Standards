@@ -7,6 +7,10 @@ description: 'Automatic style guide enforcement'
 
 Automatically enforce PowerShell community style guidelines in all code generation.
 
+> **Worked example**: every file under
+> [Documentation/Examples](../../Documentation/Examples/) is written to these rules and passes the
+> repository's own quality gates. When the wording here is ambiguous, match the examples.
+
 ## Mandatory Style Patterns
 
 ### Code Formatting

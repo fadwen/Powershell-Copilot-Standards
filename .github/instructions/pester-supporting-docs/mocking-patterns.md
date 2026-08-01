@@ -54,6 +54,25 @@ You no longer need `Write-Host` debugging to work out why a parameter filter did
 Aliases are matched in `-ParameterFilter`, and mocking falls back gracefully when a command cannot
 produce dynamic parameters.
 
+### Mocking inside a module
+
+A mock declared in a test file replaces the command for callers in that file. To replace a function
+that a _module's_ code calls - typically a private helper - declare the mock inside
+`InModuleScope`, where the module's internal scope is visible:
+
+```powershell
+InModuleScope MyModule {
+    Mock Get-ServiceStatus { throw 'service unreachable' }
+
+    # Get-Data is public; Get-ServiceStatus is private and never exported
+    'Billing', 'Identity' | Get-Data -ErrorAction SilentlyContinue
+}
+```
+
+Worked instance:
+[Module-Structure-Example/Tests](../../../Documentation/Examples/Module-Structure-Example/Tests/)
+mocks a private function this way to exercise a per-item failure path.
+
 ## Advanced Mocking Strategies
 
 ### Context-Aware Mocking

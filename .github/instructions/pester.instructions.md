@@ -137,6 +137,47 @@ tags" - never use it as a literal tag. Verify tagging coverage with:
 Invoke-Pester -Path ./Tests -TagFilter 'None'   # should find zero tests
 ```
 
+### Testing Private Functions
+
+A module built to these standards exports only what `FunctionsToExport` names, so private functions
+are unreachable from a test file. Use `InModuleScope` to run assertions inside the module's scope,
+where internal functions and classes are visible:
+
+```powershell
+It 'Returns a session for the target environment' {
+    InModuleScope MyModule {
+        $session = Connect-Service -Environment 'Test' -CorrelationId ([guid]::NewGuid())
+        $session.Environment | Should-Be 'Test'
+    }
+}
+```
+
+`InModuleScope` is also how you mock a private function that a public one calls, and how you reach a
+class defined in `Classes/`:
+
+```powershell
+InModuleScope MyModule {
+    Mock Get-ServiceStatus { throw 'unreachable' }
+    'A', 'B' | Get-Data -ErrorAction SilentlyContinue | Should-BeFalsy
+}
+```
+
+Do not export a function purely to make it testable - that widens the public contract to serve the
+tests. Reach into the module instead.
+
+### Worked Examples
+
+These are complete, passing implementations of the patterns above. Prefer matching them over
+inventing a structure:
+
+- [Module-Structure-Example/Tests](../../Documentation/Examples/Module-Structure-Example/Tests/) -
+  module contract, class assertions, `InModuleScope` for two private functions, and a per-item
+  failure path
+- [Testing-Examples/Basic-Function.Tests.ps1](../../Documentation/Examples/Testing-Examples/Basic-Function.Tests.ps1) -
+  CIM mocking, `-RemoveParameterType`, `-TestCases`, and mock scoping across contexts
+- [Tools/Tests](../../Tools/Tests/) - tests for the repository's own tooling, including fixture
+  files written per test and error-path coverage
+
 ### Documentation Integration
 
 All test implementations must reference:
