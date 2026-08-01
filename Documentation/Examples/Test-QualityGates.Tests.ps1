@@ -12,11 +12,34 @@ BeforeAll {
     if (Test-Path $TestFilePath) {
         . $TestFilePath
     }
+
+    # Test-QualityGates calls Get-ADUser, which ships with RSAT and is absent on CI
+    # runners and non-Windows hosts. Pester cannot mock a command that does not
+    # exist, so define a stub for Mock to replace. Every test that exercises the
+    # function must mock it - otherwise the stub returns nothing and the function's
+    # own "User not found" guard fires.
+    if (-not (Get-Command Get-ADUser -ErrorAction SilentlyContinue)) {
+        function Get-ADUser {
+            [CmdletBinding()]
+            param(
+                [Parameter(Mandatory)] $Identity,
+                [Parameter()] $Properties,
+                [Parameter()] $Server
+            )
+        }
+    }
 }
 
 Describe "Test-QualityGates Function" -Tag "Unit", "QualityDemo" {
 
     Context "Parameter Validation" {
+        BeforeEach {
+            # Without this the stub returns $null and the function throws "User not found"
+            Mock Get-ADUser {
+                [PSCustomObject]@{ Name = 'Test User'; SamAccountName = 'testuser'; Enabled = $true }
+            }
+        }
+
         It "Should accept valid UserName parameter" {
             { Test-QualityGates -UserName "testuser" } | Should -Not -Throw
         }
@@ -100,16 +123,21 @@ Describe "Get-TestResults Function" -Tag "Unit", "GoodExample" {
         }
 
         It "Should handle empty test name appropriately" {
-            { Get-TestResults -TestName "" } | Should -Throw "*cannot be empty*"
+            # A Mandatory [string] rejects '' during binding, before the body runs,
+            # so the message comes from PowerShell - not the function's own guard.
+            { Get-TestResults -TestName "" } | Should -Throw "*empty string*"
         }
 
         It "Should handle whitespace-only test name" {
-            { Get-TestResults -TestName "   " } | Should -Throw "*cannot be empty*"
+            # Whitespace binds fine, so the function's own validation produces this one
+            { Get-TestResults -TestName "   " } | Should -Throw "*cannot be empty or whitespace*"
         }
 
         It "Should return properly typed result" {
             $result = Get-TestResults -TestName "TypeTest"
-            $result.PSTypeName | Should -Be "TestResult"
+            # PSTypeName is consumed when constructing the object; it sets the type
+            # name rather than remaining as a readable property.
+            $result.PSObject.TypeNames[0] | Should -Be "TestResult"
             $result.Status | Should -Be "Passed"
         }
 
