@@ -426,7 +426,7 @@ $discovered = Invoke-Pester -Configuration $config
 
 Use **single quotes** for patterns containing `$`. In the original template
 `"$(Get-Process)"` was a double-quoted string, so PowerShell expanded it at parse time and the test
-fed the *output of `Get-Process`* to the function instead of the literal injection string.
+fed the _output of `Get-Process`_ to the function instead of the literal injection string.
 
 ```powershell
 '$(Get-Process)'          # literal - what you want to test
