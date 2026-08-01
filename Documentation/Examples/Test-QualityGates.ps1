@@ -153,7 +153,9 @@ function Get-TestResults {
     TestResult. Returns test execution results.
     #>
     [CmdletBinding()]
-    [OutputType([TestResult])]  # Descriptive type name
+    # Descriptive type name. Quoted: 'TestResult' is the PSTypeName applied to the
+    # output object below, not a .NET type - [OutputType([TestResult])] fails to resolve.
+    [OutputType('TestResult')]
     param(
         [Parameter(Mandatory)]  # No redundant ValidateNotNullOrEmpty
         [string]$TestName,
