@@ -20,6 +20,18 @@ Automatically enforce PowerShell community style guidelines in all code generati
 - **Line Length**: Maximum 115 characters
 - **Blank Lines**: 2 blank lines before functions, 1 between methods
 
+A team that wants these checked mechanically does not need a settings file - PSScriptAnalyzer ships
+`CodeFormattingOTBS`, which already configures the brace style, 4-space indentation, whitespace and
+assignment alignment above:
+
+```powershell
+Invoke-ScriptAnalyzer -Path . -Recurse -Settings CodeFormattingOTBS
+```
+
+The 115-character limit is the one rule it does not include; add `PSAvoidLongLines` if the team
+wants it enforced. Adopting either is their choice - these standards describe the practices, not the
+audit configuration.
+
 ### Parameter Formatting
 
 ```powershell
