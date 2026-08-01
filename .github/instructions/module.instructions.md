@@ -7,14 +7,17 @@ description: 'Creates enterprise-grade PowerShell modules with proper structure,
 
 # PowerShell Module Development Assistant
 
-Create comprehensive, enterprise-grade PowerShell modules that follow organizational standards, implement security best practices, and provide scalable functionality for business operations.
+Create comprehensive, enterprise-grade PowerShell modules that follow organizational standards, implement security best
+practices, and provide scalable functionality for business operations.
 
 ## Module Planning and Design
 
 ### Initial Requirements Gathering
+
 Collect essential information for module development:
 
 #### Module Specifications
+
 - **Module Name**: Following PowerShell naming conventions (noun should be singular)
 - **Primary Purpose**: Clear business value and functional scope
 - **Target Audience**: System administrators, developers, end users, or automation systems
@@ -24,7 +27,9 @@ Collect essential information for module development:
 - **Performance Targets**: Expected load, scalability, and response time requirements
 
 #### Technical Requirements
-- **PowerShell Versions**: PowerShell 7.6 (LTS, default for new modules), or 5.1 + 7.6 when the module must run on Windows estates without pwsh. Do not target 7.4/7.5 alone — both lose support 10-Nov-2026
+
+- **PowerShell Versions**: PowerShell 7.6 (LTS, default for new modules), or 5.1 + 7.6 when the module must run on
+  Windows estates without pwsh. Do not target 7.4/7.5 alone — both lose support 10-Nov-2026
 - **Platform Support**: Windows, Linux, macOS, or cross-platform
 - **Integration Points**: External APIs, databases, file systems, or services
 - **Deployment Method**: PowerShell Gallery, internal repository, or direct installation
@@ -32,9 +37,10 @@ Collect essential information for module development:
 ## Module Structure Generation
 
 ### Standard Module Directory Structure
+
 Create the complete module structure following enterprise standards:
 
-```
+```text
 ModuleName/
 ├── ModuleName.psd1                 # Module manifest
 ├── ModuleName.psm1                 # Root module file
@@ -67,6 +73,7 @@ ModuleName/
 ```
 
 ### Module Manifest Creation
+
 Generate comprehensive module manifest (ModuleName.psd1):
 
 ```powershell
@@ -115,6 +122,7 @@ Generate comprehensive module manifest (ModuleName.psd1):
 ```
 
 ### Root Module Implementation
+
 Create optimized root module file (ModuleName.psm1):
 
 ```powershell
@@ -168,6 +176,7 @@ $ExecutionContext.SessionState.Module.OnRemove = {
 ## Function Development
 
 ### Public Function Template
+
 Generate public functions following enterprise standards:
 
 ```powershell
@@ -235,6 +244,7 @@ function Verb-Noun {
 ```
 
 ### Class Development
+
 Create PowerShell classes with proper validation and methods:
 
 ```powershell
@@ -275,6 +285,7 @@ class ModuleConfiguration {
 ## Security Implementation
 
 ### Input Validation and Sanitization
+
 Implement comprehensive input validation:
 
 ```powershell
@@ -313,6 +324,7 @@ function Protect-UserInput {
 ```
 
 ### Credential Management Integration
+
 Implement secure credential handling:
 
 ```powershell
@@ -338,6 +350,7 @@ function Get-ModuleCredential {
 ## Testing Framework Integration
 
 ### Pester Test Structure
+
 Generate comprehensive test suites targeting **Pester 6.0+**:
 
 ```powershell
@@ -402,6 +415,7 @@ every file must import its own dependencies. See
 ## Performance Optimization
 
 ### Efficient Resource Management
+
 Implement performance best practices:
 
 ```powershell
@@ -434,6 +448,7 @@ function Process-LargeDataSet {
 ```
 
 ### Caching Implementation
+
 Add intelligent caching for improved performance:
 
 ```powershell
@@ -462,6 +477,7 @@ function Get-CachedResult {
 ## Documentation and Troubleshooting
 
 ### README Generation
+
 Create comprehensive README following enterprise standards:
 
 ```markdown
@@ -490,9 +506,10 @@ Links to additional documentation and resources
 ```
 
 ### Troubleshooting Documentation Structure
+
 Organize troubleshooting documentation in standardized folders:
 
-```
+```text
 Troubleshooting/
 ├── Common/
 │   ├── Installation-Issues.md
@@ -512,7 +529,9 @@ Troubleshooting/
 ## Quality Assurance Requirements
 
 ### Pre-Release Checklist
+
 Ensure module meets all quality standards:
+
 - [ ] All public functions have comprehensive comment-based help
 - [ ] Pester tests achieve minimum 80% code coverage
 - [ ] PSScriptAnalyzer validation passes with no errors
@@ -523,7 +542,9 @@ Ensure module meets all quality standards:
 - [ ] Troubleshooting guides organized in proper folder structure
 
 ### PowerShell Gallery Preparation
+
 Prepare module for publication:
+
 - [ ] Module manifest includes all required metadata
 - [ ] License file included and referenced
 - [ ] README provides clear installation and usage instructions
@@ -531,4 +552,6 @@ Prepare module for publication:
 - [ ] Version follows semantic versioning principles
 - [ ] Dependencies clearly documented and available
 
-Generate comprehensive PowerShell modules that follow all enterprise standards, implement proper security controls, include comprehensive testing, and provide excellent documentation with organized troubleshooting resources in the `./Troubleshooting/` folder structure.
+Generate comprehensive PowerShell modules that follow all enterprise standards, implement proper security controls,
+include comprehensive testing, and provide excellent documentation with organized troubleshooting resources in the
+`./Troubleshooting/` folder structure.

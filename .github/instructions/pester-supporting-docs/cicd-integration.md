@@ -34,6 +34,7 @@ validate (discovery-only, fast)
 ## GitHub Actions Integration
 
 ### Complete GitHub Actions Workflow
+
 ```yaml
 name: PowerShell Testing
 
@@ -421,6 +422,7 @@ jobs:
 ## Azure DevOps Integration
 
 ### Azure Pipelines YAML
+
 ```yaml
 # azure-pipelines.yml
 trigger:
@@ -641,6 +643,7 @@ stages:
 ## Jenkins Integration
 
 ### Jenkinsfile
+
 ```groovy
 pipeline {
     agent none
@@ -749,6 +752,7 @@ pipeline {
 ## GitLab CI Integration
 
 ### .gitlab-ci.yml
+
 ```yaml
 stages:
   - test
@@ -820,6 +824,7 @@ deploy:
 ## CI/CD Best Practices
 
 ### Environment Variables
+
 ```powershell
 # Common environment variables for CI/CD
 $env:POWERSHELL_TELEMETRY_OPTOUT = '1'
@@ -875,6 +880,7 @@ Get-ChildItem ./Tests/Unit -Recurse -Filter *.Tests.ps1 | ForEach-Object {
 ```
 
 ### Artifact Management
+
 ```powershell
 # Standardized artifact collection
 $artifacts = @{

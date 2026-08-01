@@ -62,6 +62,7 @@ Keep `Get-Random` for values consumed inside `It` bodies, where the name is alre
 ## Test Data Organization
 
 ### Test Data Directory Structure
+
 ```text
 Tests/
 ├── TestData/
@@ -97,6 +98,7 @@ Tests/
 ## Test Data Factory
 
 ### Comprehensive Test Data Factory
+
 ```powershell
 # TestHelpers/TestDataFactory.ps1
 
@@ -480,6 +482,7 @@ function Clear-TestDataCache {
 ## Static Test Data Files
 
 ### Configuration Files
+
 ```powershell
 # TestData/Configurations/testing.psd1
 @{
@@ -509,6 +512,7 @@ function Clear-TestDataCache {
 ```
 
 ### Sample Data Files
+
 ```json
 // TestData/SampleData/users.json
 [
@@ -536,6 +540,7 @@ function Clear-TestDataCache {
 ## Test Data Best Practices
 
 ### Data Isolation
+
 ```powershell
 BeforeEach {
     # Create isolated test data for each test.
@@ -567,6 +572,7 @@ BeforeAll {
 ```
 
 ### Data Validation
+
 ```powershell
 function Test-TestDataIntegrity {
     param([object[]]$Data, [string]$Type)
@@ -592,6 +598,7 @@ function Test-TestDataIntegrity {
 stops at the first failure and does not tell you the index.
 
 ### Performance Test Data
+
 ```powershell
 function New-PerformanceTestData {
     param([int]$ItemCount = 1000, [string]$DataType = 'Users')
@@ -619,6 +626,7 @@ function New-PerformanceTestData {
 ```
 
 ### Secure Test Data
+
 ```powershell
 function New-SecureTestCredentials {
     param([int]$Count = 5)

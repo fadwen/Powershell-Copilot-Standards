@@ -6,11 +6,13 @@ description: 'Security analysis with modern PowerShell patterns'
 Perform comprehensive security analysis on this PowerShell code:
 
 **Selected Code:**
+
 ```powershell
 ${selection}
 ```
 
 **Analysis Context:**
+
 - Compliance framework: ${input:complianceFramework:SOX,GDPR,HIPAA,PCI-DSS,General:General}
 - Environment: ${input:environment:Development,Testing,Production:Production}
 - File: ${fileBasename}

@@ -4,7 +4,7 @@ This template provides a standardized structure for PowerShell script collection
 
 ## 📁 Structure
 
-```
+```text
 ScriptCollection/
 ├── Scripts/
 │   ├── Administration/
@@ -26,6 +26,7 @@ ScriptCollection/
 ## 📋 Standards
 
 All scripts must include:
+
 - Comprehensive comment-based help
 - Parameter validation
 - Error handling with correlation IDs

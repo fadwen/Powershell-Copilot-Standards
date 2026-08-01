@@ -17,6 +17,7 @@ text descriptions and standard ASCII characters only.
 ## Quick Reference
 
 ### Test Structure Requirements
+
 - **Directory Structure**: Follow [Test Structure Guide](./pester-supporting-docs/test-structure-guide.md)
 - **Coverage Target**: Minimum 80% code coverage for production code
 - **Test Types**: Unit (mandatory), Integration, Performance, Security
@@ -24,13 +25,16 @@ text descriptions and standard ASCII characters only.
 - **File Isolation**: Every test file must be self-contained - see below
 
 ### Core Test Patterns
+
 Generate tests using these templates:
+
 - **Unit Tests**: Use [Unit Test Template](./pester-supporting-docs/unit-test-template.md)
 - **Integration Tests**: Use [Integration Test Template](./pester-supporting-docs/integration-test-template.md)
 - **Performance Tests**: Use [Performance Test Template](./pester-supporting-docs/performance-test-template.md)
 - **Security Tests**: Use [Security Test Template](./pester-supporting-docs/security-test-template.md)
 
 ### Assertions
+
 - **Guide**: Use [Assertion Guide](./pester-supporting-docs/assertion-guide.md)
 - **New test files**: prefer the Pester 6 `Should-*` assertions (dash, no space) - they are
   type-aware and produce far better failure messages.
@@ -39,14 +43,17 @@ Generate tests using these templates:
 - **Do not** set `Should.DisableV5 = $true` until every test file in the repository is migrated.
 
 ### Migrating From Pester 5
+
 Follow the [Pester 6 Migration Guide](./pester-supporting-docs/v6-migration.md). The three changes
 that break existing suites outright:
+
 1. `Assert-MockCalled` and `Assert-VerifiableMock` were **removed** - use `Should -Invoke` /
    `Should -InvokeVerifiable` (or `Should-Invoke` / `Should-NotInvoke`).
 2. Duplicate `BeforeAll`/`BeforeEach`/`AfterAll`/`AfterEach` in the same block now **throw**.
 3. `-Focus` and `Set-ItResult -Pending` were **removed**.
 
 ### Test Requirements Checklist
+
 - [ ] **File Isolation**: File imports its own modules and does its own discovery-time setup
 - [ ] **Parameter Validation**: Test all input validation scenarios
 - [ ] **Error Handling**: Verify graceful error handling with meaningful messages
@@ -57,11 +64,13 @@ that break existing suites outright:
 - [ ] **Non-Empty Test Cases**: No `-ForEach`/`-TestCases` expression can yield `$null` or `@()`
 
 ### Configuration & Execution
+
 - **Configuration**: Use [Pester Configuration Guide](./pester-supporting-docs/pester-configuration.md)
 - **Test Execution**: Use [Test Execution Guide](./pester-supporting-docs/test-execution.md)
 - **CI/CD Integration**: Follow [CI/CD Integration Guide](./pester-supporting-docs/cicd-integration.md)
 
 ### Quality Standards
+
 - **Execution Speed**: Unit tests <30s total, integration tests <5min
 - **Test Isolation**: Tests must be independent and repeatable
 - **Documentation**: Include troubleshooting references in `./Troubleshooting/` folder
@@ -105,6 +114,7 @@ When several files share bootstrap, use `Run.BeforeContainer` or a `Pester.Befor
 the repository root rather than relying on another file having run first.
 
 ### Quick Test Generation Pattern
+
 ```powershell
 # Standard test structure for any function
 Describe "Function-Name" -Tag "Unit", "Public" {
@@ -128,7 +138,9 @@ Invoke-Pester -Path ./Tests -TagFilter 'None'   # should find zero tests
 ```
 
 ### Documentation Integration
+
 All test implementations must reference:
+
 - **Troubleshooting**: Link to `./Troubleshooting/` folder documentation
 - **Supporting Guides**: Reference detailed templates and patterns
 - **Enterprise Standards**: Follow established PowerShell development practices

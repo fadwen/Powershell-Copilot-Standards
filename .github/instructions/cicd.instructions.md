@@ -7,20 +7,24 @@ description: 'Sets up comprehensive CI/CD pipelines for PowerShell projects with
 
 # PowerShell CI/CD Pipeline Configuration
 
-Create robust CI/CD pipelines for PowerShell projects with automated testing, quality gates, security scanning, and deployment automation. Support multiple platforms while maintaining enterprise standards.
+Create robust CI/CD pipelines for PowerShell projects with automated testing, quality gates, security scanning, and
+deployment automation. Support multiple platforms while maintaining enterprise standards.
 
 ## Pipeline Requirements Assessment
 
 First, determine the pipeline requirements:
 
 ### Project Information Needed
+
 - **Platform Preference**: Azure DevOps, GitHub Actions, GitLab CI, or Jenkins
-- **PowerShell Versions**: PowerShell 7.6 (LTS, default), or 5.1 + 7.6 when Windows PowerShell support is required. Retire 7.4/7.5-only matrices before 10-Nov-2026, when both reach end of support
+- **PowerShell Versions**: PowerShell 7.6 (LTS, default), or 5.1 + 7.6 when Windows PowerShell support is required.
+  Retire 7.4/7.5-only matrices before 10-Nov-2026, when both reach end of support
 - **Target Environments**: Development, Testing, Staging, Production
 - **Deployment Targets**: PowerShell Gallery, internal repositories, or direct deployment
 - **Security Requirements**: Code signing, credential management, compliance scanning
 
 ### Quality Gates to Implement
+
 - **Code Quality**: PSScriptAnalyzer validation with zero errors
 - **Testing**: Minimum 80% code coverage with Pester tests
 - **Security**: Credential scanning and vulnerability assessment
@@ -30,6 +34,7 @@ First, determine the pipeline requirements:
 ## Pipeline Configuration
 
 ### Azure DevOps Pipeline
+
 Generate complete Azure DevOps YAML pipeline with:
 
 ```yaml
@@ -43,6 +48,7 @@ stages:
 ```
 
 **Required Pipeline Features:**
+
 - Multi-stage pipeline with approval gates
 - Parallel job execution for different PowerShell versions
 - Artifact management and retention
@@ -51,6 +57,7 @@ stages:
 - Automated rollback on deployment failure
 
 ### GitHub Actions Workflow
+
 Create comprehensive GitHub Actions workflow including:
 
 ```yaml
@@ -64,6 +71,7 @@ jobs:
 ```
 
 **Required Workflow Features:**
+
 - Matrix builds for PowerShell version compatibility
 - Conditional execution based on branch and tags
 - Secret management with GitHub Secrets
@@ -74,6 +82,7 @@ jobs:
 ### Quality Gate Implementation
 
 #### Code Quality Validation
+
 ```powershell
 # PSScriptAnalyzer execution with enterprise rules
 $analysisResults = Invoke-ScriptAnalyzer -Path . -Recurse -Settings PSGallery
@@ -84,6 +93,7 @@ if ($analysisResults) {
 ```
 
 #### Testing and Coverage
+
 ```powershell
 # Pester 6 test execution with coverage
 Import-Module Pester -MinimumVersion 6.0.0 -Force
@@ -115,6 +125,7 @@ if ($coverage -lt 80) {
 See [Pester instructions](./pester.instructions.md) for the full testing standards.
 
 #### Security Scanning
+
 ```powershell
 # Credential and security scanning
 $securityScan = Test-ScriptSecurity -Path . -RecursiveSearch
@@ -127,21 +138,27 @@ if ($securityScan.HighRiskFindings) {
 ## Deployment Strategies
 
 ### Environment Promotion
+
 Design deployment pipeline with:
+
 - **Development**: Automatic deployment on feature branch commits
 - **Testing**: Automatic deployment on main branch commits
 - **Staging**: Manual approval required, mirrors production
 - **Production**: Requires multiple approvals and change management
 
 ### Blue-Green Deployment
+
 Implement zero-downtime deployment strategy:
+
 - Deploy to inactive environment slot
 - Run smoke tests and health checks
 - Switch traffic to new deployment
 - Keep previous version for rapid rollback
 
 ### PowerShell Gallery Publishing
+
 Configure automated publishing with:
+
 - Semantic versioning based on commit messages
 - Pre-release versions for development branches
 - Release notes generation from changelog
@@ -150,21 +167,27 @@ Configure automated publishing with:
 ## Security Integration
 
 ### Code Signing
+
 Set up automated code signing:
+
 - Certificate management in secure storage
 - Timestamp server configuration
 - Validation of signature integrity
 - Support for different certificate types per environment
 
 ### Credential Management
+
 Implement secure credential handling:
+
 - Integration with Azure Key Vault or GitHub Secrets
 - No hardcoded credentials in pipeline files
 - Secure injection of credentials at runtime
 - Audit logging of credential access
 
 ### Vulnerability Scanning
+
 Configure security scanning tools:
+
 - Dependency vulnerability scanning
 - Static code analysis for security issues
 - Container scanning (if using containerized builds)
@@ -173,14 +196,18 @@ Configure security scanning tools:
 ## Performance Monitoring
 
 ### Build Performance
+
 Monitor and optimize:
+
 - Build execution time tracking
 - Test execution duration monitoring
 - Artifact size optimization
 - Resource usage monitoring
 
 ### Deployment Metrics
+
 Track deployment success:
+
 - Deployment frequency and duration
 - Failure rates and root causes
 - Mean time to recovery (MTTR)
@@ -189,14 +216,18 @@ Track deployment success:
 ## Troubleshooting Integration
 
 ### Pipeline Diagnostics
+
 Implement comprehensive logging:
+
 - Correlation IDs throughout pipeline execution
 - Structured logging with appropriate detail levels
 - Integration with centralized logging systems
 - Error categorization and automated triage
 
 ### Documentation Generation
+
 Automate troubleshooting documentation:
+
 - Generate pipeline status reports
 - Create deployment summaries
 - Update troubleshooting guides in `./Troubleshooting/` folder
@@ -207,17 +238,20 @@ Automate troubleshooting documentation:
 Provide ready-to-use pipeline configurations for:
 
 ### Basic PowerShell Module Pipeline
+
 - Simple module with unit tests
 - PowerShell Gallery publishing
 - Multi-version compatibility testing
 
 ### Enterprise Application Pipeline
+
 - Complex multi-module solution
 - Integration testing with external dependencies
 - Security compliance validation
 - Multi-environment deployment
 
 ### Script Library Pipeline
+
 - Collection of standalone PowerShell scripts
 - Individual script validation and testing
 - Centralized distribution and versioning
@@ -225,18 +259,21 @@ Provide ready-to-use pipeline configurations for:
 ## Best Practices Implementation
 
 ### Pipeline as Code
+
 - Version control all pipeline definitions
 - Use templates and reusable components
 - Implement proper change management
 - Maintain pipeline documentation
 
 ### Monitoring and Alerting
+
 - Pipeline execution monitoring
 - Failure notification systems
 - Performance trend analysis
 - SLA tracking and reporting
 
 ### Compliance and Governance
+
 - Audit trail maintenance
 - Change approval workflows
 - Security scanning integration
@@ -253,4 +290,5 @@ Generate complete pipeline configuration including:
 5. **Documentation**: Pipeline setup guide and troubleshooting procedures
 6. **Monitoring Configuration**: Dashboards and alerting rules
 
-Ensure all generated configurations follow enterprise PowerShell development standards and integrate with the established troubleshooting documentation structure in `./Troubleshooting/` folders.
+Ensure all generated configurations follow enterprise PowerShell development standards and integrate with the
+established troubleshooting documentation structure in `./Troubleshooting/` folders.

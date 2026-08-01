@@ -5,6 +5,7 @@
 ### Error Handling
 
 #### Modern Error Handling
+
 ```powershell
 try {
     $result = Invoke-Operation -Parameter $value
@@ -20,6 +21,7 @@ catch {
 ```
 
 #### Context-Appropriate Null Handling
+
 ```powershell
 # ✅ Simple null check for existence testing (efficient)
 if ($null -eq $configValue) {
@@ -39,6 +41,7 @@ catch {
 ### String Operations
 
 #### Small Operations - Simple Concatenation
+
 ```powershell
 # ✅ For simple, small concatenations (under ~100 operations)
 $message = "Error in function " + $functionName + " at line " + $lineNumber
@@ -46,6 +49,7 @@ $fullPath = $basePath + "\" + $fileName + "." + $extension
 ```
 
 #### Large Operations - StringBuilder
+
 ```powershell
 # ✅ For large collections or repeated operations
 $sb = [System.Text.StringBuilder]::new()
@@ -61,6 +65,7 @@ $output = $logEntries | ForEach-Object { "$($_.Timestamp): $($_.Message)" } | Ou
 ### Modern PowerShell Features
 
 #### Credential Creation
+
 ```powershell
 # ✅ PowerShell 5+ modern approach
 $credential = [PSCredential]::new($userName, $securePassword)
@@ -70,6 +75,7 @@ $credential = New-Object PSCredential($userName, $securePassword)
 ```
 
 #### Parameter Validation
+
 ```powershell
 # ✅ Mandatory parameters are implicitly validated
 [Parameter(Mandatory)]
@@ -272,6 +278,7 @@ function Get-EnterpriseData {
 ## 🚀 Performance Best Practices - Nuanced Approach
 
 ### Collection Operations ✅
+
 ```powershell
 # ✅ Best on every version: assign the loop output directly - zero per-iteration allocation
 $results = foreach ($item in $collection) {
@@ -308,6 +315,7 @@ Do not generate `[System.Collections.ArrayList]`. It is a non-generic .NET 1.1 t
 values and forces `[void]` noise on every `.Add()`. Use `[System.Collections.Generic.List[T]]`.
 
 ### String Building - Context Matters
+
 ```powershell
 # ✅ Simple concatenation for small operations
 $logMessage = $timestamp + " - " + $level + " - " + $message
@@ -326,6 +334,7 @@ $reportText = $logLines -join "`n"
 ## 🛡️ Security Patterns
 
 ### Modern Credential Handling
+
 ```powershell
 # ✅ Modern credential creation
 $credential = [PSCredential]::new($userName, $securePassword)
@@ -345,6 +354,7 @@ $credential = [PSCredential]::new($userName, $secureString)
 ```
 
 ### Input Validation
+
 ```powershell
 # ✅ Use validation where it adds value
 param(
@@ -364,6 +374,7 @@ param(
 ## 📊 Enterprise Integration Patterns
 
 ### Audit Trail Implementation
+
 ```powershell
 function Write-EnterpriseLog {
     [CmdletBinding()]

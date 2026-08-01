@@ -241,12 +241,14 @@ Describe "Integration Tests" -Tag "Integration", "EndToEnd" {
 ## Pester 6 Notes for Integration Tests
 
 ### Opt out of parallel execution
+
 Integration tests hold shared external resources - a database, a fixed port, a live endpoint. Two
 files touching the same resource concurrently will produce flaky, hard-to-diagnose failures. Put
 `#pester:no-parallel` at the top of every integration test file. Those files run serially in the
 parent session while unit test files run in parallel.
 
 ### `Set-ItResult -Pending` is gone
+
 Use `-Skipped` (with `-Because`) or `-Inconclusive`:
 
 ```powershell
@@ -259,6 +261,7 @@ BeforeEach {
 ```
 
 ### Environment-driven test cases must not be empty
+
 An integration suite that builds `-ForEach` from environment configuration will **fail discovery**
 in Pester 6 if that configuration is missing, rather than silently running zero tests. This is
 usually what you want. Where an empty set is legitimate, be explicit:
@@ -270,6 +273,7 @@ It "Should reach <Endpoint>" -ForEach $configuredEndpoints -AllowNullOrEmptyForE
 ```
 
 ### Prefer `Should-BeEquivalent` for round trips
+
 Persistence and API tests compare whole objects. One `Should-BeEquivalent` with `-ExcludePath` for
 volatile fields (generated ids, timestamps) gives a property-by-property diff, where a run of
 individual property assertions only tells you about the first mismatch.
@@ -277,30 +281,35 @@ individual property assertions only tells you about the first mismatch.
 ## Integration Test Guidelines
 
 ### Test Environment Setup
+
 - Use environment variables for configuration
 - Create isolated test resources
 - Verify external service availability
 - Clean up resources after tests
 
 ### End-to-End Testing
+
 - Test complete business workflows
 - Validate component interactions
 - Verify data flow and consistency
 - Test error propagation and recovery
 
 ### External Dependencies
+
 - Use real services in controlled environment
 - Test connectivity and error handling
 - Validate retry and circuit breaker patterns
 - Mock only when real services unavailable
 
 ### Data Persistence Testing
+
 - Test CRUD operations
 - Verify data integrity and consistency
 - Test concurrent access scenarios
 - Validate referential integrity
 
 ### Cross-Platform Considerations
+
 - Test on multiple PowerShell versions
 - Verify path handling differences
 - Test platform-specific features

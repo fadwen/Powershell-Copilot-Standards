@@ -7,17 +7,20 @@ tools: ['codebase']
 Perform comprehensive performance analysis of PowerShell code in ${fileBasename}:
 
 **Analysis Parameters:**
+
 - **Analysis Scope**: ${input:analysisScope:Single function,Module,Entire script}
 - **Performance Metrics**: ${input:metrics:Execution time,Memory usage,CPU utilization,All}
 - **Baseline Environment**: ${input:baseline:Development,Production,Benchmarking}
 - **Comparison Target**: ${input:target:Current best practice,Industry standard,Previous version}
 
 **Code Under Analysis:**
+
 ```powershell
 ${selection}
 ```
 
 **Performance Assessment:**
+
 1. **Execution Profiling**
    - Line-by-line execution time analysis
    - Bottleneck identification with specific line numbers
@@ -41,6 +44,7 @@ ${selection}
    - Resource exhaustion thresholds
 
 **Deliverables:**
+
 - Performance benchmark results with specific metrics
 - Optimization recommendations with priority ranking
 - Code examples showing improvements with estimated gains

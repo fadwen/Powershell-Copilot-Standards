@@ -3,9 +3,11 @@
 ## Connection Issues
 
 ### Problem
+
 Cannot connect to ServiceNow REST API
 
 ### Diagnostic Steps
+
 ```powershell
 # Test basic connectivity
 Test-NetConnection -ComputerName "instance.service-now.com" -Port 443
@@ -20,7 +22,9 @@ try {
 ```
 
 ### Solutions
+
 1. **Verify Credentials**
+
    ```powershell
    # Test with known good credentials
    $credential = Get-Credential
@@ -30,6 +34,7 @@ try {
    ```
 
 2. **Check SSL/TLS Settings**
+
    ```powershell
    # Allow TLS 1.2 if required
    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -38,9 +43,11 @@ try {
 ## Change Ticket Validation Issues
 
 ### Problem
+
 Change tickets not found or invalid state
 
 ### Diagnostic Steps
+
 ```powershell
 # Check ticket status
 $ticket = Get-ServiceNowTicket -Number "CHG0030001"
@@ -49,7 +56,9 @@ Write-Host "Approval Status: $($ticket.Approval)"
 ```
 
 ### Solutions
+
 1. **Validate Ticket Format**
+
    ```powershell
    # Ensure correct format
    if ($ChangeTicket -notmatch '^CHG\d{7}$') {
@@ -58,6 +67,7 @@ Write-Host "Approval Status: $($ticket.Approval)"
    ```
 
 2. **Check Approval Workflow**
+
    ```powershell
    # Verify ticket is in approved state
    $validStates = @('Approved', 'Scheduled', 'Work In Progress')
