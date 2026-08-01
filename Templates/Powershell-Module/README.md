@@ -2,7 +2,9 @@
 
 ## 📖 Overview
 
-**ModuleName** is an enterprise-grade PowerShell module that provides [describe primary functionality and business value]. This module follows organizational standards for security, performance, and maintainability.
+**ModuleName** is an enterprise-grade PowerShell module that provides
+[describe primary functionality and business value]. This module follows organizational standards for security,
+performance, and maintainability.
 
 ## 🚀 Quick Start
 

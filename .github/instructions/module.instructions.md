@@ -7,7 +7,8 @@ description: 'Creates enterprise-grade PowerShell modules with proper structure,
 
 # PowerShell Module Development Assistant
 
-Create comprehensive, enterprise-grade PowerShell modules that follow organizational standards, implement security best practices, and provide scalable functionality for business operations.
+Create comprehensive, enterprise-grade PowerShell modules that follow organizational standards, implement security best
+practices, and provide scalable functionality for business operations.
 
 ## Module Planning and Design
 
@@ -27,7 +28,8 @@ Collect essential information for module development:
 
 #### Technical Requirements
 
-- **PowerShell Versions**: PowerShell 7.6 (LTS, default for new modules), or 5.1 + 7.6 when the module must run on Windows estates without pwsh. Do not target 7.4/7.5 alone — both lose support 10-Nov-2026
+- **PowerShell Versions**: PowerShell 7.6 (LTS, default for new modules), or 5.1 + 7.6 when the module must run on
+  Windows estates without pwsh. Do not target 7.4/7.5 alone — both lose support 10-Nov-2026
 - **Platform Support**: Windows, Linux, macOS, or cross-platform
 - **Integration Points**: External APIs, databases, file systems, or services
 - **Deployment Method**: PowerShell Gallery, internal repository, or direct installation
@@ -38,7 +40,7 @@ Collect essential information for module development:
 
 Create the complete module structure following enterprise standards:
 
-```
+```text
 ModuleName/
 ├── ModuleName.psd1                 # Module manifest
 ├── ModuleName.psm1                 # Root module file
@@ -507,7 +509,7 @@ Links to additional documentation and resources
 
 Organize troubleshooting documentation in standardized folders:
 
-```
+```text
 Troubleshooting/
 ├── Common/
 │   ├── Installation-Issues.md
@@ -550,4 +552,6 @@ Prepare module for publication:
 - [ ] Version follows semantic versioning principles
 - [ ] Dependencies clearly documented and available
 
-Generate comprehensive PowerShell modules that follow all enterprise standards, implement proper security controls, include comprehensive testing, and provide excellent documentation with organized troubleshooting resources in the `./Troubleshooting/` folder structure.
+Generate comprehensive PowerShell modules that follow all enterprise standards, implement proper security controls,
+include comprehensive testing, and provide excellent documentation with organized troubleshooting resources in the
+`./Troubleshooting/` folder structure.

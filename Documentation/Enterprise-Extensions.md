@@ -2,13 +2,15 @@
 
 ## 🏢 Overview
 
-This document extends the established PowerShell community best practices with enterprise-specific patterns, addressing organizational requirements for security, compliance, and operational excellence.
+This document extends the established PowerShell community best practices with enterprise-specific patterns, addressing
+organizational requirements for security, compliance, and operational excellence.
 
 ## 🛡️ Advanced Error Handling for Enterprise Environments
 
 ### Throw Behavior with ErrorAction
 
-**Critical Understanding**: The `throw` statement behavior with `-ErrorAction SilentlyContinue` can create unexpected execution patterns in enterprise environments.
+**Critical Understanding**: The `throw` statement behavior with `-ErrorAction SilentlyContinue` can create unexpected
+execution patterns in enterprise environments.
 
 #### The Problem
 
@@ -117,7 +119,8 @@ function Invoke-EnterpriseOperation {
 
 ### The Challenge
 
-Enterprise functions often pass parameters to downstream systems without ensuring values are present, leading to subtle failures in complex workflows.
+Enterprise functions often pass parameters to downstream systems without ensuring values are present, leading to subtle
+failures in complex workflows.
 
 #### Problematic Pattern
 
@@ -480,4 +483,5 @@ function Measure-EnterprisePerformance {
 - ✅ Implement defense-in-depth validation patterns
 - ✅ Support enterprise identity and access management integration
 
-These enterprise extensions build upon PowerShell community standards while addressing the specific needs of organizational environments, incorporating expert feedback on error handling behavior and parameter validation patterns.
+These enterprise extensions build upon PowerShell community standards while addressing the specific needs of
+organizational environments, incorporating expert feedback on error handling behavior and parameter validation patterns.

@@ -2,7 +2,8 @@
 
 ## 🎯 Understanding Prompt Files
 
-Prompt files are Markdown files with a `.prompt.md` extension that contain reusable instructions for GitHub Copilot. They allow you to create interactive, customizable code generation experiences.
+Prompt files are Markdown files with a `.prompt.md` extension that contain reusable instructions for GitHub Copilot.
+They allow you to create interactive, customizable code generation experiences.
 
 ## 📁 Prompt File Structure
 
@@ -106,7 +107,7 @@ Create a PowerShell function named ${input:functionName:Get-Data} that:
 
 ### Interactive Security Review
 
-```markdown
+````markdown
 ---
 mode: 'edit'
 description: 'Performs security analysis on selected code'
@@ -127,9 +128,10 @@ ${selection}
 
 Provide specific remediation recommendations.
 
-```
+````
 
 ### Context-Aware Module Creation
+
 ```markdown
 ---
 mode: 'agent'
@@ -153,7 +155,7 @@ Create a PowerShell module for ${workspaceFolderBasename}:
 
 ### Method 1: Copilot Chat Command
 
-```
+```text
 /prompt-name
 ```
 
@@ -176,7 +178,7 @@ Example: `/new-function`
 
 ### 1. Descriptive File Names
 
-```
+```text
 new-function.prompt.md           # ✅ Clear purpose
 security-review.prompt.md        # ✅ Specific task
 analyze-code.prompt.md           # ✅ Action-oriented
@@ -320,4 +322,5 @@ Analyze ${workspaceFolderBasename} codebase patterns and create function:
 - Function: ${input:functionName}
 ```
 
-This guide provides everything you need to create, use, and customize prompt files for your PowerShell development workflow.
+This guide provides everything you need to create, use, and customize prompt files for your PowerShell development
+workflow.

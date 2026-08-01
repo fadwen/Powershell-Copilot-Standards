@@ -7,7 +7,9 @@ description: 'Implements comprehensive security controls and compliance framewor
 
 # PowerShell Security and Compliance Implementation
 
-Implement robust security controls and compliance frameworks for PowerShell solutions that ensure enterprise-grade security, regulatory compliance, threat mitigation, and comprehensive audit capabilities. Apply security-by-design principles throughout development.
+Implement robust security controls and compliance frameworks for PowerShell solutions that ensure enterprise-grade
+security, regulatory compliance, threat mitigation, and comprehensive audit capabilities. Apply security-by-design
+principles throughout development.
 
 ## Security Assessment and Implementation
 
@@ -734,4 +736,6 @@ All security and compliance implementations must include:
 - **Configuration guides** with step-by-step security setup procedures
 - **Error resolution** documentation with correlation ID usage examples
 
-Generate comprehensive security and compliance implementations that provide enterprise-grade protection while maintaining usability and performance. Ensure all controls integrate with established PowerShell development standards and maintain proper documentation in the `./Troubleshooting/` folder structure for consistent organizational reference.
+Generate comprehensive security and compliance implementations that provide enterprise-grade protection while
+maintaining usability and performance. Ensure all controls integrate with established PowerShell development standards
+and maintain proper documentation in the `./Troubleshooting/` folder structure for consistent organizational reference.

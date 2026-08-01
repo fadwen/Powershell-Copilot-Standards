@@ -2,13 +2,14 @@
 
 ## 🔒 Security Notice
 
-**Expert Feedback Integration**: This guide has been updated to remove insecure patterns and promote enterprise-grade security practices for WinRM configuration.
+**Expert Feedback Integration**: This guide has been updated to remove insecure patterns and promote enterprise-grade
+security practices for WinRM configuration.
 
 ## WinRM Connection Issues
 
 ### Problem
 
-```
+```text
 Connecting to remote server failed with the following error message:
 WinRM cannot complete the operation.
 ```
@@ -379,4 +380,5 @@ Get-WSManInstance -ResourceURI winrm/config/client | Select-Object AllowUnencryp
 Get-Item WSMan:\localhost\Client\TrustedHosts
 ```
 
-This updated troubleshooting guide incorporates expert security feedback while providing practical, secure solutions for common WinRM issues.
+This updated troubleshooting guide incorporates expert security feedback while providing practical, secure solutions for
+common WinRM issues.

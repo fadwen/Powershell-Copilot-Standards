@@ -1,5 +1,11 @@
-# .instructions.md (Place in specific project folders)
+# Project-Specific Instruction Files (TODO)
 
+Examples of per-project `.instructions.md` files to place in specific project folders.
+Each block below is the complete contents of one file, front matter included.
+
+## infrastructure-project.instructions.md
+
+````markdown
 ---
 applyTo: "**/*.ps1,**/*.psm1"
 ---
@@ -42,9 +48,11 @@ This project focuses on enterprise infrastructure automation with these specific
 - **SCOM**: Custom event logging for infrastructure changes
 - **Email Notifications**: Use template system for consistent formatting
 - **Database Logging**: Store all operations in AuditDB.InfrastructureOps table
+````
 
-# security-project.instructions.md
+## security-project.instructions.md
 
+````markdown
 ---
 applyTo: "**/*security*.ps1,**/*compliance*.ps1"
 ---
@@ -53,14 +61,14 @@ applyTo: "**/*security*.ps1,**/*compliance*.ps1"
 
 This project handles sensitive security data and must meet SOX compliance requirements.
 
-### Mandatory Security Controls
+## Mandatory Security Controls
 
 - **Data Classification**: All functions must handle data classification metadata
 - **Audit Logging**: Every operation requires comprehensive audit trails
 - **Encryption**: All data at rest and in transit must be encrypted
 - **Access Controls**: Role-based access validation required
 
-### Compliance Framework Integration
+## Compliance Framework Integration
 
 ```powershell
 # SOX compliance validation
@@ -75,3 +83,4 @@ function Test-GDPRConsent {
     # Required for all personal data processing
 }
 ```
+````

@@ -4,7 +4,7 @@ This template provides a standardized structure for PowerShell script collection
 
 ## 📁 Structure
 
-```
+```text
 ScriptCollection/
 ├── Scripts/
 │   ├── Administration/

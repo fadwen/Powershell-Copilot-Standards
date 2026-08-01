@@ -7,7 +7,8 @@
 [![PowerShell](https://img.shields.io/badge/PowerShell-7.6_LTS-blue.svg)](https://github.com/PowerShell/PowerShell)
 [![GitHub Copilot](https://img.shields.io/badge/GitHub%20Copilot-Optimized-green.svg)](https://github.com/features/copilot)
 
-Enterprise-grade PowerShell development standards and GitHub Copilot instructions for consistent, secure, and high-quality PowerShell code across teams and projects.
+Enterprise-grade PowerShell development standards and GitHub Copilot instructions for consistent, secure, and
+high-quality PowerShell code across teams and projects.
 
 > **Target versions** (verified 2026-08-01): **PowerShell 7.6 (LTS)** is the default target,
 > supported through 14-Nov-2028. Windows PowerShell 5.1 remains supported as a compatibility
@@ -88,7 +89,7 @@ ln -s .copilot-standards/.github/copilot-instructions.md .github/copilot-instruc
 
 ## 📁 Repository Structure
 
-```
+```text
 PowerShell-Copilot-Standards/
 ├── .github/
 │   ├── copilot-instructions.md      # Main Copilot instructions

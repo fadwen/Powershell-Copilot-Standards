@@ -15,7 +15,7 @@ Create a complete PowerShell module for ${workspaceFolderBasename} with enterpri
 
 **Module Structure to Generate:**
 
-```
+```text
 ${input:moduleName}/
 ├── ${input:moduleName}.psd1           # Module manifest
 ├── ${input:moduleName}.psm1           # Root module file

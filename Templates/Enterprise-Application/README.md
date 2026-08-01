@@ -4,7 +4,7 @@ This template provides a complete structure for large-scale PowerShell applicati
 
 ## 📁 Structure
 
-```
+```text
 EnterpriseApplication/
 ├── Modules/
 │   ├── Core/

@@ -7,7 +7,8 @@ description: 'Implements comprehensive error handling and structured logging for
 
 # PowerShell Error Handling and Logging Implementation
 
-Implement robust error handling and structured logging patterns for PowerShell code that ensure proper error management, correlation tracking, and enterprise-grade diagnostic capabilities.
+Implement robust error handling and structured logging patterns for PowerShell code that ensure proper error management,
+correlation tracking, and enterprise-grade diagnostic capabilities.
 
 ## Error Handling Implementation
 
@@ -389,4 +390,5 @@ When implementing error handling and logging:
 - Performance metrics must be captured for baseline establishment
 - Diagnostic data must be comprehensive enough for remote troubleshooting
 
-Generate error handling and logging implementations that follow these enterprise patterns while maintaining consistency with the established PowerShell development standards and troubleshooting documentation structure.
+Generate error handling and logging implementations that follow these enterprise patterns while maintaining consistency
+with the established PowerShell development standards and troubleshooting documentation structure.

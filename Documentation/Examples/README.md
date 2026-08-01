@@ -2,7 +2,9 @@
 
 ## Overview
 
-ExampleModule demonstrates enterprise-grade PowerShell development following established community standards and organizational requirements. This module serves as both a functional tool and a reference implementation for the [PowerShell Copilot Standards](https://github.com/EntraVantage/PowerShell-Copilot-Standards).
+ExampleModule demonstrates enterprise-grade PowerShell development following established community standards and
+organizational requirements. This module serves as both a functional tool and a reference implementation for the
+[PowerShell Copilot Standards](https://github.com/EntraVantage/PowerShell-Copilot-Standards).
 
 ## Features
 
@@ -121,7 +123,8 @@ All functions support enterprise security requirements:
 
 ## Quality Standards
 
-This module follows the [PowerShell Copilot Standards](https://github.com/EntraVantage/PowerShell-Copilot-Standards) including:
+This module follows the [PowerShell Copilot Standards](https://github.com/EntraVantage/PowerShell-Copilot-Standards)
+including:
 
 ### Code Quality Requirements
 
@@ -269,6 +272,8 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history and breaking chang
 
 ---
 
-**Quality Standards**: This module follows [PowerShell Copilot Standards](https://github.com/EntraVantage/PowerShell-Copilot-Standards) for enterprise PowerShell development.
+**Quality Standards**: This module follows
+[PowerShell Copilot Standards](https://github.com/EntraVantage/PowerShell-Copilot-Standards) for enterprise PowerShell
+development.
 
 **Support**: For enterprise support, contact powershell-support@entravantage.com

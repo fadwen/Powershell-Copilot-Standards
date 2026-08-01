@@ -6,7 +6,9 @@ description: 'Creates comprehensive, enterprise-grade README documentation for P
 
 # PowerShell README Documentation Generator
 
-Create comprehensive, enterprise-grade README documentation that serves as both technical reference and business communication tool. Generate documentation that supports automatic integration, provides clear value proposition, and maintains consistency with organizational standards.
+Create comprehensive, enterprise-grade README documentation that serves as both technical reference and business
+communication tool. Generate documentation that supports automatic integration, provides clear value proposition, and
+maintains consistency with organizational standards.
 
 ## README Generation Requirements
 
@@ -25,7 +27,8 @@ Gather information needed for complete README generation:
 
 #### Technical Specifications
 
-- **PowerShell Versions**: State the supported range explicitly — PowerShell 7.6 (LTS) is the current target; note Windows PowerShell 5.1 support only if actually tested
+- **PowerShell Versions**: State the supported range explicitly — PowerShell 7.6 (LTS) is the current target; note
+  Windows PowerShell 5.1 support only if actually tested
 - **Platform Support**: Windows, Linux, macOS, or cross-platform
 - **Installation Methods**: PowerShell Gallery, manual installation, or enterprise deployment
 - **Configuration Requirements**: Environment setup, credentials, and permissions
@@ -75,7 +78,7 @@ Create compelling overview with business focus:
 
 Provide immediate value with copy-paste examples:
 
-```markdown
+````markdown
 ## 🚀 Quick Start
 
 **TL;DR for experienced users:**
@@ -88,7 +91,7 @@ Get-ModuleFunction -Parameter "Value" -ExportFormat HTML
 
 **Expected Output:**
 
-```
+```text
 ✅ Processing completed successfully
 📊 Results: 15 items processed in 2.3 seconds
 📄 Report: .\Reports\Output_2024-01-15.html
@@ -96,12 +99,13 @@ Get-ModuleFunction -Parameter "Value" -ExportFormat HTML
 
 **Next Steps:** See [Configuration](#️-configuration) for enterprise setup and [Advanced Examples](#advanced-scenarios) for automation patterns.
 
-```
+````
 
 #### 📋 Prerequisites Section
+
 Comprehensive requirements documentation:
 
-```markdown
+````markdown
 ## 📋 Prerequisites
 
 ### System Requirements
@@ -149,12 +153,13 @@ Install-PSResource ImportExcel -Scope CurrentUser -TrustRepository
 
 </details>
 
-```
+````
 
 #### 🔧 Installation Section
+
 Multiple installation methods with validation:
 
-```markdown
+````markdown
 ## 🔧 Installation
 
 ### Method 1: PowerShell Gallery (Recommended)
@@ -191,12 +196,13 @@ Get-Module ModuleName -ListAvailable
 Deploy-EnterpriseModule -ModuleName "ModuleName" -Version "1.0.0" -TargetComputers $ServerList
 ```
 
-```
+````
 
 #### ⚙️ Configuration Section
+
 Environment-specific configuration guidance:
 
-```markdown
+````markdown
 ## ⚙️ Configuration
 
 ### Basic Configuration
@@ -239,12 +245,13 @@ $env:MODULE_CONFIG_PATH = "C:\Config\production-config.json"
 $env:MODULE_LOG_LEVEL = "Information"
 ```
 
-```
+````
 
 #### 💡 Usage Section
+
 Progressive examples from basic to enterprise:
 
-```markdown
+````markdown
 ## 💡 Usage
 
 ### Basic Operations
@@ -257,7 +264,7 @@ Get-ModuleFunction -ComputerName "SERVER01"
 
 **Expected Output:**
 
-```
+```text
 🔍 Analyzing SERVER01...
 ✅ Status: Healthy (Score: 92%)
 📊 CPU: 45% | Memory: 62% | Disk: 78%
@@ -319,12 +326,13 @@ catch {
 }
 ```
 
-```
+````
 
 #### 🔍 Troubleshooting Section
+
 Comprehensive problem-solving guidance:
 
-```markdown
+````markdown
 ## 🔍 Troubleshooting
 
 ### Quick Diagnostics
@@ -407,12 +415,13 @@ foreach ($batch in $serverBatches) {
 Test-ModuleEnvironment -IncludeNetworkTest -IncludePermissionTest -ExportReport
 ```
 
-```
+````
 
 #### Performance & Monitoring Section
+
 Document performance characteristics and monitoring integration:
 
-```markdown
+````markdown
 ## 📊 Performance & Monitoring
 
 ### Performance Characteristics
@@ -441,14 +450,16 @@ $servers | ForEach-Object {
 } | Export-Csv "results.csv" -NoTypeInformation
 ```
 
-```
+````
 
 ## Quality Assurance Integration
 
 ### Documentation Validation
+
 Ensure README meets enterprise standards:
 
 #### Content Verification Checklist
+
 - [ ] Business value clearly articulated in overview
 - [ ] All prerequisites documented with specific versions
 - [ ] Installation instructions tested on clean environment
@@ -459,6 +470,7 @@ Ensure README meets enterprise standards:
 - [ ] Integration with `./Troubleshooting/` folder structure maintained
 
 #### Technical Accuracy Standards
+
 - [ ] All code examples executed and output verified
 - [ ] Links reference existing files and documentation
 - [ ] Version numbers current and consistent
@@ -467,6 +479,7 @@ Ensure README meets enterprise standards:
 - [ ] Performance metrics realistic and measured
 
 #### Accessibility and Usability
+
 - [ ] Table of contents functional and complete
 - [ ] Heading hierarchy logical and consistent
 - [ ] Language appropriate for target audience
@@ -476,9 +489,10 @@ Ensure README meets enterprise standards:
 ## Enhanced Features
 
 ### Interactive Elements
+
 Add collapsible sections for detailed information:
 
-```markdown
+````markdown
 <details>
 <summary>🔧 Advanced Configuration Options</summary>
 
@@ -498,9 +512,10 @@ Add collapsible sections for detailed information:
 
 </details>
 
-```
+````
 
 ### Visual Enhancements
+
 - **Status badges** for build, version, downloads, and coverage
 - **Emoji icons** for section headers and visual navigation
 - **Code syntax highlighting** with language specification
@@ -508,9 +523,12 @@ Add collapsible sections for detailed information:
 - **Mermaid diagrams** for workflow and architecture visualization
 
 ### Business Integration
+
 - **ROI calculations** and cost-benefit analysis
 - **Compliance mapping** to regulatory requirements
 - **Executive summary** sections for management audiences
 - **Success metrics** and KPI tracking integration
 
-Generate comprehensive README documentation that serves multiple audiences, provides immediate value through quick start sections, includes thorough troubleshooting guidance with proper references to `./Troubleshooting/` folder structure, and maintains consistency with enterprise PowerShell development standards.
+Generate comprehensive README documentation that serves multiple audiences, provides immediate value through quick start
+sections, includes thorough troubleshooting guidance with proper references to `./Troubleshooting/` folder structure,
+and maintains consistency with enterprise PowerShell development standards.

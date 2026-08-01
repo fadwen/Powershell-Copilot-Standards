@@ -6,7 +6,9 @@ description: 'Generates comprehensive comment-based help for PowerShell function
 
 # PowerShell Comment-Based Help Generator
 
-Generate comprehensive, enterprise-grade comment-based help for PowerShell functions that serves as both technical documentation and business communication. Create help that supports automatic README generation and provides full `Get-Help` functionality.
+Generate comprehensive, enterprise-grade comment-based help for PowerShell functions that serves as both technical
+documentation and business communication. Create help that supports automatic README generation and provides full
+`Get-Help` functionality.
 
 ## Help Generation Requirements
 
@@ -252,4 +254,5 @@ Ensure full PowerShell Get-Help functionality:
 - Document integration with organizational monitoring systems
 - Maintain consistency with troubleshooting documentation structure
 
-When generating comment-based help, always follow the enterprise PowerShell development standards and ensure all troubleshooting references point to properly organized documentation in the `./Troubleshooting/` folder structure.
+When generating comment-based help, always follow the enterprise PowerShell development standards and ensure all
+troubleshooting references point to properly organized documentation in the `./Troubleshooting/` folder structure.

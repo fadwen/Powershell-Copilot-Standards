@@ -7,7 +7,8 @@ description: 'Performs comprehensive PowerShell code analysis for quality, secur
 
 # PowerShell Code Analysis
 
-Analyze the provided PowerShell code using enterprise-grade analysis standards. Perform a comprehensive review covering code quality, security, performance, and compliance with organizational standards.
+Analyze the provided PowerShell code using enterprise-grade analysis standards. Perform a comprehensive review covering
+code quality, security, performance, and compliance with organizational standards.
 
 ## Analysis Framework
 
@@ -101,4 +102,5 @@ For each issue identified:
 - Suggest improvements for CI/CD pipeline integration
 - Recommend security scanning tools integration points
 
-Focus on actionable feedback that improves code quality, security posture, and maintainability while ensuring compliance with enterprise PowerShell development standards.
+Focus on actionable feedback that improves code quality, security posture, and maintainability while ensuring compliance
+with enterprise PowerShell development standards.

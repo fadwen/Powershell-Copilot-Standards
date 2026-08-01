@@ -7,7 +7,8 @@ description: 'Sets up comprehensive CI/CD pipelines for PowerShell projects with
 
 # PowerShell CI/CD Pipeline Configuration
 
-Create robust CI/CD pipelines for PowerShell projects with automated testing, quality gates, security scanning, and deployment automation. Support multiple platforms while maintaining enterprise standards.
+Create robust CI/CD pipelines for PowerShell projects with automated testing, quality gates, security scanning, and
+deployment automation. Support multiple platforms while maintaining enterprise standards.
 
 ## Pipeline Requirements Assessment
 
@@ -16,7 +17,8 @@ First, determine the pipeline requirements:
 ### Project Information Needed
 
 - **Platform Preference**: Azure DevOps, GitHub Actions, GitLab CI, or Jenkins
-- **PowerShell Versions**: PowerShell 7.6 (LTS, default), or 5.1 + 7.6 when Windows PowerShell support is required. Retire 7.4/7.5-only matrices before 10-Nov-2026, when both reach end of support
+- **PowerShell Versions**: PowerShell 7.6 (LTS, default), or 5.1 + 7.6 when Windows PowerShell support is required.
+  Retire 7.4/7.5-only matrices before 10-Nov-2026, when both reach end of support
 - **Target Environments**: Development, Testing, Staging, Production
 - **Deployment Targets**: PowerShell Gallery, internal repositories, or direct deployment
 - **Security Requirements**: Code signing, credential management, compliance scanning
@@ -288,4 +290,5 @@ Generate complete pipeline configuration including:
 5. **Documentation**: Pipeline setup guide and troubleshooting procedures
 6. **Monitoring Configuration**: Dashboards and alerting rules
 
-Ensure all generated configurations follow enterprise PowerShell development standards and integrate with the established troubleshooting documentation structure in `./Troubleshooting/` folders.
+Ensure all generated configurations follow enterprise PowerShell development standards and integrate with the
+established troubleshooting documentation structure in `./Troubleshooting/` folders.

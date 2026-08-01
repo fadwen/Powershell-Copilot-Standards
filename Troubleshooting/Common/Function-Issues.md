@@ -4,7 +4,7 @@
 
 ### Problem
 
-```
+```text
 The term 'Get-MyFunction' is not recognized as the name of a cmdlet, function, script file, or operable program.
 ```
 
@@ -35,7 +35,7 @@ The term 'Get-MyFunction' is not recognized as the name of a cmdlet, function, s
 
 ### Problem
 
-```
+```text
 Cannot validate argument on parameter 'ComputerName'. The argument is null or empty.
 ```
 
