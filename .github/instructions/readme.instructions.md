@@ -22,7 +22,7 @@ Gather information needed for complete README generation:
 - **Current Status**: Development phase, version, and maturity level
 
 #### Technical Specifications
-- **PowerShell Versions**: Compatibility with Windows PowerShell 5.1 and PowerShell 7.x
+- **PowerShell Versions**: State the supported range explicitly — PowerShell 7.6 (LTS) is the current target; note Windows PowerShell 5.1 support only if actually tested
 - **Platform Support**: Windows, Linux, macOS, or cross-platform
 - **Installation Methods**: PowerShell Gallery, manual installation, or enterprise deployment
 - **Configuration Requirements**: Environment setup, credentials, and permissions
@@ -76,7 +76,7 @@ Provide immediate value with copy-paste examples:
 
 ```powershell
 # One-line installation and basic usage
-Install-Module ModuleName -Scope CurrentUser
+Install-PSResource ModuleName -Scope CurrentUser -TrustRepository
 Get-ModuleFunction -Parameter "Value" -ExportFormat HTML
 ```
 
@@ -99,8 +99,8 @@ Comprehensive requirements documentation:
 ### System Requirements
 | Component | Minimum | Recommended | Notes |
 |-----------|---------|-------------|-------|
-| **PowerShell** | 5.1 | 7.4+ | Cross-platform support in 7.x |
-| **Operating System** | Windows 10 | Windows Server 2019+ | Linux/macOS supported in PS 7.x |
+| **PowerShell** | 5.1 | 7.6 (LTS) | 7.4/7.5 lose support 10-Nov-2026; cross-platform in 7.x |
+| **Operating System** | Windows 10 | Windows Server 2022+ | Linux/macOS supported in PS 7.x |
 | **Memory** | 2GB RAM | 8GB+ RAM | Depends on dataset size |
 | **Disk Space** | 100MB | 1GB+ | For logs, reports, and temporary files |
 | **Network** | 1 Mbps | 10 Mbps+ | For multi-server environments |
@@ -108,14 +108,17 @@ Comprehensive requirements documentation:
 ### Dependencies
 ```powershell
 # Install required PowerShell modules
-Install-Module PSFramework -Scope CurrentUser
-Install-Module ImportExcel -Scope CurrentUser
+Install-PSResource PSFramework -Scope CurrentUser -TrustRepository
+Install-PSResource ImportExcel -Scope CurrentUser -TrustRepository
 ```
 
 | Module | Version | Purpose | Installation |
 |--------|---------|---------|--------------|
-| **PSFramework** | 1.7.0+ | Structured logging and configuration | `Install-Module PSFramework` |
-| **ImportExcel** | 7.8.0+ | Excel report generation | `Install-Module ImportExcel` |
+| **PSFramework** | 1.7.0+ | Structured logging and configuration | `Install-PSResource PSFramework` |
+| **ImportExcel** | 7.8.0+ | Excel report generation | `Install-PSResource ImportExcel` |
+
+> On Windows PowerShell 5.1, `Install-PSResource` is not in-box — install
+> `Microsoft.PowerShell.PSResourceGet` first, or fall back to `Install-Module`.
 
 ### Permissions & Access
 <details>
@@ -145,7 +148,7 @@ Multiple installation methods with validation:
 ### Method 1: PowerShell Gallery (Recommended)
 ```powershell
 # Install latest stable version
-Install-Module ModuleName -Scope CurrentUser
+Install-PSResource ModuleName -Scope CurrentUser -TrustRepository
 
 # Verify installation
 Get-Module ModuleName -ListAvailable

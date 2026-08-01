@@ -9,13 +9,13 @@ ExampleModule demonstrates enterprise-grade PowerShell development following est
 - ✅ **Performance Monitoring**: System performance metrics and alerting
 - ✅ **Configuration Management**: Environment-specific settings and baselines
 - ✅ **Correlation Tracking**: End-to-end operation tracking for troubleshooting
-- ✅ **Modern PowerShell**: Compatible with PowerShell 5.1+ and PowerShell 7+
+- ✅ **Modern PowerShell**: Compatible with Windows PowerShell 5.1 and PowerShell 7.6 (LTS)
 
 ## Installation
 
 ### From PowerShell Gallery
 ```powershell
-Install-Module -Name ExampleModule -Repository PSGallery -Scope CurrentUser
+Install-PSResource -Name ExampleModule -Repository PSGallery -Scope CurrentUser -TrustRepository
 ```
 
 ### From Source

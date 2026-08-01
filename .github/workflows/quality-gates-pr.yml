@@ -35,9 +35,9 @@ jobs:
     - name: Setup PowerShell
       shell: pwsh
       run: |
-        # Install required modules
-        Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-        Install-Module -Name Pester -Force -Scope CurrentUser -SkipPublisherCheck
+        # Install required modules (PSResourceGet is in-box on PowerShell 7.4+)
+        Install-PSResource -Name PSScriptAnalyzer -Scope CurrentUser -TrustRepository
+        Install-PSResource -Name Pester -Scope CurrentUser -TrustRepository
 
         # Display PowerShell version for debugging
         $PSVersionTable | ConvertTo-Json

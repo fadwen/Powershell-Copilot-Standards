@@ -39,8 +39,9 @@ All code generation must comply with established PowerShell community best pract
 
 ### Script Development Guidelines
 - **Approved Verbs Only**: Use Microsoft's approved PowerShell verbs (`Get-Verb`) for ALL function names consistently
-- **Version Compatibility**: Maintain compatibility with Windows PowerShell 5.1 unless specific PowerShell 7+ features are required
-- **Version Annotations**: Document any PowerShell 7+ specific features with `#requires -version 7.0` at script header
+- **Version Compatibility**: Default target is **PowerShell 7.6 (LTS)**. Maintain Windows PowerShell 5.1 compatibility only when the project must run on estates without pwsh installed — decide this deliberately, not by habit
+- **Version Annotations**: Declare the target with `#requires -Version 7.6` at the script header. Never emit `#requires -Version 7.0` — PowerShell 7.0–7.3 are retired, and 7.4/7.5 lose support on 10-Nov-2026
+- **Version-Dependent Features**: Before emitting a cmdlet or parameter added in 7.5 or 7.6, confirm the declared target supports it — see [powershell-version.instructions.md](instructions/powershell-version.instructions.md)
 - **Output Standards**: Avoid `Write-Host` except when colored console output is explicitly required
   - Use `Write-Verbose`, `Write-Debug`, `Write-Information`, `Write-Warning`, or `Write-Error` instead
   - Leverage pipeline output for data flow
@@ -48,7 +49,9 @@ All code generation must comply with established PowerShell community best pract
 
 ### Modern PowerShell Features
 - Use `[PSCredential]::new()` instead of `New-Object` for credential creation
-- Leverage PowerShell 5.1+ features when available
+- Use `Install-PSResource` / `Find-PSResource` (Microsoft.PowerShell.PSResourceGet, in-box since 7.4) over PowerShellGet v2 `Install-Module` / `Find-Module`
+- Call `Start-ThreadJob` unqualified — the module was renamed to `Microsoft.PowerShell.ThreadJob` in 7.6, so the old `ThreadJob\` qualifier breaks
+- Leverage current-version features when the declared target allows: `ConvertTo-CliXml`/`ConvertFrom-CliXml`, `ConvertFrom-Json -DateKind`, `Test-Json -IgnoreComments` (7.5+); `Get-Command -ExcludeModule`, `Get-Clipboard -Delimiter` (7.6+)
 - Avoid redundant parameter validation (mandatory parameters are implicitly not null/empty)
 
 ## 🛡️ Security Requirements
@@ -277,22 +280,32 @@ if ($items.Count -lt 100) {
 }
 ```
 
-### Avoid These Anti-Patterns
+### Array Accumulation (version-dependent — read this before flagging `+=`)
 ```powershell
-# ❌ Array appending in loops (creates new array each time)
+# ✅ Best on every version — assign the loop output directly, no per-iteration allocation
+$results = foreach ($item in $collection) {
+    Get-ProcessedItem -Item $item
+}
+
+# ✅ Also good: pipeline output
+$results = $collection | ForEach-Object { Get-ProcessedItem -Item $_ }
+
+# ✅ When accumulation is genuinely conditional, use the generic List
+$results = [System.Collections.Generic.List[object]]::new()
+foreach ($item in $collection) {
+    if (Test-ItemRelevant -Item $item) {
+        $results.Add((Get-ProcessedItem -Item $item))
+    }
+}
+
+# ⚠️ `+=` — O(n²) on Windows PowerShell 5.1 and 7.4, but PowerShell 7.5 optimized it for
+# object arrays, where it now outperforms List<T>.Add(). Flag it only when the declared
+# target includes 5.1/7.4, or when the loop is unbounded on any version.
 $results = @()
-foreach ($item in $collection) {
-    $results += Process-Item $item
-}
+foreach ($item in $collection) { $results += Get-ProcessedItem -Item $item }
 
-# ✅ Use ArrayList or generic collections
+# ❌ Never generate ArrayList — non-generic, boxes values, forces [void] noise on every Add()
 $results = [System.Collections.ArrayList]::new()
-foreach ($item in $collection) {
-    [void]$results.Add((Process-Item $item))
-}
-
-# ✅ Better: Use pipeline when possible
-$results = $collection | ForEach-Object { Process-Item $_ }
 ```
 
 ### Pipeline Optimization (Community Best Practice)
@@ -520,8 +533,10 @@ Describe "Get-ExampleData" -Tag "Unit" {
     Author = 'Jeffrey Stuhr'
     Description = 'Clear description of module purpose and business value'
 
-    PowerShellVersion = '5.1'
-    CompatiblePSEditions = @('Desktop', 'Core')
+    # Target PowerShell 7.6 (LTS) for new modules. Use '5.1' + @('Desktop','Core') only when
+    # the module must run on Windows estates without pwsh installed.
+    PowerShellVersion = '7.6'
+    CompatiblePSEditions = @('Core')
 
     FunctionsToExport = @('Get-Something', 'Set-Something')  # Explicit exports only
     CmdletsToExport = @()
@@ -549,10 +564,11 @@ All generated code must automatically comply with:
 - [ ] **Parameter Validation**: Validate parameters before using in function calls, especially for empty/whitespace values
 - [ ] **Approved Verbs**: Only Microsoft-approved verbs from Get-Verb (consistently in ALL examples)
 - [ ] **String Operations**: Context-appropriate choice between += and StringBuilder
-- [ ] **Modern PowerShell**: Use `[PSCredential]::new()` instead of New-Object
+- [ ] **Modern PowerShell**: Use `[PSCredential]::new()` instead of New-Object; `Install-PSResource` over `Install-Module`
+- [ ] **Version Targeting**: Declared `#requires -Version` / `PowerShellVersion` matches the features actually used, and is 7.6 unless 5.1 support is a stated requirement
 - [ ] **Output Types**: Use descriptive type names or custom classes, not misleading [PSCustomObject]
 - [ ] **Documentation**: Proper comment-based help format with opening `<#` marker
-- [ ] **Performance**: No array appending in large loops, efficient pipeline operations
+- [ ] **Performance**: Loop output assigned directly where possible; no `ArrayList`; `+=` only where the target version makes it safe
 - [ ] **Error Termination**: Use `Write-Error -ErrorAction Stop` instead of bare `throw` when ErrorAction compliance is needed
 
 ## 🔍 Quality Standards

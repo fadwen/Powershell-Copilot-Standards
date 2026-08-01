@@ -19,8 +19,9 @@
 Write-Verbose "Loading Enterprise PowerShell Module: $($MyInvocation.MyCommand.Name)"
 
 # Expert feedback: Get module version from manifest if needed (use $MyInvocation, not hardcoded strings)
-if ($PSVersionTable.PSVersion.Major -ge 7) {
-    Write-Verbose "PowerShell 7+ detected - enhanced features available"
+# Compare the full version, not just Major - 7.4 and 7.6 both report Major 7
+if ($PSVersionTable.PSVersion -ge [version]'7.6') {
+    Write-Verbose "PowerShell 7.6+ detected - current LTS feature set available"
 }
 
 #region Private Functions

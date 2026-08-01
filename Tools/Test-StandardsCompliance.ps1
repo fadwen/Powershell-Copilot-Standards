@@ -38,8 +38,8 @@
     Version: 1.0.0
     
     REQUIREMENTS:
-    - PSScriptAnalyzer module
-    - PowerShell 5.1+ or PowerShell 7.x
+    - PSScriptAnalyzer module (1.25.0+)
+    - PowerShell 7.6 (LTS) or Windows PowerShell 5.1
 #>
 
 [CmdletBinding()]
@@ -75,7 +75,13 @@ begin {
         if (-not (Get-Module $module -ListAvailable)) {
             Write-Warning "$module not found. Installing..."
             try {
-                Install-Module $module -Scope CurrentUser -Force -SkipPublisherCheck
+                # Install-PSResource is in-box on PowerShell 7.4+; 5.1 falls back to PowerShellGet
+                if (Get-Command Install-PSResource -ErrorAction SilentlyContinue) {
+                    Install-PSResource $module -Scope CurrentUser -TrustRepository
+                }
+                else {
+                    Install-Module $module -Scope CurrentUser -Force -SkipPublisherCheck
+                }
                 Write-Information "Installed $module" -InformationAction Continue
             }
             catch {
@@ -248,18 +254,41 @@ process {
                         }
                         
                         # Performance checks
-                        if ($content -match '\$\w+\s*\+=\s*.*\$\w+') {
+                        # PowerShell 7.5 optimized `+=` on object arrays - it now outperforms
+                        # List<T>.Add(). Only flag this when the file declares a target that
+                        # still pays the O(n^2) cost (Windows PowerShell 5.1 or PowerShell 7.4).
+                        $targetsLegacyArrayAppend = $true
+                        if ($content -match '(?im)^\s*#requires\s+-Version\s+(\d+\.\d+)') {
+                            $targetsLegacyArrayAppend = [version]$Matches[1] -lt [version]'7.5'
+                        }
+
+                        if ($targetsLegacyArrayAppend -and $content -match '\$\w+\s*\+=\s*.*\$\w+') {
                             $perfIssue = [PSCustomObject]@{
                                 Type = 'ArrayAppending'
                                 File = $file.Name
                                 FilePath = $file.FullName
-                                Message = 'Potential array appending performance issue detected'
+                                Message = 'Array appending detected in a file targeting PowerShell 5.1/7.4, where += is O(n^2)'
                                 Severity = 'Medium'
-                                Recommendation = 'Use pipeline output or ArrayList instead of array appending'
+                                Recommendation = 'Assign the loop output directly ($x = foreach (...) { ... }), or use [System.Collections.Generic.List[object]]. Not ArrayList. On PowerShell 7.5+, += is no longer a performance defect.'
                             }
                             $results.PerformanceIssues += $perfIssue
                             $fileResult.Issues += $perfIssue
                             $results.MediumIssues++
+                        }
+
+                        # ArrayList is a non-generic .NET 1.1 type - flag on every version
+                        if ($content -match '\[System\.Collections\.ArrayList\]|New-Object\s+System\.Collections\.ArrayList') {
+                            $arrayListIssue = [PSCustomObject]@{
+                                Type = 'LegacyCollectionType'
+                                File = $file.Name
+                                FilePath = $file.FullName
+                                Message = 'ArrayList used instead of a generic collection'
+                                Severity = 'Low'
+                                Recommendation = 'Use [System.Collections.Generic.List[object]] or a typed List[T]. ArrayList boxes values and forces [void] on every Add().'
+                            }
+                            $results.PerformanceIssues += $arrayListIssue
+                            $fileResult.Issues += $arrayListIssue
+                            $results.LowIssues++
                         }
                     }
                 }

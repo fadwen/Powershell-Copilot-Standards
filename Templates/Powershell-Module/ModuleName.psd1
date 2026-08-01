@@ -11,8 +11,10 @@
     Description = 'Enterprise PowerShell module providing [specific business functionality] with comprehensive security and compliance features.'
 
     # PowerShell Requirements
-    PowerShellVersion = '5.1'  # Minimum supported version
-    CompatiblePSEditions = @('Desktop', 'Core')  # Support both Windows PowerShell and PowerShell Core
+    # 7.6 is the current LTS (supported to 14-Nov-2028). 7.4 and 7.5 both end support 10-Nov-2026.
+    # For Windows PowerShell compatibility instead, use: '5.1' with @('Desktop', 'Core')
+    PowerShellVersion = '7.6'  # Minimum supported version
+    CompatiblePSEditions = @('Core')
 
     # Architecture Requirements (if needed)
     # ProcessorArchitecture = 'None'  # None, X86, Amd64, IA64

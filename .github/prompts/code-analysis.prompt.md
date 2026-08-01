@@ -84,7 +84,7 @@ ${selection}
 **Performance Context:**
 - Data scale: ${input:dataScale:Small (<1K items),Medium (1K-100K),Large (>100K):Medium}
 - Performance target: ${input:target:Optimize for readability,Optimize for speed,Balance both:Balance both}
-- PowerShell version: ${input:psVersion:5.1,7.x:7.x}
+- PowerShell version: ${input:psVersion:7.6,5.1+7.6:7.6}
 - Environment: ${input:environment:Development,Testing,Production:Production}
 
 **Analysis Areas:**
@@ -97,7 +97,7 @@ ${selection}
 
 **2. Collection Handling ✅**
 - Avoid array += in loops for large datasets
-- Use appropriate collection types (ArrayList, List<T>, etc.)
+- Use appropriate collection types — `List<T>` for accumulation, never `ArrayList` (non-generic, boxes values)
 - Pipeline vs foreach performance trade-offs
 - Memory-efficient processing patterns
 
