@@ -56,7 +56,8 @@ ln -s .copilot-standards/.github/copilot-instructions.md .github/copilot-instruc
 - **Version Baseline**: PowerShell 7.6 (LTS) targeting, with the support lifecycle, version-gated
   cmdlets, and breaking changes for 7.5/7.6 documented in one place
 - **Community Best Practices**: Integrated PowerShell community guidelines
-- **Enterprise Security**: SOX, GDPR, HIPAA compliance frameworks
+- **Enterprise Security**: Audit logging, credential handling, and data-classification patterns
+  covering controls that SOX, GDPR, and HIPAA programmes commonly ask for
 - **Performance Optimization**: Memory management and pipeline efficiency, including the
   version-dependent `+=` guidance that changed in PowerShell 7.5
 - **Modern Tooling**: `Install-PSResource` (Microsoft.PowerShell.PSResourceGet) over PowerShellGet
@@ -83,7 +84,9 @@ ln -s .copilot-standards/.github/copilot-instructions.md .github/copilot-instruc
 
 - **Input Validation**: Comprehensive sanitization and validation patterns
 - **Credential Management**: SecretManagement integration and secure handling
-- **Compliance Frameworks**: Built-in SOX, GDPR, and HIPAA compliance
+- **Regulatory Patterns**: Audit-trail, consent, and access-control patterns for SOX, GDPR, and
+  HIPAA work. These are code patterns and review prompts — they support a compliance programme but
+  do not constitute one, and none of it substitutes for your own controls, evidence, and audit
 - **Security Scanning**: Automated vulnerability detection
 
 ### 📊 Quality Assurance

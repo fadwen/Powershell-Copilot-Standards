@@ -9,7 +9,7 @@ organizational requirements. This module serves as both a functional tool and a 
 ## Features
 
 - ✅ **User Management**: Comprehensive Active Directory integration
-- ✅ **Security Auditing**: SOX, GDPR, HIPAA compliance validation
+- ✅ **Security Auditing**: Example checks for controls SOX, GDPR, and HIPAA programmes rely on
 - ✅ **Performance Monitoring**: System performance metrics and alerting
 - ✅ **Configuration Management**: Environment-specific settings and baselines
 - ✅ **Correlation Tracking**: End-to-end operation tracking for troubleshooting
