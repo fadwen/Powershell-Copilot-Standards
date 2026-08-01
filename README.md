@@ -215,6 +215,9 @@ for yours:
   patterns like a hardcoded `-ComputerName 'MOCKSERVER'` are legitimate in a mock)
 - **Pester**: Fails on `FailedCount` _and_ `FailedContainersCount` — a file that fails discovery
   contributes zero failed tests and would otherwise read green
+- **Coverage**: Measured over `Tools/` and `Documentation/Examples/`, the code this repository ships
+  and holds up as exemplary. Templates are excluded: they are scaffolding to copy, so covering a
+  placeholder measures nothing
 - **Security Scanning**: Credential leak and vulnerability detection. Secret patterns apply to all
   files; code-execution patterns apply only to `.ps1`/`.psm1`, since a `.psd1` is restricted data
   and cannot invoke a cmdlet

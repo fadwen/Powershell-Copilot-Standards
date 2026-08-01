@@ -192,10 +192,17 @@ jobs:
               $securityViolations += "Hardcoded SecureString conversion in $($file.Name)"
             }
             
-            # Check for missing input validation on functions with parameters
-            if ($content -match 'function\s+\w+-\w+' -and 
-                $content -match 'param\s*\(' -and 
-                $content -notmatch 'Validate(NotNullOrEmpty|Pattern|Set|Range|Script)') {
+            # Check for missing input validation on functions with parameters.
+            #
+            # [Parameter(Mandatory)] counts. PowerShell rejects null and empty for a
+            # mandatory parameter itself, and copilot-instructions.md explicitly
+            # tells authors not to stack ValidateNotNullOrEmpty on top of it. Before
+            # this, the rule demanded exactly what the standards prohibit, so code
+            # written to the standard failed the gate.
+            if ($content -match 'function\s+\w+-\w+' -and
+                $content -match 'param\s*\(' -and
+                $content -notmatch 'Validate(NotNullOrEmpty|Pattern|Set|Range|Script|Count|Length)' -and
+                $content -notmatch '\[Parameter\([^)]*Mandatory') {
               $securityViolations += "Missing input validation in $($file.Name)"
             }
           }

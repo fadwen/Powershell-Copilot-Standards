@@ -85,19 +85,25 @@ jobs:
                 -not (& $isTestFile $_) -and $demonstrationFiles -notcontains $_.Name
             }
 
-            # Coverage is measured only over code this repository ships and executes.
-            # Templates are scaffolding meant to be copied and filled in, and
-            # Documentation examples are illustrations - covering either measures
-            # nothing. Including them was why coverage read 22.77% while the one
-            # tested file sat at 98%.
+            # Coverage covers the tooling this repository ships, and the examples,
+            # which are held to the same bar - an untested example is a poor advert
+            # for a standard that mandates 80% coverage.
+            #
+            # Templates stay out: they are scaffolding meant to be copied and filled
+            # in, so covering a placeholder measures nothing. Including them was why
+            # coverage once read 22.77% while the one tested file sat at 98%.
+            $sep = [IO.Path]::DirectorySeparatorChar
             $coverageFiles = $productionFiles | Where-Object {
-                $_.Extension -eq '.ps1' -and $_.FullName -like "*$([IO.Path]::DirectorySeparatorChar)Tools$([IO.Path]::DirectorySeparatorChar)*"
+                $_.Extension -in '.ps1', '.psm1' -and (
+                    $_.FullName -like "*${sep}Tools${sep}*" -or
+                    $_.FullName -like "*${sep}Documentation${sep}Examples${sep}*"
+                )
             }
 
             Write-Host "📊 Found $($allPsFiles.Count) total PowerShell files" -ForegroundColor Yellow
             Write-Host "📦 Production files: $($productionFiles.Count)" -ForegroundColor Green
             Write-Host "🧪 Test files: $($testFiles.Count)" -ForegroundColor Blue
-            Write-Host "📈 Coverage scope: $($coverageFiles.Count) file(s) under Tools/" -ForegroundColor Blue
+            Write-Host "📈 Coverage scope: $($coverageFiles.Count) file(s) under Tools/ and Documentation/Examples/" -ForegroundColor Blue
 
             $totalIssues = 0
             $criticalIssues = 0

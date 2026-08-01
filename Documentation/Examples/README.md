@@ -39,6 +39,10 @@ code but the boundary: `FunctionsToExport` names the public surface, so the priv
 internal and can change without a breaking release. Classes load before the functions that return
 them.
 
+Its own tests live in [Module-Structure-Example/Tests/](./Module-Structure-Example/Tests/) and cover
+the module contract, the class, the private helper via `InModuleScope`, and the per-item failure
+path. Examples here are held to the same coverage bar as the tooling.
+
 ## The anti-pattern file
 
 [Test-QualityGates.ps1](./Test-QualityGates.ps1) is the one file here that intentionally breaks the

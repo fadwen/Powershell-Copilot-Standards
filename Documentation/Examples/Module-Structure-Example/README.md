@@ -45,6 +45,16 @@ because it communicates nothing.
 | `$_` in `catch`, not `$Error[0]` | `Public/Get-ExampleData.ps1` |
 | Per-item failure that does not abort the batch | `Public/Get-ExampleData.ps1` |
 | Class with validation and behaviour | `Classes/ExampleClass.ps1` |
+| A fallible call, so the catch is reachable | `Private/Get-ExampleServiceStatus.ps1` |
+
+## Tests
+
+[Tests/ModuleExample.Tests.ps1](./Tests/ModuleExample.Tests.ps1) covers the module contract, the
+class, both private helpers via `InModuleScope`, and the per-item failure path.
+
+`Get-ExampleServiceStatus` exists so that failure path is real. Without a fallible call inside the
+loop, a `catch` block in an example is decorative - it looks like resilience, but nothing can
+exercise it and no test can prove it works.
 
 ## Trying it
 
