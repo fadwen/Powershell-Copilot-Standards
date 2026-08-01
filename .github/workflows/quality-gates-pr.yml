@@ -9,6 +9,12 @@ on:
       - '**.ps1'
       - '**.psm1'
       - '**.psd1'
+      # Markdown must be listed, otherwise a docs-only PR triggers no workflow at
+      # all - including the markdown-lint job below, whose whole purpose is to
+      # gate documentation. This covers README, Documentation/, Troubleshooting/,
+      # and the instruction and prompt files under .github/.
+      - '**.md'
+      - '.markdownlint.json'
       - '.github/workflows/**'
       - 'Documentation/**'
       - 'Templates/**'

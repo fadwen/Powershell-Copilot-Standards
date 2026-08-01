@@ -53,10 +53,17 @@ ln -s .copilot-standards/.github/copilot-instructions.md .github/copilot-instruc
 
 ### 📚 PowerShell Standards
 
+- **Version Baseline**: PowerShell 7.6 (LTS) targeting, with the support lifecycle, version-gated
+  cmdlets, and breaking changes for 7.5/7.6 documented in one place
 - **Community Best Practices**: Integrated PowerShell community guidelines
-- **Enterprise Security**: SOX, GDPR, HIPAA compliance frameworks
-- **Performance Optimization**: Memory management and pipeline efficiency
-- **Testing Standards**: Comprehensive Pester testing patterns
+- **Enterprise Security**: Audit logging, credential handling, and data-classification patterns
+  covering controls that SOX, GDPR, and HIPAA programmes commonly ask for
+- **Performance Optimization**: Memory management and pipeline efficiency, including the
+  version-dependent `+=` guidance that changed in PowerShell 7.5
+- **Modern Tooling**: `Install-PSResource` (Microsoft.PowerShell.PSResourceGet) over PowerShellGet
+  v2, with a capability check for Windows PowerShell 5.1 fallback
+- **Testing Standards**: Pester 6 patterns — `Should-*` assertions, `BeforeDiscovery` data,
+  self-contained test files, and 12 supporting guides covering mocking, CI, and templates
 
 ### 🛠️ Development Tools
 
@@ -77,7 +84,9 @@ ln -s .copilot-standards/.github/copilot-instructions.md .github/copilot-instruc
 
 - **Input Validation**: Comprehensive sanitization and validation patterns
 - **Credential Management**: SecretManagement integration and secure handling
-- **Compliance Frameworks**: Built-in SOX, GDPR, and HIPAA compliance
+- **Regulatory Patterns**: Audit-trail, consent, and access-control patterns for SOX, GDPR, and
+  HIPAA work. These are code patterns and review prompts — they support a compliance programme but
+  do not constitute one, and none of it substitutes for your own controls, evidence, and audit
 - **Security Scanning**: Automated vulnerability detection
 
 ### 📊 Quality Assurance
@@ -92,30 +101,42 @@ ln -s .copilot-standards/.github/copilot-instructions.md .github/copilot-instruc
 ```text
 PowerShell-Copilot-Standards/
 ├── .github/
-│   ├── copilot-instructions.md      # Main Copilot instructions
-│   ├── instructions/                # Detailed instruction files
-│   │   └── powershell-version.instructions.md  # Version baseline & lifecycle
-│   ├── prompts/                     # Quick-access prompts
-│   └── workflows/                   # CI/CD templates
-├── Documentation/                   # Reference materials
-├── Templates/                       # Project templates
-├── Tools/                          # Setup and validation scripts
-├── Troubleshooting/                # Organized troubleshooting guides
-└── README.md                       # This file
+│   ├── copilot-instructions.md          # Main Copilot instructions (applied automatically)
+│   ├── instructions/                    # 12 scoped instruction files, applied by `applyTo` glob
+│   │   ├── powershell-version.instructions.md   # Version baseline, lifecycle, breaking changes
+│   │   ├── pester.instructions.md               # Pester 6 core testing standards
+│   │   └── pester-supporting-docs/              # 12 guides: mocking, CI, templates, v6 migration
+│   ├── prompts/                         # 10 `/prompt-name` files for Copilot Chat
+│   └── workflows/                       # Quality gates run on every pull request
+├── Documentation/                       # Reference materials and worked examples
+├── Templates/                           # Module, script-collection, and application templates
+├── Tools/                               # Install-CopilotStandards, Test-StandardsCompliance
+├── Troubleshooting/                     # Organized problem-solving guides
+├── .markdownlint.json                   # Documentation lint rules enforced in CI
+└── README.md                            # This file
 ```
 
 ## 🚀 Getting Started
 
 ### 1. Enable Copilot Instructions
 
-In VS Code, add to your settings.json:
+Current VS Code picks these up with no configuration: `.github/copilot-instructions.md` is applied
+automatically, `.github/instructions/*.instructions.md` apply to files matching their `applyTo`
+glob, and `.github/prompts/*.prompt.md` are available as `/prompt-name` in Copilot Chat.
+
+You only need settings if you keep these files somewhere other than the defaults:
 
 ```json
 {
-  "chat.promptFiles": true,
-  "github.copilot.chat.codeGeneration.useInstructionFiles": true
+  "chat.instructionsFilesLocations": { ".github/instructions": true },
+  "chat.promptFilesLocations": { ".github/prompts": true }
 }
 ```
+
+> Older guidance recommended `chat.promptFiles` and
+> `github.copilot.chat.codeGeneration.useInstructionFiles`. Settings-based instructions were
+> deprecated in VS Code 1.102 in favour of the file-based layout above; neither setting is required
+> now.
 
 ### 2. Choose Your Integration Method
 
@@ -178,19 +199,27 @@ git submodule add https://github.com/fadwen/PowerShell-Copilot-Standards.git .co
 
 ### Automated Testing
 
-All generated code includes:
+Standards for the code you generate — Pester 6 throughout:
 
-- **Unit Tests**: Pester tests with 80%+ coverage
+- **Unit Tests**: Pester tests targeting 80%+ coverage
 - **Integration Tests**: External dependency validation
 - **Performance Tests**: Benchmarking and regression detection
 - **Security Tests**: Input validation and credential handling
 
 ### Quality Gates
 
-- **PSScriptAnalyzer**: Zero violations with enterprise rules
-- **Security Scanning**: Credential leak and vulnerability detection
+These run against this repository on every pull request, and the templates set the same gates up
+for yours:
+
+- **PSScriptAnalyzer**: Zero errors in production files (test files are analyzed separately, since
+  patterns like a hardcoded `-ComputerName 'MOCKSERVER'` are legitimate in a mock)
+- **Pester**: Fails on `FailedCount` _and_ `FailedContainersCount` — a file that fails discovery
+  contributes zero failed tests and would otherwise read green
+- **Security Scanning**: Credential leak and vulnerability detection. Secret patterns apply to all
+  files; code-execution patterns apply only to `.ps1`/`.psm1`, since a `.psd1` is restricted data
+  and cannot invoke a cmdlet
+- **Documentation**: markdownlint over all Markdown, plus comment-based help validation
 - **Community Standards**: PowerShell best practices compliance
-- **Documentation**: Complete comment-based help validation
 
 ## 🔧 Customization
 
@@ -227,6 +256,11 @@ Create function for infrastructure management with:
 
 ### Core Documentation
 
+- **[PowerShell Version Baseline](./.github/instructions/powershell-version.instructions.md)**:
+  Support lifecycle, choosing a target, version-gated features, breaking changes
+- **[Pester 6 Testing Standards](./.github/instructions/pester.instructions.md)**: Core testing
+  requirements, with [12 supporting guides](./.github/instructions/pester-supporting-docs/) for
+  mocking, CI, templates, and v6 migration
 - **[Implementation Guide](./Documentation/Implementation-Guide.md)**: Step-by-step setup and usage
 - **[PowerShell Best Practices](./Documentation/PowerShell-Best-Practices.md)**: Community standards reference
 - **[Enterprise Extensions](./Documentation/Enterprise-Extensions.md)**: Organization-specific additions
@@ -253,23 +287,19 @@ Create function for infrastructure management with:
 3. Update documentation and examples
 4. Include performance impact analysis
 
-## 📊 Metrics and Success
+## 📊 Measuring Adoption
 
-### Quality Improvements
+No benchmark study backs this repository, so it makes no claims about what adopting it will do for
+your team. Measure it in your own environment instead — the quality gates emit most of what you
+need:
 
-Teams using these standards typically see:
+- **PSScriptAnalyzer findings** per pull request, split by severity
+- **Test coverage** and pass rate from the Pester gate
+- **Security scan findings** — hardcoded secrets and unsafe patterns caught before merge
+- **Documentation completeness** — comment-based help present on exported functions, markdownlint
+  clean
 
-- **40% faster** function development
-- **60% reduction** in code review cycles
-- **80% fewer** security vulnerabilities
-- **90% improvement** in documentation completeness
-
-### Adoption Tracking
-
-- Code quality scores (PSScriptAnalyzer compliance)
-- Security posture improvements
-- Development velocity gains
-- Team satisfaction ratings
+Track these before and after adoption if you want a real before/after comparison.
 
 ## 🆘 Support
 
