@@ -17,7 +17,8 @@ ${selection}
 
 - **Tool Design**: Verify functions are reusable with parameter input and pipeline output
 - **Error Handling**: Check for -ErrorAction Stop usage and proper try/catch blocks
-- **Performance**: Identify array appending, string concatenation, and pipeline efficiency issues
+- **Performance**: String concatenation and pipeline efficiency. Flag `+=` only where the declared
+  target is below 7.5, in which it remains O(n²) - PowerShell 7.5 optimised it
 - **Security**: Validate PSCredential usage and input sanitization
 - **Modularity**: Assess function design and single responsibility principle
 

@@ -23,7 +23,8 @@ ${selection}
 
 **1. Modern Test Patterns ✅**
 
-- Use Pester 6.x syntax and features (Windows PowerShell 5.1 or PowerShell 7.4+)
+- Use Pester 6.x syntax and features. Pester 6 requires Windows PowerShell 5.1 or PowerShell 7.4+;
+  target 7.6 (LTS) for new work, as 7.4 and 7.5 reach end of support on 10-Nov-2026
 - Prefer the `Should-*` assertions (dash, no space) for new test files; classic
   `Should -Be` remains supported for existing suites
 - Make every test file self-contained: Pester 6 discovers and runs one file at a time,
