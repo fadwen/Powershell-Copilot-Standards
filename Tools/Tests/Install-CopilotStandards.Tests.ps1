@@ -7,16 +7,14 @@ BeforeAll {
 Describe 'Install-CopilotStandards' -Tag 'Unit', 'Tools' {
 
     BeforeEach {
-        # A fresh throwaway project directory per test - the script writes to disk,
-        # so tests must never share one.
-        $script:ProjectPath = Join-Path ([System.IO.Path]::GetTempPath()) "ics-$([System.Guid]::NewGuid().ToString('N'))"
+        # A fresh project directory per test - the script writes to disk, so tests
+        # must never share one. Sited under $TestDrive, which Pester creates and
+        # removes per container and keeps isolated between files even under
+        # parallel, so no AfterEach cleanup is needed. $TestDrive is a real
+        # filesystem path, unlike the TestDrive: PSDrive, so it works with the
+        # native and .NET calls this script makes.
+        $script:ProjectPath = Join-Path $TestDrive "ics-$([System.Guid]::NewGuid().ToString('N'))"
         New-Item -Path $script:ProjectPath -ItemType Directory -Force | Out-Null
-    }
-
-    AfterEach {
-        if (Test-Path $script:ProjectPath) {
-            Remove-Item $script:ProjectPath -Recurse -Force -ErrorAction SilentlyContinue
-        }
     }
 
     Context 'Parameter validation' {

@@ -12,6 +12,12 @@ documentation and business communication. Create help that supports automatic RE
 
 ## Help Generation Requirements
 
+> **Worked example**:
+> [Basic-Function-Example.ps1](../../Documentation/Examples/Basic-Function-Example.ps1) carries a
+> complete help block in the form described here - synopsis, description, per-parameter text,
+> multiple examples with expected output, and `.NOTES` with troubleshooting links but no change
+> history.
+
 ### Mandatory Sections
 
 Generate complete comment-based help including all required sections:

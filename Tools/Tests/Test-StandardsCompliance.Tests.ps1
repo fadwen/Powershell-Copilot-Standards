@@ -21,14 +21,9 @@ BeforeAll {
 Describe 'Test-StandardsCompliance' -Tag 'Unit', 'Tools' {
 
     BeforeEach {
-        $script:FixturePath = Join-Path ([System.IO.Path]::GetTempPath()) "tsc-$([System.Guid]::NewGuid().ToString('N'))"
+        # Under $TestDrive, which Pester removes per container - see test-data-guide.md.
+        $script:FixturePath = Join-Path $TestDrive "tsc-$([System.Guid]::NewGuid().ToString('N'))"
         New-Item -Path $script:FixturePath -ItemType Directory -Force | Out-Null
-    }
-
-    AfterEach {
-        if (Test-Path $script:FixturePath) {
-            Remove-Item $script:FixturePath -Recurse -Force -ErrorAction SilentlyContinue
-        }
     }
 
     Context 'Parameter validation' {
@@ -423,20 +418,17 @@ function Get-Clean {
         It 'Does not exclude everything when the project path contains "test"' {
             # Regression: the filter tested $_.FullName, so a project under
             # C:\testing\... excluded every file and still reported success.
-            $pathWithTest = Join-Path ([System.IO.Path]::GetTempPath()) "testing-$([guid]::NewGuid().ToString('N'))"
+            # The directory name must contain "test" for this regression to bite
+            $pathWithTest = Join-Path $TestDrive "testing-$([guid]::NewGuid().ToString('N'))"
             New-Item -Path $pathWithTest -ItemType Directory -Force | Out-Null
-            try {
-                Set-Content (Join-Path $pathWithTest 'Get-Real.ps1') 'function Get-Real { param([Parameter(Mandatory)][string]$N) $N }'
-                Set-Content (Join-Path $pathWithTest 'Thing.Tests.ps1') 'Describe "x" { It "y" { $true } }'
 
-                $result = & $script:ScriptPath -Path $pathWithTest -ExcludeTests -PassThru `
-                    -InformationAction SilentlyContinue -WarningAction SilentlyContinue
+            Set-Content (Join-Path $pathWithTest 'Get-Real.ps1') 'function Get-Real { param([Parameter(Mandatory)][string]$N) $N }'
+            Set-Content (Join-Path $pathWithTest 'Thing.Tests.ps1') 'Describe "x" { It "y" { $true } }'
 
-                $result.TotalFiles | Should-Be 1
-            }
-            finally {
-                Remove-Item $pathWithTest -Recurse -Force -ErrorAction SilentlyContinue
-            }
+            $result = & $script:ScriptPath -Path $pathWithTest -ExcludeTests -PassThru `
+                -InformationAction SilentlyContinue -WarningAction SilentlyContinue
+
+            $result.TotalFiles | Should-Be 1
         }
 
         It 'Skips test files when -ExcludeTests is supplied' {

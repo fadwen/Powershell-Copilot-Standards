@@ -36,6 +36,13 @@ Collect essential information for module development:
 
 ## Module Structure Generation
 
+> **Worked example**:
+> [Documentation/Examples/Module-Structure-Example](../../Documentation/Examples/Module-Structure-Example/)
+> is a small working module implementing everything in this section - the folder layout, the load
+> order in `ModuleExample.psm1`, an explicit `FunctionsToExport`, a class used as a named output
+> type, and a private helper that is never exported. Read it before generating a new module; prefer
+> matching its shape over inventing one.
+
 ### Standard Module Directory Structure
 
 Create the complete module structure following enterprise standards:
@@ -74,7 +81,10 @@ ModuleName/
 
 ### Module Manifest Creation
 
-Generate comprehensive module manifest (ModuleName.psd1):
+Generate comprehensive module manifest (ModuleName.psd1). For a complete, valid manifest see
+[ModuleExample.psd1](../../Documentation/Examples/Module-Structure-Example/ModuleExample.psd1) -
+note that `FunctionsToExport` names each public function explicitly, which is what keeps private
+helpers internal:
 
 ```powershell
 @{
@@ -123,10 +133,15 @@ Generate comprehensive module manifest (ModuleName.psd1):
 
 ### Root Module Implementation
 
-Create optimized root module file (ModuleName.psm1):
+Create optimized root module file (ModuleName.psm1). Load order matters: classes first, then private
+functions, then public ones - see
+[ModuleExample.psm1](../../Documentation/Examples/Module-Structure-Example/ModuleExample.psm1) for a
+working loader.
 
 ```powershell
-#Requires -Version 5.1
+# Match the manifest's PowerShellVersion. This template targets 7.6; use 5.1 only
+# when the module is built for Windows PowerShell compatibility.
+#Requires -Version 7.6
 
 # Module initialization
 $ModuleRoot = $PSScriptRoot

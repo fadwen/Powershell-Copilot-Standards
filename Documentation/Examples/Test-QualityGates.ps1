@@ -1,5 +1,23 @@
-# Test-QualityGates.ps1 - Example function with FIXED security issues
-# This file demonstrates what the quality gates will catch and fix (security issues resolved)
+# =============================================================================
+# DO NOT USE THIS FILE AS A MODEL. IT DELIBERATELY VIOLATES THE STANDARDS.
+#
+# It exists so the quality gates have something to catch. Running
+# Tools/Test-StandardsCompliance.ps1 against it reports UseApprovedVerbs,
+# AvoidPSCustomObjectOutputType and UseDollarUnderscoreInCatch, which is the
+# point. Both CI workflows exclude it from production analysis by name.
+#
+# Violations present on purpose: Write-Host instead of Write-Verbose, $Error[0]
+# in catch blocks instead of $_, a non-approved verb (Process-TestData), array
+# appending in a loop, string concatenation in a loop, a redundant
+# ValidateNotNullOrEmpty on a mandatory parameter, an unused parameter, and
+# [OutputType([PSCustomObject])].
+#
+# For code to copy, see Basic-Function-Example.ps1 or Module-Structure-Example/.
+#
+# Security issues specifically were resolved - plaintext credentials and string
+# interpolated SQL are gone - so this file is safe to keep in the repository.
+# The quality issues above remain intentionally.
+# =============================================================================
 
 function Test-QualityGates {
     <#

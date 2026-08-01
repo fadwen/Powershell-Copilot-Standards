@@ -92,6 +92,23 @@ if ($analysisResults) {
 }
 ```
 
+`-Settings` takes any of the presets PSScriptAnalyzer ships, so the formatting rules in
+[style-enforcement.instructions.md](./style-enforcement.instructions.md) do not need a hand-written
+settings file. `CodeFormattingOTBS` already configures them:
+
+```powershell
+# One True Brace Style, 4-space indentation, operator and separator spacing,
+# assignment alignment, and cmdlet casing - all built in
+Invoke-ScriptAnalyzer -Path . -Recurse -Settings CodeFormattingOTBS
+```
+
+Run both when a team wants correctness and formatting checked together. The one documented rule no
+preset covers is the 115-character line limit; add `PSAvoidLongLines` explicitly if it matters to
+the team.
+
+Which presets to adopt is the consuming team's decision - these standards describe the practices,
+not the audit configuration.
+
 #### Testing and Coverage
 
 ```powershell

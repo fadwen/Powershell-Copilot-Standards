@@ -10,6 +10,13 @@ description: 'Implements comprehensive error handling and structured logging for
 Implement robust error handling and structured logging patterns for PowerShell code that ensure proper error management,
 correlation tracking, and enterprise-grade diagnostic capabilities.
 
+> **Worked examples**:
+> [Basic-Function-Example.ps1](../../Documentation/Examples/Basic-Function-Example.ps1) and
+> [Get-ExampleData.ps1](../../Documentation/Examples/Module-Structure-Example/Public/Get-ExampleData.ps1)
+> both generate a correlation ID once in `begin`, carry it through every message, use `$_` in the
+> catch, and `continue` so one failed item does not abort the batch. Both failure paths are covered
+> by tests.
+
 ## Error Handling Implementation
 
 ### Comprehensive Error Handling Pattern
