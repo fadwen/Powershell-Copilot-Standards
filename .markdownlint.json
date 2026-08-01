@@ -47,8 +47,7 @@
       "strong",
       "details",
       "summary",
-      "kbd",
-      "antml:cite"
+      "kbd"
     ]
   },
   "MD034": false,

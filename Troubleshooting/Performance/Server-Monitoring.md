@@ -24,7 +24,7 @@ Measure-Command { Get-CimInstance Win32_OperatingSystem -ComputerName $server }
 #### 1. Parallel Processing
 
 ```powershell
-# PowerShell 7+ parallel processing
+# Parallel processing - PowerShell 7.4+; 7.6 is the current LTS
 $servers | ForEach-Object -Parallel {
     Get-ServerHealth -ComputerName $_
 } -ThrottleLimit 10

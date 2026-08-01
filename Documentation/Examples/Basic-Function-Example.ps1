@@ -79,7 +79,9 @@
 
 function Get-BasicServerInfo {
     [CmdletBinding(SupportsShouldProcess = $true)]
-    [OutputType([PSCustomObject])]
+    # Quoted, and named. [OutputType([PSCustomObject])] is the anti-pattern the
+    # standards call out: it tells a caller nothing about the shape returned.
+    [OutputType('BasicServerInfo')]
     param(
         [Parameter(Mandatory = $true, 
                    ValueFromPipeline = $true,
@@ -154,8 +156,10 @@ function Get-BasicServerInfo {
                         # Calculate uptime
                         $uptime = (Get-Date) - $os.LastBootUpTime
                         
-                        # Build result object with raw data for maximum reusability
+                        # Build result object with raw data for maximum reusability.
+                        # PSTypeName gives the output a name that matches [OutputType].
                         $result = [PSCustomObject]@{
+                            PSTypeName = 'BasicServerInfo'
                             ComputerName = $computer
                             OperatingSystem = $os.Caption
                             Version = $os.Version

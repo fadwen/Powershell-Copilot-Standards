@@ -666,24 +666,26 @@ Use these prompts for quality assurance:
 
 For specialized scenarios, reference these instruction files:
 
-- **Security & Compliance**: [Security Guidelines](./instructions/securitycompliance-instructions.md)
-- **Testing Standards**: [Testing Framework](./instructions/pester-instructions.md)
-- **Architecture Design**: [Design Patterns](./instructions/architecturedesign-instructions.md)
-- **Module Development**: [Module Standards](./instructions/module-instructions.md)
-- **CI/CD Integration**: [Pipeline Setup](./instructions/cicd-instructions.md)
-- **Error Handling**: [Logging Framework](./instructions/errorsandlogs-instructions.md)
-- **Documentation**: [README Standards](./instructions/readme-instructions.md)
-- **Code Analysis**: [Quality Standards](./instructions/analyze-instructions.md)
-- **Comment Standards**: [Help Documentation](./instructions/comments-instructions.md)
+- **Version Baseline**: [Target Versions and Breaking Changes](./instructions/powershell-version.instructions.md)
+- **Security & Compliance**: [Security Guidelines](./instructions/securitycompliance.instructions.md)
+- **Testing Standards**: [Testing Framework](./instructions/pester.instructions.md)
+- **Architecture Design**: [Design Patterns](./instructions/architecturedesign.instructions.md)
+- **Module Development**: [Module Standards](./instructions/module.instructions.md)
+- **CI/CD Integration**: [Pipeline Setup](./instructions/cicd.instructions.md)
+- **Error Handling**: [Logging Framework](./instructions/errorsandlogs.instructions.md)
+- **Documentation**: [README Standards](./instructions/readme.instructions.md)
+- **Code Analysis**: [Quality Standards](./instructions/analyze.instructions.md)
+- **Comment Standards**: [Help Documentation](./instructions/comments.instructions.md)
 - **Community Standards**: [Best Practices Integration](./instructions/community-standards.instructions.md)
 - **Style Enforcement**: [Style Guide Compliance](./instructions/style-enforcement.instructions.md)
 
 ### Implementation Documentation
 
-- [Implementation Guide](./Documentation/Implementation-Guide.md): Step-by-step setup and adoption
-- [PowerShell Best Practices](./Documentation/PowerShell-Best-Practices.md): Comprehensive community standards
-- [Enterprise Extensions](./Documentation/Enterprise-Extensions.md): Organizational customizations
-- [Troubleshooting Guides](./Troubleshooting/): Organized problem-solving resources
+- [Implementation Guide](../Documentation/Implementation-Guide.md): Step-by-step setup and adoption
+- [PowerShell Best Practices](../Documentation/PowerShell-Best-Practices.md): Comprehensive community standards
+- [Enterprise Extensions](../Documentation/Enterprise-Extensions.md): Organizational customizations
+- [Examples](../Documentation/Examples/): Working code demonstrating these standards
+- [Troubleshooting Guides](../Troubleshooting/): Organized problem-solving resources
 
 ---
 

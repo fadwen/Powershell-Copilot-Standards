@@ -1,6 +1,11 @@
-# Enterprise PowerShell Application Template
+# Enterprise PowerShell Application Layout
 
-This template provides a complete structure for large-scale PowerShell applications with enterprise integration.
+A reference layout for large-scale PowerShell applications with enterprise integration.
+
+> This directory documents a structure; it contains no files to copy.
+> `Tools/Install-CopilotStandards.ps1 -StandardsType Enterprise` creates these folders in a target
+> project. For a template with working code, use
+> [Templates/Powershell-Module](../Powershell-Module/).
 
 ## 📁 Structure
 
@@ -29,7 +34,7 @@ EnterpriseApplication/
 
 ## 🚀 Getting Started
 
-1. Copy template to project directory
+1. Create the structure with `Install-CopilotStandards.ps1 -StandardsType Enterprise`
 2. Configure enterprise integrations
 3. Implement security controls
 4. Set up monitoring and alerting
