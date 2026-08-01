@@ -153,20 +153,16 @@ Describe 'ModuleExample' -Tag 'Unit', 'Example' {
         It 'Fails loudly when a source file cannot be dot-sourced' {
             # The loader throws rather than warning: a module that half-loads is
             # worse than one that refuses to.
-            $broken = Join-Path ([System.IO.Path]::GetTempPath()) "mse-$([guid]::NewGuid().ToString('N'))"
-            New-Item -Path (Join-Path $broken 'Public') -ItemType Directory -Force | Out-Null
-            New-Item -Path (Join-Path $broken 'Private') -ItemType Directory -Force | Out-Null
-            New-Item -Path (Join-Path $broken 'Classes') -ItemType Directory -Force | Out-Null
+            # Built under $TestDrive so Pester disposes of it - see test-data-guide.md
+            $broken = Join-Path $TestDrive "mse-$([guid]::NewGuid().ToString('N'))"
+            foreach ($folder in 'Public', 'Private', 'Classes') {
+                New-Item -Path (Join-Path $broken $folder) -ItemType Directory -Force | Out-Null
+            }
             Copy-Item (Join-Path $PSScriptRoot '..' 'ModuleExample.psm1') $broken
             Set-Content -Path (Join-Path $broken 'Public\Broken.ps1') -Value 'function Get-Broken { this is not powershell {'
 
-            try {
-                { Import-Module (Join-Path $broken 'ModuleExample.psm1') -Force -ErrorAction Stop } |
-                    Should-Throw -ExceptionMessage '*Failed to load public function*'
-            }
-            finally {
-                Remove-Item $broken -Recurse -Force -ErrorAction SilentlyContinue
-            }
+            { Import-Module (Join-Path $broken 'ModuleExample.psm1') -Force -ErrorAction Stop } |
+                Should-Throw -ExceptionMessage '*Failed to load public function*'
         }
     }
 
