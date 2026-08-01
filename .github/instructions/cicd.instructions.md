@@ -85,13 +85,34 @@ if ($analysisResults) {
 
 #### Testing and Coverage
 ```powershell
-# Pester test execution with coverage
+# Pester 6 test execution with coverage
+Import-Module Pester -MinimumVersion 6.0.0 -Force
+
 $pesterConfig = New-PesterConfiguration
 $pesterConfig.Run.Path = './Tests'
+$pesterConfig.Run.PassThru = $true
 $pesterConfig.CodeCoverage.Enabled = $true
-$pesterConfig.CodeCoverage.Threshold = 80
+$pesterConfig.CodeCoverage.Path = './Public/*.ps1', './Private/*.ps1'
+# CoveragePercentTarget, not Threshold - CodeCoverage.Threshold does not exist
+$pesterConfig.CodeCoverage.CoveragePercentTarget = 80
+
 $result = Invoke-Pester -Configuration $pesterConfig
+
+# A file that fails discovery contributes 0 to FailedCount - check both
+if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
+    Write-Error "Tests failed: $($result.FailedCount) test(s), $($result.FailedContainersCount) container(s)"
+    exit 1
+}
+
+# CoveragePercentTarget is the reported target; enforce the gate yourself
+$coverage = [math]::Round($result.CodeCoverage.CoveragePercent, 2)
+if ($coverage -lt 80) {
+    Write-Error "Code coverage $coverage% is below the 80% target"
+    exit 1
+}
 ```
+
+See [Pester instructions](./pester.instructions.md) for the full testing standards.
 
 #### Security Scanning
 ```powershell

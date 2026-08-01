@@ -1,14 +1,24 @@
 # Integration Test Template
 
+Targets **Pester 6.0+**. Uses the `Should-*` assertion syntax - see
+[Assertion Guide](./assertion-guide.md).
+
+**NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
+text descriptions and standard ASCII characters only.
+
 ## Standard Integration Test Structure
 
 Use this template for integration tests that validate component interactions:
 
 ```powershell
-#Requires -Module Pester
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
+
+# Integration tests touch shared external resources - databases, ports, live endpoints -
+# so they must not run concurrently with other files.
+#pester:no-parallel
 
 BeforeAll {
-    # Import module under test
+    # Import module under test. Each file is self-contained in Pester 6.
     $ModulePath = Join-Path $PSScriptRoot '..\..\ModuleName.psd1'
     Import-Module $ModulePath -Force
 
@@ -48,10 +58,10 @@ Describe "Integration Tests" -Tag "Integration", "EndToEnd" {
             $result = Invoke-CompleteWorkflow -Configuration $TestEnvironment
 
             # Validate end-to-end results
-            $result.Success | Should -Be $true
-            $result.ProcessedItems | Should -BeGreaterThan 0
-            $result.Errors | Should -Be @()
-            $result.ExecutionTime | Should -BeLessThan ([TimeSpan]::FromMinutes(5))
+            $result.Success        | Should-BeTrue
+            $result.ProcessedItems | Should-BeGreaterThan 0
+            $result.Errors         | Should-BeCollection @()
+            $result.ExecutionTime  | Should-BeLessThan ([TimeSpan]::FromMinutes(5))
         }
 
         It "Should handle partial failures gracefully" {
@@ -61,30 +71,29 @@ Describe "Integration Tests" -Tag "Integration", "EndToEnd" {
             $result = Invoke-CompleteWorkflow -Configuration $TestEnvironment -TestData $testData
 
             # Should complete with warnings
-            $result.Success | Should -Be $true
-            $result.Warnings | Should -Not -BeNullOrEmpty
-            $result.ProcessedItems | Should -BeGreaterThan 0
+            $result.Success        | Should-BeTrue
+            $result.Warnings       | Should-NotBeNull
+            $result.ProcessedItems | Should-BeGreaterThan 0
         }
 
         It "Should maintain data consistency across components" {
             $testId = [System.Guid]::NewGuid().ToString()
 
             # Create data in first component
-            $createResult = New-TestEntity -Id $testId -Data @{ Name = 'IntegrationTest'; Value = 'TestValue' }
-            $createResult.Success | Should -Be $true
+            New-TestEntity -Id $testId -Data @{ Name = 'IntegrationTest'; Value = 'TestValue' } |
+                Should-BeEquivalent ([PSCustomObject]@{ Success = $true }) -ExcludePathsNotOnExpected
 
             # Retrieve from second component
-            $retrieveResult = Get-TestEntity -Id $testId
-            $retrieveResult.Name | Should -Be 'IntegrationTest'
-            $retrieveResult.Value | Should -Be 'TestValue'
+            Get-TestEntity -Id $testId | Should-BeEquivalent ([PSCustomObject]@{
+                Name  = 'IntegrationTest'
+                Value = 'TestValue'
+            }) -ExcludePathsNotOnExpected
 
             # Update through third component
-            $updateResult = Set-TestEntity -Id $testId -Value 'UpdatedValue'
-            $updateResult.Success | Should -Be $true
+            (Set-TestEntity -Id $testId -Value 'UpdatedValue').Success | Should-BeTrue
 
             # Verify consistency
-            $finalResult = Get-TestEntity -Id $testId
-            $finalResult.Value | Should -Be 'UpdatedValue'
+            (Get-TestEntity -Id $testId).Value | Should-Be 'UpdatedValue'
         }
     }
 
@@ -101,26 +110,26 @@ Describe "Integration Tests" -Tag "Integration", "EndToEnd" {
             # Test with real external services (controlled test environment)
             $serviceResult = Test-ExternalServiceIntegration -Endpoint $TestEnvironment.APIEndpoint
 
-            $serviceResult.Connected | Should -Be $true
-            $serviceResult.ResponseTime | Should -BeLessThan 5000
-            $serviceResult.DataExchanged | Should -Be $true
+            $serviceResult.Connected     | Should-BeTrue
+            $serviceResult.ResponseTime  | Should-BeLessThan 5000
+            $serviceResult.DataExchanged | Should-BeTrue
         }
 
         It "Should retry on transient failures" {
             # Simulate transient failure scenario
             $retryResult = Invoke-ServiceWithRetry -Endpoint $TestEnvironment.APIEndpoint -MaxRetries 3
 
-            $retryResult.Success | Should -Be $true
-            $retryResult.AttemptCount | Should -BeGreaterThan 1
-            $retryResult.AttemptCount | Should -BeLessOrEqual 3
+            $retryResult.Success      | Should-BeTrue
+            $retryResult.AttemptCount | Should-BeGreaterThan 1
+            $retryResult.AttemptCount | Should-BeLessThanOrEqual 3 -Because 'MaxRetries caps attempts at 3'
         }
 
         It "Should circuit break on persistent failures" {
             # Test circuit breaker pattern
             $circuitResult = Invoke-ServiceWithCircuitBreaker -Endpoint 'http://invalid-endpoint.test'
 
-            $circuitResult.CircuitOpen | Should -Be $true
-            $circuitResult.ExecutionTime | Should -BeLessThan ([TimeSpan]::FromSeconds(10))
+            $circuitResult.CircuitOpen   | Should-BeTrue
+            $circuitResult.ExecutionTime | Should-BeLessThan ([TimeSpan]::FromSeconds(10))
         }
     }
 
@@ -138,17 +147,16 @@ Describe "Integration Tests" -Tag "Integration", "EndToEnd" {
 
             # Save data
             $saveResult = Save-TestData -Data $testData -Connection $TestEnvironment.DatabaseConnection
-            $saveResult.Success | Should -Be $true
-            $saveResult.RecordId | Should -Not -BeNullOrEmpty
+            $saveResult.Success  | Should-BeTrue
+            $saveResult.RecordId | Should-NotBeNull
 
             # Retrieve data in new session
             $retrievedData = Get-TestData -Id $saveResult.RecordId -Connection $TestEnvironment.DatabaseConnection
 
-            # Verify data integrity
-            $retrievedData.Name | Should -Be $testData.Name
-            $retrievedData.Value | Should -Be $testData.Value
-            $retrievedData.ComplexData.NestedProperty | Should -Be $testData.ComplexData.NestedProperty
-            $retrievedData.ComplexData.ArrayProperty.Count | Should -Be 3
+            # Verify data integrity. One deep comparison beats four property assertions and
+            # reports a property-by-property diff when the round trip loses something.
+            # Timestamp is excluded because storage may re-quantize it.
+            $retrievedData | Should-BeEquivalent $testData -ExcludePath 'Timestamp'
         }
 
         It "Should handle concurrent data access" {
@@ -169,69 +177,102 @@ Describe "Integration Tests" -Tag "Integration", "EndToEnd" {
             $jobs | Remove-Job
 
             # Verify no data corruption
-            $finalData = Get-TestData -Id $testId
-            $finalData | Should -Not -BeNullOrEmpty
-            $results | Should -HaveCount 5
+            Get-TestData -Id $testId | Should-NotBeNull
+            $results | Should-BeCollection -Count 5
         }
 
         It "Should maintain referential integrity" {
             # Create parent record
             $parentId = [System.Guid]::NewGuid().ToString()
-            $parentResult = New-TestParent -Id $parentId -Name 'TestParent'
-            $parentResult.Success | Should -Be $true
+            (New-TestParent -Id $parentId -Name 'TestParent').Success | Should-BeTrue
 
             # Create child records
-            $childIds = 1..3 | ForEach-Object {
-                $childResult = New-TestChild -ParentId $parentId -Name "TestChild$_"
-                $childResult.Success | Should -Be $true
-                $childResult.Id
+            1..3 | ForEach-Object {
+                (New-TestChild -ParentId $parentId -Name "TestChild$_").Success | Should-BeTrue
             }
 
             # Verify relationships
             $children = Get-TestChildren -ParentId $parentId
-            $children.Count | Should -Be 3
-            $children | ForEach-Object { $_.ParentId | Should -Be $parentId }
+            $children | Should-BeCollection -Count 3
+            $children | Should-All { $_.ParentId -eq $parentId }
 
             # Test cascade operations
-            $deleteResult = Remove-TestParent -Id $parentId -Cascade
-            $deleteResult.Success | Should -Be $true
+            (Remove-TestParent -Id $parentId -Cascade).Success | Should-BeTrue
 
             # Verify cascade worked
-            $orphanChildren = Get-TestChildren -ParentId $parentId
-            $orphanChildren | Should -BeNullOrEmpty
+            Get-TestChildren -ParentId $parentId | Should-BeCollection @()
         }
     }
 
     Context "Cross-Platform Compatibility" {
-        It "Should work on Windows PowerShell 5.1" -Skip:(-not $IsWindows -or $PSVersionTable.PSVersion.Major -ne 5) {
+        # Pester 6 supports Windows PowerShell 5.1 and PowerShell 7.4+ only.
+        It "Should work on Windows PowerShell 5.1" -Skip:($PSVersionTable.PSVersion.Major -ne 5) {
             $result = Invoke-CrossPlatformFunction -Platform 'Windows' -PowerShellVersion '5.1'
-            $result.Success | Should -Be $true
-            $result.Platform | Should -Be 'Windows'
+            $result.Success  | Should-BeTrue
+            $result.Platform | Should-Be 'Windows'
         }
 
-        It "Should work on PowerShell 7.x" -Skip:($PSVersionTable.PSVersion.Major -lt 7) {
+        It "Should work on PowerShell 7.4+" -Skip:($PSVersionTable.PSVersion -lt [version]'7.4') {
             $result = Invoke-CrossPlatformFunction -Platform $PSVersionTable.Platform -PowerShellVersion $PSVersionTable.PSVersion
-            $result.Success | Should -Be $true
-            $result.CrossPlatformFeatures | Should -Be $true
+            $result.Success               | Should-BeTrue
+            $result.CrossPlatformFeatures | Should-BeTrue
         }
 
         It "Should handle path separators correctly" {
             $testPath = Join-Path 'parent' 'child' 'file.txt'
             $result = Test-PathHandling -Path $testPath
 
-            $result.Success | Should -Be $true
-            $result.NormalizedPath | Should -Not -BeNullOrEmpty
+            $result.Success        | Should-BeTrue
+            $result.NormalizedPath | Should-NotBeNull
 
-            # Verify platform-specific path handling
-            if ($IsWindows) {
-                $result.NormalizedPath | Should -Match '\\'
+            # Verify platform-specific path handling.
+            # $IsWindows is undefined on Windows PowerShell 5.1, which is always Windows.
+            $onWindows = $PSVersionTable.PSVersion.Major -eq 5 -or $IsWindows
+            if ($onWindows) {
+                $result.NormalizedPath | Should-MatchString '\\'
             } else {
-                $result.NormalizedPath | Should -Match '/'
+                $result.NormalizedPath | Should-MatchString '/'
             }
         }
     }
 }
 ```
+
+## Pester 6 Notes for Integration Tests
+
+### Opt out of parallel execution
+Integration tests hold shared external resources - a database, a fixed port, a live endpoint. Two
+files touching the same resource concurrently will produce flaky, hard-to-diagnose failures. Put
+`#pester:no-parallel` at the top of every integration test file. Those files run serially in the
+parent session while unit test files run in parallel.
+
+### `Set-ItResult -Pending` is gone
+Use `-Skipped` (with `-Because`) or `-Inconclusive`:
+
+```powershell
+BeforeEach {
+    $connectivity = Test-ExternalServiceConnectivity -Endpoint $TestEnvironment.APIEndpoint
+    if (-not $connectivity.Success) {
+        Set-ItResult -Skipped -Because "External service not available: $($connectivity.Error)"
+    }
+}
+```
+
+### Environment-driven test cases must not be empty
+An integration suite that builds `-ForEach` from environment configuration will **fail discovery**
+in Pester 6 if that configuration is missing, rather than silently running zero tests. This is
+usually what you want. Where an empty set is legitimate, be explicit:
+
+```powershell
+It "Should reach <Endpoint>" -ForEach $configuredEndpoints -AllowNullOrEmptyForEach {
+    Test-Endpoint -Uri $Endpoint | Should-BeTrue
+}
+```
+
+### Prefer `Should-BeEquivalent` for round trips
+Persistence and API tests compare whole objects. One `Should-BeEquivalent` with `-ExcludePath` for
+volatile fields (generated ids, timestamps) gives a property-by-property diff, where a run of
+individual property assertions only tells you about the first mismatch.
 
 ## Integration Test Guidelines
 

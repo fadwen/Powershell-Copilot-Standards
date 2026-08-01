@@ -1,9 +1,68 @@
 # Test Data Management Guide
 
+Targets **Pester 6.0+**.
+
+**NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
+text descriptions and standard ASCII characters only.
+
+## Discovery-Time vs. Run-Time Data
+
+This is the most important distinction in Pester 6 test data, and getting it wrong fails silently.
+
+| Data drives... | Must be built in | Why |
+| --- | --- | --- |
+| `-ForEach` / `-TestCases` (the test _tree_) | `BeforeDiscovery` | Discovery runs before `BeforeAll` |
+| Assertions inside `It` (the test _body_) | `BeforeAll` / `BeforeEach` | Runs at execution time |
+
+```powershell
+BeforeDiscovery {
+    # Shapes the test tree - one It per user
+    $TestUsers = New-TestUsers -Count 3 -Type 'Standard'
+}
+
+BeforeAll {
+    # Used inside test bodies
+    $TestConfig = New-TestConfiguration -Environment 'Testing'
+}
+
+Describe 'User processing' {
+    It 'processes <Name>' -ForEach $TestUsers.ForEach({ @{ Name = $_.FullName; User = $_ } }) {
+        Process-User -User $User -Config $TestConfig | Should-BeTrue
+    }
+}
+```
+
+Building `-ForEach` data in `BeforeAll` leaves it `$null` during discovery. Piping `$null` through
+`ForEach-Object` yields **one** iteration, so the suite collapses to a single bogus test and reports
+green. If the source is an empty array instead, Pester 6 fails discovery outright
+(`Run.FailOnNullOrEmptyForEach`).
+
+Because Pester 6 discovers **one file at a time**, discovery-time data must also be produced by the
+file that uses it - a helper module imported by another test file is not guaranteed to be loaded.
+Import helpers in the same file, or provide them via `Run.BeforeContainer` /
+`Pester.BeforeContainer.ps1`.
+
+### Test data must be deterministic at discovery time
+
+`TestDataFactory` below uses `Get-Random`. That is fine for run-time data, but data feeding
+`-ForEach` should be **stable** - under `Run.Parallel` each file is discovered in its own runspace,
+and randomized test _names_ make failures hard to correlate across runs and reports.
+
+For discovery-time data, prefer fixed fixtures or a seeded generator:
+
+```powershell
+BeforeDiscovery {
+    # Stable names - the same test identity on every run and in every runspace
+    $TestCases = Import-PowerShellDataFile "$PSScriptRoot/../TestData/user-cases.psd1"
+}
+```
+
+Keep `Get-Random` for values consumed inside `It` bodies, where the name is already fixed.
+
 ## Test Data Organization
 
 ### Test Data Directory Structure
-```
+```text
 Tests/
 ├── TestData/
 │   ├── Configurations/
@@ -479,7 +538,8 @@ function Clear-TestDataCache {
 ### Data Isolation
 ```powershell
 BeforeEach {
-    # Create isolated test data for each test
+    # Create isolated test data for each test.
+    # Only ONE BeforeEach and ONE AfterEach per block - duplicates throw in Pester 6.
     $script:TestUsers = New-TestUsers -Count 3 -Type 'Standard'
     $script:TestConfig = New-TestConfiguration -Environment 'Testing'
 }
@@ -491,6 +551,21 @@ AfterEach {
 }
 ```
 
+The `TestDataFactory` cache is **per-runspace**. Under `Run.Parallel` each test file gets its own
+runspace and therefore its own cache, so cached data is never shared between files. Do not rely on
+one file warming the cache for another - that was already fragile in Pester 5 and is impossible in
+a parallel v6 run.
+
+Use `TestDrive:` for file-based test data rather than `$env:TEMP`. Pester creates and removes it per
+container, so it is isolated between files even under parallel:
+
+```powershell
+BeforeAll {
+    $dataFile = Join-Path $TestDrive 'users.json'
+    New-TestUsers -Count 3 | ConvertTo-Json | Set-Content $dataFile
+}
+```
+
 ### Data Validation
 ```powershell
 function Test-TestDataIntegrity {
@@ -498,23 +573,23 @@ function Test-TestDataIntegrity {
 
     switch ($Type) {
         'Users' {
-            foreach ($user in $Data) {
-                $user.Id | Should -Not -BeNullOrEmpty
-                $user.Email | Should -Match '^[^@]+@[^@]+\.[^@]+$'
-                $user.FirstName | Should -Not -BeNullOrEmpty
-                $user.LastName | Should -Not -BeNullOrEmpty
-            }
+            $Data | Should-All { $null -ne $_.Id }
+            $Data | Should-All { $_.Email -match '^[^@]+@[^@]+\.[^@]+$' }
+            $Data | Should-All { -not [string]::IsNullOrWhiteSpace($_.FirstName) }
+            $Data | Should-All { -not [string]::IsNullOrWhiteSpace($_.LastName) }
         }
         'Servers' {
-            foreach ($server in $Data) {
-                $server.Name | Should -Not -BeNullOrEmpty
-                $server.IPAddress | Should -Match '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$'
-                $server.Environment | Should -BeIn @('Production', 'Development', 'Testing', 'Staging')
-            }
+            $Data | Should-All { -not [string]::IsNullOrWhiteSpace($_.Name) }
+            $Data | Should-All { $_.IPAddress -match '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$' }
+            # Should -BeIn has no direct Should-* equivalent - test membership in the filter
+            $Data | Should-All { $_.Environment -in @('Production', 'Development', 'Testing', 'Staging') }
         }
     }
 }
 ```
+
+`Should-All` reports which item failed and why, where a `foreach` loop of individual assertions
+stops at the first failure and does not tell you the index.
 
 ### Performance Test Data
 ```powershell

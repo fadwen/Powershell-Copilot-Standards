@@ -1,5 +1,31 @@
 # CI/CD Integration Guide
 
+Targets **Pester 6.0+**. Pester 6 supports **Windows PowerShell 5.1** and **PowerShell 7.4+** only -
+support for PowerShell 3, 4, 6, and early/unsupported 7.x was removed, so drop `7.2` and `7.3` from
+existing test matrices.
+
+**NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
+text descriptions and standard ASCII characters only.
+
+## Job Design for Pester 6
+
+Two facts shape the pipeline:
+
+1. **Code coverage forces a sequential run.** Enabling `CodeCoverage` disables `Run.Parallel` with a
+   warning. Run a fast parallel job for feedback and a separate sequential job with coverage for the
+   gate.
+2. **Discovery failures do not appear in `FailedCount`.** A file that fails discovery contributes
+   zero failed tests. Every gate must also check `FailedContainersCount`, and a cheap discovery-only
+   job should run first.
+
+```text
+validate (discovery-only, fast)
+    |
+    +--> test-parallel  (no coverage, PS 7.4+, fast feedback)
+    +--> test-coverage  (sequential, coverage gate)
+    +--> test-ps51      (Windows PowerShell 5.1, sequential - no parallel support)
+```
+
 ## GitHub Actions Integration
 
 ### Complete GitHub Actions Workflow
@@ -16,48 +42,95 @@ on:
 
 env:
   POWERSHELL_TELEMETRY_OPTOUT: 1
+  PESTER_VERSION: '6.0.1'
 
 jobs:
+  # Fast structural check. Catches the Pester 6 breakages - duplicate setup blocks,
+  # empty -ForEach, files that cannot be discovered independently - without running
+  # a single test.
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Pester
+      shell: pwsh
+      run: |
+        Set-PSRepository PSGallery -InstallationPolicy Trusted
+        Install-Module Pester -MinimumVersion $env:PESTER_VERSION -Force -Scope CurrentUser
+
+    - name: Discovery-only pass
+      shell: pwsh
+      run: |
+        $config = New-PesterConfiguration
+        $config.Run.Path = './Tests'
+        $config.Run.SkipRun = $true
+        $config.Run.PassThru = $true
+        $config.Output.CIFormat = 'GithubActions'
+
+        $result = Invoke-Pester -Configuration $config
+
+        if ($result.FailedContainersCount -gt 0) {
+          $result.FailedContainers | ForEach-Object {
+            Write-Host "::error file=$($_.Item)::Discovery failed: $($_.ErrorRecord.Exception.Message)"
+          }
+          throw "$($result.FailedContainersCount) file(s) failed discovery"
+        }
+        Write-Host "Discovered $($result.TotalCount) tests across $($result.Containers.Count) files"
+
+    - name: Verify every test is tagged
+      shell: pwsh
+      run: |
+        $config = New-PesterConfiguration
+        $config.Run.Path = './Tests'
+        $config.Filter.Tag = 'None'   # reserved value: tests with NO tags
+        $config.Run.SkipRun = $true
+        $config.Run.PassThru = $true
+        $config.Output.Verbosity = 'None'
+
+        $untagged = Invoke-Pester -Configuration $config
+        if ($untagged.TotalCount -gt 0) {
+          throw "$($untagged.TotalCount) test(s) have no tag"
+        }
+
   test:
+    needs: validate
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        # Pester 6 supports Windows PowerShell 5.1 and PowerShell 7.4+ only.
+        # ubuntu/macos runners ship PowerShell 7.4+; windows-latest has both.
         os: [windows-latest, ubuntu-latest, macos-latest]
-        powershell-version: ['5.1', '7.2', '7.3', '7.4']
-        exclude:
-          - os: ubuntu-latest
-            powershell-version: '5.1'
-          - os: macos-latest
-            powershell-version: '5.1'
+        shell: [pwsh]
+        include:
+          # Windows PowerShell 5.1 - sequential only, no parallel support
+          - os: windows-latest
+            shell: powershell
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-
-    - name: Setup PowerShell
-      uses: actions/setup-powershell@v1
-      with:
-        powershell-version: ${{ matrix.powershell-version }}
+    - uses: actions/checkout@v4
 
     - name: Cache PowerShell Modules
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: |
           ~/.local/share/powershell/Modules
           ~/Documents/PowerShell/Modules
-        key: ${{ runner.os }}-powershell-${{ hashFiles('**/*.psd1') }}
+          ~/Documents/WindowsPowerShell/Modules
+        key: ${{ runner.os }}-pester-${{ env.PESTER_VERSION }}-${{ hashFiles('**/*.psd1') }}
         restore-keys: |
-          ${{ runner.os }}-powershell-
+          ${{ runner.os }}-pester-${{ env.PESTER_VERSION }}-
 
     - name: Install Dependencies
-      shell: pwsh
+      shell: ${{ matrix.shell }}
       run: |
         Set-PSRepository PSGallery -InstallationPolicy Trusted
-        Install-Module Pester -MinimumVersion 5.3.0 -Force -Scope CurrentUser
+        Install-Module Pester -MinimumVersion $env:PESTER_VERSION -Force -Scope CurrentUser
         Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
 
     - name: Run PSScriptAnalyzer
-      shell: pwsh
+      shell: ${{ matrix.shell }}
       run: |
         $analysisResults = Invoke-ScriptAnalyzer -Path . -Recurse -Settings PSGallery
         if ($analysisResults) {
@@ -65,37 +138,45 @@ jobs:
           throw "PSScriptAnalyzer found $($analysisResults.Count) issues"
         }
 
+    # Fast feedback: parallel, no coverage. Parallel is silently ignored on
+    # Windows PowerShell 5.1, which falls back to sequential with a warning.
     - name: Run Unit Tests
-      shell: pwsh
+      shell: ${{ matrix.shell }}
       run: |
+        Import-Module Pester -MinimumVersion 6.0.0 -Force
+
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Unit'
         $config.Run.PassThru = $true
-        $config.CodeCoverage.Enabled = $true
-        $config.CodeCoverage.Path = './Public/*.ps1', './Private/*.ps1'
-        $config.CodeCoverage.OutputFormat = 'JaCoCo'
-        $config.CodeCoverage.OutputPath = './coverage.xml'
+        $config.Run.Parallel = $PSVersionTable.PSVersion.Major -ge 7
         $config.TestResult.Enabled = $true
         $config.TestResult.OutputFormat = 'NUnitXml'
         $config.TestResult.OutputPath = './TestResults.xml'
         $config.Output.Verbosity = 'Detailed'
+        $config.Output.CIFormat = 'GithubActions'
 
         $result = Invoke-Pester -Configuration $config
 
-        if ($result.FailedCount -gt 0) {
-          throw "Unit tests failed: $($result.FailedCount) failures"
+        # Check BOTH - a file that fails discovery contributes 0 to FailedCount
+        if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
+          throw "Unit tests failed: $($result.FailedCount) test failure(s), $($result.FailedContainersCount) container failure(s)"
         }
 
     - name: Run Integration Tests
-      shell: pwsh
+      shell: ${{ matrix.shell }}
       run: |
+        Import-Module Pester -MinimumVersion 6.0.0 -Force
+
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Integration'
         $config.Run.PassThru = $true
+        # Integration tests share external resources - never parallel
+        $config.Run.Parallel = $false
         $config.Filter.Tag = 'Integration'
         $config.TestResult.Enabled = $true
         $config.TestResult.OutputFormat = 'NUnitXml'
         $config.TestResult.OutputPath = './IntegrationResults.xml'
+        $config.Output.CIFormat = 'GithubActions'
 
         $result = Invoke-Pester -Configuration $config
 
@@ -105,60 +186,119 @@ jobs:
         }
 
     - name: Upload Test Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: test-results-${{ matrix.os }}-ps${{ matrix.powershell-version }}
+        name: test-results-${{ matrix.os }}-${{ matrix.shell }}
         path: |
           TestResults.xml
           IntegrationResults.xml
-          coverage.xml
 
-    - name: Publish Test Results
-      uses: dorny/test-reporter@v1
+  # Coverage must run sequentially - enabling CodeCoverage disables Run.Parallel.
+  coverage:
+    needs: validate
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Pester
+      shell: pwsh
+      run: |
+        Set-PSRepository PSGallery -InstallationPolicy Trusted
+        Install-Module Pester -MinimumVersion $env:PESTER_VERSION -Force -Scope CurrentUser
+
+    - name: Run Tests with Coverage
+      shell: pwsh
+      run: |
+        Import-Module Pester -MinimumVersion 6.0.0 -Force
+
+        $config = New-PesterConfiguration
+        $config.Run.Path = './Tests/Unit'
+        $config.Run.PassThru = $true
+        $config.CodeCoverage.Enabled = $true
+        $config.CodeCoverage.Path = './Public/*.ps1', './Private/*.ps1'
+        # Profiler-based coverage is the v6 default and far faster than breakpoints
+        $config.CodeCoverage.UseBreakpoints = $false
+        $config.CodeCoverage.OutputFormat = 'JaCoCo'
+        $config.CodeCoverage.OutputPath = './coverage.xml'
+        # CoveragePercentTarget is the REPORTED target - it does not fail the run.
+        # There is no CodeCoverage.Threshold setting.
+        $config.CodeCoverage.CoveragePercentTarget = 80
+        $config.Output.CIFormat = 'GithubActions'
+
+        $result = Invoke-Pester -Configuration $config
+
+        if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
+          throw "Tests failed"
+        }
+
+        # Enforce the coverage gate yourself
+        $actual = [math]::Round($result.CodeCoverage.CoveragePercent, 2)
+        $target = $result.CodeCoverage.CoveragePercentTarget
+
+        "## Code Coverage`n`n**$actual%** (target $target%)" |
+          Out-File $env:GITHUB_STEP_SUMMARY -Append
+
+        if ($actual -lt $target) {
+          $result.CodeCoverage.CommandsMissed | Group-Object File | ForEach-Object {
+            Write-Host "::warning file=$($_.Name)::$($_.Count) uncovered commands"
+          }
+          throw "Code coverage $actual% is below the $target% target"
+        }
+
+    - name: Upload Coverage
+      uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: Test Results (${{ matrix.os }} - PS${{ matrix.powershell-version }})
-        path: TestResults.xml
-        reporter: dotnet-trx
+        name: coverage
+        path: coverage.xml
 
     - name: Upload Coverage to Codecov
-      uses: codecov/codecov-action@v3
-      if: matrix.os == 'windows-latest' && matrix.powershell-version == '7.4'
+      uses: codecov/codecov-action@v5
       with:
-        file: ./coverage.xml
+        files: ./coverage.xml
         flags: powershell
-        name: codecov-umbrella
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   security-scan:
+    needs: validate
     runs-on: windows-latest
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Setup PowerShell
-      uses: actions/setup-powershell@v1
-
     - name: Install Dependencies
       shell: pwsh
       run: |
-        Install-Module Pester -Force -Scope CurrentUser
+        Set-PSRepository PSGallery -InstallationPolicy Trusted
+        Install-Module Pester -MinimumVersion $env:PESTER_VERSION -Force -Scope CurrentUser
         Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
 
     - name: Run Security Tests
       shell: pwsh
       run: |
+        Import-Module Pester -MinimumVersion 6.0.0 -Force
+
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Security'
         $config.Filter.Tag = 'Security'
         $config.Run.PassThru = $true
         $config.TestResult.Enabled = $true
         $config.TestResult.OutputPath = './SecurityResults.xml'
+        $config.Output.CIFormat = 'GithubActions'
 
         $result = Invoke-Pester -Configuration $config
 
-        if ($result.FailedCount -gt 0) {
-          throw "Security tests failed: $($result.FailedCount) critical issues found"
+        # A security suite that discovers zero tests must fail the build.
+        # Attack-pattern data built in BeforeAll instead of BeforeDiscovery
+        # silently collapses the suite - see security-test-template.md.
+        if ($result.TotalCount -eq 0) {
+          throw "Security suite discovered no tests - check BeforeDiscovery data"
+        }
+
+        if ($result.FailedCount -gt 0 -or $result.FailedContainersCount -gt 0) {
+          throw "Security tests failed: $($result.FailedCount) critical issue(s) found"
         }
 
     - name: Run Credential Scan
@@ -187,26 +327,30 @@ jobs:
         }
 
   performance-baseline:
+    needs: validate
     runs-on: windows-latest
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Setup PowerShell
-      uses: actions/setup-powershell@v1
-
     - name: Install Dependencies
       shell: pwsh
       run: |
-        Install-Module Pester -Force -Scope CurrentUser
+        Set-PSRepository PSGallery -InstallationPolicy Trusted
+        Install-Module Pester -MinimumVersion $env:PESTER_VERSION -Force -Scope CurrentUser
 
     - name: Run Performance Tests
       shell: pwsh
       run: |
+        Import-Module Pester -MinimumVersion 6.0.0 -Force
+
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Performance'
         $config.Filter.Tag = 'Performance'
         $config.Run.PassThru = $true
+        # Never parallel, and never with coverage - both distort the measurement
+        $config.Run.Parallel = $false
+        $config.CodeCoverage.Enabled = $false
         $config.TestResult.Enabled = $true
         $config.TestResult.OutputPath = './PerformanceResults.xml'
 
@@ -231,13 +375,26 @@ jobs:
         $metrics | ConvertTo-Json | Out-File performance-metrics.json
 
     - name: Upload Performance Results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-results
         path: |
           PerformanceResults.xml
           performance-metrics.json
 ```
+
+### GitHub Actions Notes
+
+- `actions/setup-powershell` is not an official action. GitHub-hosted runners ship PowerShell 7.4+
+  preinstalled (`shell: pwsh`), and `windows-latest` also has Windows PowerShell 5.1
+  (`shell: powershell`). Select the shell rather than installing a version.
+- `::set-output` was disabled by GitHub in 2023. Write to `$GITHUB_OUTPUT` instead:
+  `"name=value" | Out-File $env:GITHUB_OUTPUT -Append`.
+- `$config.Output.CIFormat = 'GithubActions'` makes Pester emit `::error` and `::warning`
+  annotations that surface failures inline on the PR diff. `Auto` detects this, but setting it
+  explicitly is clearer.
+- Use `fail-fast: false` so one platform's failure does not cancel the others - you want the full
+  picture of which platforms broke.
 
 ## Azure DevOps Integration
 
@@ -294,7 +451,7 @@ stages:
         targetType: 'inline'
         script: |
           Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module Pester -MinimumVersion 5.3.0 -Force -Scope CurrentUser
+          Install-Module Pester -MinimumVersion 6.0.0 -Force -Scope CurrentUser
           Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
         pwsh: $(powershellVersion -eq '7.x')
 
@@ -316,6 +473,8 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
+          Import-Module Pester -MinimumVersion 6.0.0 -Force
+
           $config = New-PesterConfiguration
           $config.Run.Path = './Tests'
           $config.Run.PassThru = $true
@@ -323,9 +482,11 @@ stages:
           $config.CodeCoverage.Path = './Public/*.ps1', './Private/*.ps1'
           $config.CodeCoverage.OutputFormat = 'JaCoCo'
           $config.CodeCoverage.OutputPath = '$(Agent.TempDirectory)/coverage.xml'
+          $config.CodeCoverage.CoveragePercentTarget = 80
           $config.TestResult.Enabled = $true
           $config.TestResult.OutputFormat = 'NUnitXml'
           $config.TestResult.OutputPath = '$(Agent.TempDirectory)/TestResults.xml'
+          $config.Output.CIFormat = 'AzureDevops'
 
           $result = Invoke-Pester -Configuration $config
 
@@ -333,8 +494,18 @@ stages:
           Write-Host "##vso[task.setvariable variable=PassedTests]$($result.PassedCount)"
           Write-Host "##vso[task.setvariable variable=FailedTests]$($result.FailedCount)"
 
+          # Pester 5/6 property is CoveragePercent. CoveredPercent is the
+          # Pester 4 name and returns $null silently.
           if ($result.CodeCoverage) {
-            Write-Host "##vso[task.setvariable variable=CodeCoverage]$($result.CodeCoverage.CoveredPercent)"
+            Write-Host "##vso[task.setvariable variable=CodeCoverage]$($result.CodeCoverage.CoveragePercent)"
+          }
+
+          # A file that fails discovery contributes 0 to FailedCount - check both
+          if ($result.FailedContainersCount -gt 0) {
+            $result.FailedContainers | ForEach-Object {
+              Write-Host "##vso[task.logissue type=error]Discovery failed: $($_.Item)"
+            }
+            exit 1
           }
 
           if ($result.FailedCount -gt 0) {
@@ -351,11 +522,12 @@ stages:
         testResultsFiles: '$(Agent.TempDirectory)/TestResults.xml'
         testRunTitle: 'PowerShell Tests - $(Agent.OS) - PS$(powershellVersion)'
 
-    - task: PublishCodeCoverageResults@1
+    # PublishCodeCoverageResults@1 is deprecated; @2 takes summaryFileLocation
+    # directly and infers the format.
+    - task: PublishCodeCoverageResults@2
       displayName: 'Publish Code Coverage'
       condition: always()
       inputs:
-        codeCoverageTool: 'JaCoCo'
         summaryFileLocation: '$(Agent.TempDirectory)/coverage.xml'
 
   - job: TestLinux
@@ -369,7 +541,7 @@ stages:
         targetType: 'inline'
         script: |
           Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module Pester -MinimumVersion 5.3.0 -Force -Scope CurrentUser
+          Install-Module Pester -MinimumVersion 6.0.0 -Force -Scope CurrentUser
         pwsh: true
 
     - task: PowerShell@2
@@ -463,7 +635,7 @@ pipeline {
                     steps {
                         powershell '''
                             Set-PSRepository PSGallery -InstallationPolicy Trusted
-                            Install-Module Pester -MinimumVersion 5.3.0 -Force -Scope CurrentUser
+                            Install-Module Pester -MinimumVersion 6.0.0 -Force -Scope CurrentUser
 
                             $config = New-PesterConfiguration
                             $config.Run.Path = './Tests'
@@ -490,7 +662,7 @@ pipeline {
                     steps {
                         pwsh '''
                             Set-PSRepository PSGallery -InstallationPolicy Trusted
-                            Install-Module Pester -MinimumVersion 5.3.0 -Force -Scope CurrentUser
+                            Install-Module Pester -MinimumVersion 6.0.0 -Force -Scope CurrentUser
 
                             ./Invoke-Tests.ps1 -TestType All -Environment CI -CodeCoverage
                         '''
@@ -567,8 +739,11 @@ variables:
 .powershell_template: &powershell_template
   before_script:
     - Set-PSRepository PSGallery -InstallationPolicy Trusted
-    - Install-Module Pester -MinimumVersion 5.3.0 -Force -Scope CurrentUser
+    - Install-Module Pester -MinimumVersion 6.0.0 -Force -Scope CurrentUser
 
+# GitLab needs JUnit for test results and Cobertura for coverage. Pester 6
+# supports both natively - set TestResult.OutputFormat = 'JUnitXml' and
+# CodeCoverage.OutputFormat = 'Cobertura' in PesterConfiguration.CI.psd1.
 test:windows:
   stage: test
   image: mcr.microsoft.com/powershell:lts-windowsservercore-ltsc2019
@@ -588,10 +763,11 @@ test:windows:
 
 test:linux:
   stage: test
-  image: mcr.microsoft.com/powershell:lts-ubuntu-20.04
+  image: mcr.microsoft.com/powershell:lts-ubuntu-22.04
   <<: *powershell_template
   script:
-    - pwsh -Command "./Invoke-Tests.ps1 -TestType Unit -Tag CrossPlatform -Environment CI"
+    # Parallel is safe here - no coverage on this job
+    - pwsh -Command "./Invoke-Tests.ps1 -TestType Unit -Tag CrossPlatform -Environment CI -Parallel"
   artifacts:
     reports:
       junit: Tests/Results/TestResults*.xml
@@ -626,12 +802,49 @@ $env:TEST_RESULTS_PATH = './Tests/Results'
 ```
 
 ### Parallel Test Execution
+
+Pester 6 has a built-in parallel runner. `Run.Container` is for _parametrizing_ files, not for
+parallelism - the old snippet using multiple containers ran sequentially.
+
 ```powershell
-# Configure for parallel execution in CI
-$config.Run.Container = [Pester.ContainerInfo[]]@(
-    New-PesterContainer -Path './Tests/Unit' -Data @{Environment='CI'}
-    New-PesterContainer -Path './Tests/Integration' -Data @{Environment='CI'}
+# Actual parallel execution: one file per runspace, PowerShell 7+ only
+$config = New-PesterConfiguration
+$config.Run.Path = './Tests/Unit'
+$config.Run.Parallel = $true
+$config.Run.ParallelThrottleLimit = 4   # 0 (default) uses all processors
+```
+
+Parametrized containers still work, and they parallelize too:
+
+```powershell
+$config.Run.Container = @(
+    New-PesterContainer -Path './Tests/Unit' -Data @{ Environment = 'CI' }
 )
+$config.Run.Parallel = $true   # each file's -Data reaches its worker intact
+```
+
+**Coverage forces sequential.** Split into two jobs - a parallel job without coverage for feedback,
+and a sequential job with coverage for the gate. Trying to get both in one job silently gives you
+the sequential one.
+
+Each worker starts from a **clean runspace**, so every test file must be self-contained. Provide
+shared bootstrap through `Run.BeforeContainer` or a `Pester.BeforeContainer.ps1` at the repository
+root:
+
+```powershell
+$config.Run.BeforeContainer = { . './Tests/TestHelpers/Bootstrap.ps1' }
+```
+
+Verify isolation before enabling parallel in CI - if a file only passes as part of a full run, it is
+not self-contained:
+
+```powershell
+Get-ChildItem ./Tests/Unit -Recurse -Filter *.Tests.ps1 | ForEach-Object {
+    $r = Invoke-Pester -Path $_.FullName -PassThru -Output None
+    if ($r.FailedCount -gt 0 -or $r.FailedContainersCount -gt 0) {
+        Write-Warning "Not self-contained: $($_.FullName)"
+    }
+}
 ```
 
 ### Artifact Management
@@ -644,3 +857,57 @@ $artifacts = @{
     SecurityReports = './Tests/Results/Security*.xml'
 }
 ```
+
+### Report Format by Platform
+
+| Platform | Test results | Coverage |
+| --- | --- | --- |
+| GitHub Actions (`dorny/test-reporter`) | `NUnitXml` | `JaCoCo` |
+| Azure DevOps (`PublishTestResults@2`) | `NUnitXml` | `JaCoCo` |
+| GitLab CI | `JUnitXml` | `Cobertura` |
+| Jenkins (JUnit plugin) | `JUnitXml` | `JaCoCo` |
+| Codecov | any | `JaCoCo` or `Cobertura` |
+
+`Cobertura` and `NUnit3` are new in Pester 6. `CoverageGutters` was **removed** - all coverage output
+is now repo-root-relative, so plain `JaCoCo` works with the Coverage Gutters extension.
+
+Coverage paths are relative to `CodeCoverage.ReportRoot`, which defaults to `Run.RepoRoot` (found
+from the `.git` directory). If your CI checks out to a subdirectory and paths do not line up in the
+report, set `ReportRoot` explicitly.
+
+`TestResult` writes one format per run. For two, convert the result object afterwards:
+
+```powershell
+$config.Run.PassThru = $true
+$result = Invoke-Pester -Configuration $config
+Export-NUnitReport -Result $result -Path './Tests/Results/NUnit.xml'
+Export-JUnitReport -Result $result -Path './Tests/Results/JUnit.xml'
+```
+
+### CI Gate Checklist
+
+A Pester 6 gate must check more than `FailedCount`:
+
+```powershell
+$result = Invoke-Pester -Configuration $config
+
+# 1. Test failures
+if ($result.FailedCount -gt 0) { throw "$($result.FailedCount) test(s) failed" }
+
+# 2. Discovery/container failures - these contribute 0 to FailedCount.
+#    Without this check, whole files can silently never run.
+if ($result.FailedContainersCount -gt 0) { throw "$($result.FailedContainersCount) file(s) failed discovery" }
+
+# 3. Zero tests discovered - a suite that tests nothing must not report success
+if ($result.TotalCount -eq 0) { throw 'No tests were discovered' }
+
+# 4. Coverage target - CoveragePercentTarget does not fail the run on its own
+if ($result.CodeCoverage) {
+    $actual = [math]::Round($result.CodeCoverage.CoveragePercent, 2)
+    $target = $result.CodeCoverage.CoveragePercentTarget
+    if ($actual -lt $target) { throw "Coverage $actual% below $target% target" }
+}
+```
+
+Items 2 and 3 are the ones a Pester 5 pipeline will not have, and they are exactly how a v6 upgrade
+turns green while running fewer tests than before.
