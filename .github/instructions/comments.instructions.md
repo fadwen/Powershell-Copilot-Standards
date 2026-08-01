@@ -72,7 +72,6 @@ For each example include:
 Comprehensive metadata including:
 
 - **Author Information**: Name, blog, LinkedIn
-- **Version History**: Changes with dates and descriptions
 - **Security Considerations**: Permissions, data handling, compliance notes
 - **Performance Characteristics**: Benchmarks and optimization notes
 - **Troubleshooting References**: Links to documentation in `./Troubleshooting/` folder
@@ -172,15 +171,10 @@ Include relevant reference links:
     Author: Jeffrey Stuhr
     Blog: https://www.techbyjeff.net
     LinkedIn: https://www.linkedin.com/in/jeffrey-stuhr-034214aa/
-    Last Updated: $(Get-Date -Format 'yyyy-MM-dd')
-    Version: 2.1.0
-    PowerShell Version: 5.1+ (Windows), 7.x+ (Cross-platform)
+    PowerShell Version: 7.6 (LTS), or Windows PowerShell 5.1
 
-    CHANGE HISTORY:
-    v2.1.00 (2024-01-15) - Added JSON export and email reporting
-    v2.0.00 (2023-12-01) - BREAKING: Changed output format, added pipeline support
-    v1.5.11 (2023-11-15) - Fixed syntax errors in examples, improved performance metrics
-    v1.5.10 (2023-11-15) - Fixed memory leak in long-running operations
+    No change history here - git records it, and a hand-maintained log in .NOTES
+    goes stale the first time someone forgets to update it.
 
     SECURITY CONSIDERATIONS:
     - Requires local administrator privileges on target servers
@@ -216,7 +210,7 @@ Ensure generated help includes:
 - [ ] Performance characteristics documented
 - [ ] Security considerations comprehensive
 - [ ] Troubleshooting references point to `./Troubleshooting/` folder
-- [ ] Version history and change management information
+- [ ] No change history in .NOTES - version control already records it
 - [ ] Cross-platform compatibility notes where applicable
 
 ### Technical Accuracy Validation

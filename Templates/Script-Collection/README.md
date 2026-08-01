@@ -1,6 +1,11 @@
-# PowerShell Script Collection Template
+# PowerShell Script Collection Layout
 
-This template provides a standardized structure for PowerShell script collections that follow enterprise standards.
+A reference layout for script collections that follow enterprise standards.
+
+> This directory documents a structure; it contains no files to copy.
+> `Tools/Install-CopilotStandards.ps1 -StandardsType Basic` creates the equivalent folders in a
+> target project. For a template with working code, use
+> [Templates/Powershell-Module](../Powershell-Module/).
 
 ## 📁 Structure
 
@@ -18,8 +23,8 @@ ScriptCollection/
 
 ## 🚀 Usage
 
-1. Copy this template to your project directory
-2. Rename folders and files as appropriate
+1. Create the structure with `Install-CopilotStandards.ps1 -StandardsType Basic`
+2. Rename folders as appropriate
 3. Follow enterprise PowerShell standards for all scripts
 4. Include comprehensive testing and documentation
 

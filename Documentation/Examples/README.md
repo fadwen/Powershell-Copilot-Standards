@@ -1,279 +1,57 @@
-# ExampleModule - Enterprise PowerShell Module
+# Examples
 
-## Overview
+Working code demonstrating the standards in this repository. Every file here runs, and everything
+except the deliberate anti-pattern demonstration is covered by tests.
 
-ExampleModule demonstrates enterprise-grade PowerShell development following established community standards and
-organizational requirements. This module serves as both a functional tool and a reference implementation for the
-[PowerShell Copilot Standards](https://github.com/fadwen/Powershell-Copilot-Standards).
+## What is here
 
-## Features
+| Example | Demonstrates |
+|---|---|
+| [Basic-Function-Example.ps1](./Basic-Function-Example.ps1) | A complete advanced function: pipeline input, parameter validation, correlation IDs, per-item error handling, and a named `[OutputType]` |
+| [Module-Structure-Example/](./Module-Structure-Example/) | A minimal working module - the Public/Private/Classes layout and the export boundary it creates |
+| [Testing-Examples/](./Testing-Examples/) | Pester 6 tests for `Basic-Function-Example.ps1`, including CIM mocking and `-RemoveParameterType` |
+| [Test-QualityGates.ps1](./Test-QualityGates.ps1) | **Intentional anti-patterns.** Shows what the quality gates catch. Not a model to copy |
+| [Configuration/DefaultConfiguration.psd1](./Configuration/DefaultConfiguration.psd1) | A configuration data file: environment settings, validation thresholds, and logging targets |
 
-- ✅ **User Management**: Comprehensive Active Directory integration
-- ✅ **Security Auditing**: Example checks for controls SOX, GDPR, and HIPAA programmes rely on
-- ✅ **Performance Monitoring**: System performance metrics and alerting
-- ✅ **Configuration Management**: Environment-specific settings and baselines
-- ✅ **Correlation Tracking**: End-to-end operation tracking for troubleshooting
-- ✅ **Modern PowerShell**: Compatible with Windows PowerShell 5.1 and PowerShell 7.6 (LTS)
+## Start with the function example
 
-## Installation
-
-### From PowerShell Gallery
+[Basic-Function-Example.ps1](./Basic-Function-Example.ps1) is the densest single file:
 
 ```powershell
-Install-PSResource -Name ExampleModule -Repository PSGallery -Scope CurrentUser -TrustRepository
+. .\Basic-Function-Example.ps1
+
+Get-BasicServerInfo -ComputerName 'SERVER01' -WhatIf
+'SERVER01', 'SERVER02' | Get-BasicServerInfo -Verbose
 ```
 
-### From Source
+It shows:
 
-```powershell
-# Clone the repository
-git clone https://github.com/YourOrg/ExampleModule.git
+- `[OutputType('BasicServerInfo')]` with a matching `PSTypeName` on the output, rather than
+  `[OutputType([PSCustomObject])]`, which tells a caller nothing about the shape returned
+- A correlation ID generated once in `begin` and carried through every message
+- `$_` in `catch`, and `continue` so one unreachable host does not abort the batch
+- `ShouldProcess` support, so `-WhatIf` works
 
-# Import the module
-Import-Module .\ExampleModule\ExampleModule.psd1
-```
+## Then the module
 
-## Quick Start
+[Module-Structure-Example/](./Module-Structure-Example/) is deliberately small. Its point is not the
+code but the boundary: `FunctionsToExport` names the public surface, so the private helper stays
+internal and can change without a breaking release. Classes load before the functions that return
+them.
 
-### Basic User Data Retrieval
+## The anti-pattern file
 
-```powershell
-# Get user information with group memberships
-$userData = Get-UserData -UserName "john.doe" -IncludeGroups
+[Test-QualityGates.ps1](./Test-QualityGates.ps1) is the one file here that intentionally breaks the
+standards - `Write-Host`, `$Error[0]` in a catch, a non-approved verb, string building in a loop. It
+exists so the quality gates have something to catch, and the CI workflows exclude it from production
+analysis by name for that reason.
 
-# Display results
-$userData | Format-Table Name, Department, LastLogon, GroupCount
-```
+Its tests in [Test-QualityGates.Tests.ps1](./Test-QualityGates.Tests.ps1) document that behaviour
+rather than endorsing it.
 
-### Security Compliance Audit
+## Related
 
-```powershell
-# Run comprehensive security audit
-$auditResults = Invoke-SecurityAudit -Scope "ActiveDirectory" -ComplianceFramework "SOX"
-
-# Generate compliance report
-$auditResults | Export-Csv -Path ".\SOX-Audit-$(Get-Date -Format 'yyyy-MM-dd').csv"
-```
-
-### System Performance Monitoring
-
-```powershell
-# Get performance metrics with correlation tracking
-$metrics = Get-PerformanceMetrics -ComputerName "SERVER01" -IncludeHistory
-
-# Set performance baseline for environment
-Set-ConfigurationBaseline -Environment "Production" -PerformanceThreshold 1000
-```
-
-## Function Reference
-
-### User Management Functions
-
-- **Get-UserData**: Retrieve comprehensive user information from Active Directory
-- **Set-UserPermissions**: Modify user permissions with audit trail
-- **New-ServiceAccount**: Create service accounts following security standards
-- **Remove-StaleAccounts**: Identify and remove inactive user accounts
-
-### Security and Compliance Functions
-
-- **Invoke-SecurityAudit**: Comprehensive security assessment with compliance reporting
-- **Test-SystemCompliance**: Validate system configuration against compliance frameworks
-
-### Performance and Monitoring Functions
-
-- **Get-PerformanceMetrics**: Collect and analyze system performance data
-- **Set-ConfigurationBaseline**: Establish performance and security baselines
-
-## Configuration
-
-### Environment-Specific Settings
-
-The module supports three deployment environments with different security and performance profiles:
-
-#### Development Environment
-
-```powershell
-$config = @{
-    LogLevel = 'Verbose'
-    TimeoutSeconds = 30
-    SecurityValidation = 'Relaxed'
-    PerformanceThreshold = 5000
-}
-```
-
-#### Production Environment
-
-```powershell
-$config = @{
-    LogLevel = 'Minimal'
-    TimeoutSeconds = 10
-    SecurityValidation = 'Strict'
-    PerformanceThreshold = 1000
-}
-```
-
-### Security Configuration
-
-All functions support enterprise security requirements:
-
-- **Kerberos Authentication**: Default authentication method
-- **Certificate-Based Auth**: For high-security scenarios
-- **Correlation ID Tracking**: Every operation includes correlation IDs
-- **Audit Trail Logging**: Complete audit trails for compliance
-
-## Quality Standards
-
-This module follows the [PowerShell Copilot Standards](https://github.com/fadwen/Powershell-Copilot-Standards)
-including:
-
-### Code Quality Requirements
-
-- ✅ **PSScriptAnalyzer**: Zero errors, minimal warnings
-- ✅ **Pester Testing**: 80%+ code coverage requirement
-- ✅ **Approved Verbs**: Only Microsoft-approved PowerShell verbs
-- ✅ **Security Scanning**: No hardcoded credentials or vulnerabilities
-- ✅ **Performance Standards**: Optimized for enterprise scale
-
-### Expert Feedback Integration
-
-Recent updates incorporate expert PowerShell feedback:
-
-- **Error Handling**: Use `$_` in catch blocks instead of `$Error[0]`
-- **String Operations**: Context-appropriate concatenation vs StringBuilder
-- **Modern PowerShell**: Use `[PSCredential]::new()` instead of New-Object
-- **Parameter Validation**: Validate before downstream function usage
-- **Security Patterns**: No Basic Authentication, prefer Kerberos/Certificate auth
-
-## Examples
-
-### Advanced User Management
-
-```powershell
-# Complex user provisioning with correlation tracking
-$correlationId = [System.Guid]::NewGuid().ToString()
-
-# Create service account with proper security
-$serviceAccount = New-ServiceAccount -Name "svc-webapp" -Department "IT" -CorrelationId $correlationId
-
-# Set permissions with audit trail
-Set-UserPermissions -UserName $serviceAccount.SamAccountName -Permissions @("LogonAsService", "NetworkAccess") -CorrelationId $correlationId
-
-# Verify compliance
-$complianceResult = Test-SystemCompliance -UserName $serviceAccount.SamAccountName -Framework "SOX" -CorrelationId $correlationId
-```
-
-### Performance Monitoring with Alerting
-
-```powershell
-# Monitor multiple servers with baseline comparison
-$servers = @("WEB01", "WEB02", "DB01")
-$performanceData = @()
-
-foreach ($server in $servers) {
-    $metrics = Get-PerformanceMetrics -ComputerName $server -IncludeBaseline
-    $performanceData += $metrics
-
-    # Alert on threshold violations
-    if ($metrics.ResponseTime -gt $metrics.Baseline.Threshold) {
-        Send-Alert -Type "Performance" -Server $server -Metrics $metrics
-    }
-}
-
-# Generate performance report
-$performanceData | Export-Excel -Path ".\Performance-Report-$(Get-Date -Format 'yyyy-MM-dd').xlsx"
-```
-
-## Contributing
-
-### Development Standards
-
-All contributions must meet enterprise quality standards:
-
-1. **Quality Gates**: All PRs must pass automated quality checks
-2. **Code Review**: Require approval from @fadwen or @ev-jeffs
-3. **Testing**: Include Pester tests with 80%+ coverage
-4. **Documentation**: Update help documentation and examples
-5. **Security**: Pass security scanning and validation
-
-### Branch Protection
-
-The main branch is protected with required status checks:
-
-- PowerShell Quality Gates
-- Security Scan
-- Documentation Quality
-- Code Owner Review
-
-### Getting Started with Development
-
-```powershell
-# Clone the repository
-git clone https://github.com/YourOrg/ExampleModule.git
-cd ExampleModule
-
-# Create feature branch
-git checkout -b feature/your-feature-name
-
-# Make changes following PowerShell standards
-# Run quality checks locally
-.\Tools\Test-StandardsCompliance.ps1 -Path "." -Detailed
-
-# Create pull request when ready
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### Authentication Failures
-
-```powershell
-# Verify Kerberos configuration
-Test-WSMan -ComputerName $targetServer -Authentication Kerberos
-
-# Check credential delegation
-Get-WSManCredSSP
-```
-
-#### Performance Issues
-
-```powershell
-# Check current performance baselines
-Get-PerformanceMetrics -ComputerName "localhost" -ShowBaseline
-
-# Analyze correlation IDs for slow operations
-Search-CorrelationLog -CorrelationId $correlationId -ShowTimeline
-```
-
-#### Compliance Validation Failures
-
-```powershell
-# Run detailed compliance check
-Test-SystemCompliance -Framework "SOX" -Detailed -Verbose
-
-# Review audit log for compliance events
-Get-AuditLog -Category "Compliance" -TimeRange (Get-Date).AddDays(-7)
-```
-
-### Support Resources
-
-- **Documentation**: [Enterprise PowerShell Docs](https://docs.yourorg.com/powershell)
-- **Troubleshooting**: [Common Issues Guide](./Troubleshooting/README.md)
-- **Security**: [Security Configuration Guide](./Documentation/Security-Configuration.md)
-- **Performance**: [Performance Optimization Guide](./Documentation/Performance-Optimization.md)
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Changelog
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history and breaking changes.
-
----
-
-**Quality Standards**: This module follows
-[PowerShell Copilot Standards](https://github.com/fadwen/Powershell-Copilot-Standards) for enterprise PowerShell
-development.
-
-**Support**: For enterprise support, contact powershell-support@yourorg.com
+- [PowerShell Best Practices](../PowerShell-Best-Practices.md) - the reasoning behind these patterns
+- [Templates/Powershell-Module](../../Templates/Powershell-Module/) - a fuller starting point to copy
+- [Version baseline](../../.github/instructions/powershell-version.instructions.md) - which PowerShell
+  version to target, and why

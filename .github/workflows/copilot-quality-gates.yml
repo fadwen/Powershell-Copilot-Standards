@@ -36,16 +36,25 @@ jobs:
             $_.FullName -notlike "*\node_modules\*" 
           }
           
-          $productionFiles = $allPsFiles | Where-Object { 
-            $_.FullName -notlike "*test*" -and 
-            $_.FullName -notlike "*Test*" -and
-            $_.Name -notlike "*.Tests.ps1"
+          # Matches quality-gates-pr.yml. Two problems with the previous filter: it
+          # tested $_.FullName, so a repository checked out under any path
+          # containing "test" classified every file as a test and analysed nothing;
+          # and "Test-" is an approved PowerShell verb, so a name filter cannot
+          # distinguish a test file from a tool named with the verb - it excluded
+          # Tools/Test-StandardsCompliance.ps1 from analysis entirely.
+          $demonstrationFiles = @(
+            'Test-QualityGates.ps1'
+          )
+
+          $isTestFile = {
+            param($f)
+            $f.Name -like "*.Tests.ps1" -or $f.FullName -like "*\Tests\*"
           }
-          
-          $testFiles = $allPsFiles | Where-Object { 
-            $_.FullName -like "*test*" -or 
-            $_.FullName -like "*Test*" -or
-            $_.Name -like "*.Tests.ps1"
+
+          $testFiles = $allPsFiles | Where-Object { & $isTestFile $_ }
+
+          $productionFiles = $allPsFiles | Where-Object {
+            -not (& $isTestFile $_) -and $demonstrationFiles -notcontains $_.Name
           }
           
           Write-Host "Found $($allPsFiles.Count) total PowerShell files"

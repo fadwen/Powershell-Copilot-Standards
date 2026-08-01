@@ -44,12 +44,12 @@
     # These declarations provide the single source of truth for exports
 
     # Functions to export - be explicit about what you're exposing
+    # Name every public function here. This is the module's contract, and it
+    # removes any need for Export-ModuleMember. The list must match what actually
+    # exists under Public/ - a name with no matching function exports nothing, and
+    # a function omitted here stays invisible to callers however it is loaded.
     FunctionsToExport = @(
-        'Get-ExampleData',
-        'Set-ExampleData',
-        'New-ExampleResource',
-        'Remove-ExampleResource'
-        # Add all public functions here - this eliminates need for Export-ModuleMember
+        'Get-TemplateFunction'
     )
 
     # Cmdlets to export (usually empty for pure PowerShell modules)

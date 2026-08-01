@@ -1,13 +1,7 @@
 #Requires -Module Pester
 
 BeforeAll {
-    # Import the module under test
-    $ModulePath = Join-Path $PSScriptRoot '..' 'ExampleModule.psd1'
-    if (Test-Path $ModulePath) {
-        Import-Module $ModulePath -Force
-    }
-
-    # Import the test file directly for testing
+    # Dot-source the file under test
     $TestFilePath = Join-Path $PSScriptRoot 'Test-QualityGates.ps1'
     if (Test-Path $TestFilePath) {
         . $TestFilePath
