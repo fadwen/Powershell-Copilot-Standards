@@ -9,15 +9,18 @@
 - PowerShell 7.6 (LTS) recommended; Windows PowerShell 5.1 supported for legacy estates
 - Git for version control
 
-### Step 1: Enable Copilot Instructions in VS Code
+### Step 1: Confirm VS Code Picks Up the Instructions
 
-Add to your VS Code `settings.json`:
+No configuration is required. Current VS Code loads `.github/copilot-instructions.md`
+automatically, applies `.github/instructions/*.instructions.md` to files matching their `applyTo`
+glob, and exposes `.github/prompts/*.prompt.md` as `/prompt-name` in Copilot Chat.
+
+Settings are only needed when these files live outside the default locations:
 
 ```json
 {
-  "chat.promptFiles": true,
-  "github.copilot.chat.codeGeneration.useInstructionFiles": true,
-  "github.copilot.chat.codeGeneration.instructions": []
+  "chat.instructionsFilesLocations": { ".github/instructions": true },
+  "chat.promptFilesLocations": { ".github/prompts": true }
 }
 ```
 
@@ -26,6 +29,10 @@ To open settings.json:
 1. Press `Ctrl+Shift+P` (Windows/Linux) or `Cmd+Shift+P` (Mac)
 2. Type "Preferences: Open Settings (JSON)"
 3. Add the settings above
+
+> Earlier guidance used `chat.promptFiles` and
+> `github.copilot.chat.codeGeneration.useInstructionFiles`. Settings-based instructions were
+> deprecated in VS Code 1.102 in favour of the file-based layout above.
 
 ### Step 2: Choose Implementation Method
 
@@ -101,7 +108,7 @@ Copilot will generate a complete enterprise-standard function with:
 - `/new-function` - Create new PowerShell function
 - `/security-review` - Analyze code for security issues
 - `/optimize-performance` - Improve code performance
-- `/create-tests` - Generate Pester test suite
+- `/create-test` - Generate Pester test suite
 
 ### Code Quality Tasks
 
@@ -143,9 +150,11 @@ Copilot will generate a complete enterprise-standard function with:
 
 **Copilot doesn't use instructions**
 
-- Verify `chat.promptFiles: true` in VS Code settings
-- Check that `.github/copilot-instructions.md` exists
-- Restart VS Code after adding settings
+- Check that `.github/copilot-instructions.md` exists at the workspace root
+- Confirm instruction files sit under `.github/instructions/` with an `applyTo` glob that matches
+  the file being edited
+- If the files live elsewhere, set `chat.instructionsFilesLocations` / `chat.promptFilesLocations`
+- Restart VS Code after moving or adding files
 
 **Prompts don't appear**
 

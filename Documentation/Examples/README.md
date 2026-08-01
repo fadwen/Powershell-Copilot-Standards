@@ -4,7 +4,7 @@
 
 ExampleModule demonstrates enterprise-grade PowerShell development following established community standards and
 organizational requirements. This module serves as both a functional tool and a reference implementation for the
-[PowerShell Copilot Standards](https://github.com/EntraVantage/PowerShell-Copilot-Standards).
+[PowerShell Copilot Standards](https://github.com/fadwen/Powershell-Copilot-Standards).
 
 ## Features
 
@@ -27,7 +27,7 @@ Install-PSResource -Name ExampleModule -Repository PSGallery -Scope CurrentUser 
 
 ```powershell
 # Clone the repository
-git clone https://github.com/EntraVantage/ExampleModule.git
+git clone https://github.com/YourOrg/ExampleModule.git
 
 # Import the module
 Import-Module .\ExampleModule\ExampleModule.psd1
@@ -123,7 +123,7 @@ All functions support enterprise security requirements:
 
 ## Quality Standards
 
-This module follows the [PowerShell Copilot Standards](https://github.com/EntraVantage/PowerShell-Copilot-Standards)
+This module follows the [PowerShell Copilot Standards](https://github.com/fadwen/Powershell-Copilot-Standards)
 including:
 
 ### Code Quality Requirements
@@ -208,7 +208,7 @@ The main branch is protected with required status checks:
 
 ```powershell
 # Clone the repository
-git clone https://github.com/EntraVantage/ExampleModule.git
+git clone https://github.com/YourOrg/ExampleModule.git
 cd ExampleModule
 
 # Create feature branch
@@ -257,7 +257,7 @@ Get-AuditLog -Category "Compliance" -TimeRange (Get-Date).AddDays(-7)
 
 ### Support Resources
 
-- **Documentation**: [Enterprise PowerShell Docs](https://docs.entravantage.com/powershell)
+- **Documentation**: [Enterprise PowerShell Docs](https://docs.yourorg.com/powershell)
 - **Troubleshooting**: [Common Issues Guide](./Troubleshooting/README.md)
 - **Security**: [Security Configuration Guide](./Documentation/Security-Configuration.md)
 - **Performance**: [Performance Optimization Guide](./Documentation/Performance-Optimization.md)
@@ -273,7 +273,7 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history and breaking chang
 ---
 
 **Quality Standards**: This module follows
-[PowerShell Copilot Standards](https://github.com/EntraVantage/PowerShell-Copilot-Standards) for enterprise PowerShell
+[PowerShell Copilot Standards](https://github.com/fadwen/Powershell-Copilot-Standards) for enterprise PowerShell
 development.
 
-**Support**: For enterprise support, contact powershell-support@entravantage.com
+**Support**: For enterprise support, contact powershell-support@yourorg.com

@@ -6,8 +6,8 @@
 
     # Author Information
     Author = 'Jeffrey Stuhr'
-    CompanyName = 'EntraVantage'
-    Copyright = '(c) 2025 EntraVantage. All rights reserved.'
+    CompanyName = 'YourOrg'
+    Copyright = '(c) 2025 YourOrg. All rights reserved.'
     Description = 'Example enterprise PowerShell module demonstrating best practices for data processing, user management, and system administration with comprehensive security and compliance features.'
 
     # PowerShell Requirements
@@ -55,8 +55,8 @@
         PSData = @{
             # Module metadata for PowerShell Gallery
             Tags = @('Enterprise', 'PowerShell', 'Security', 'Compliance', 'UserManagement', 'Automation')
-            LicenseUri = 'https://github.com/EntraVantage/ExampleModule/blob/main/LICENSE'
-            ProjectUri = 'https://github.com/EntraVantage/ExampleModule'
+            LicenseUri = 'https://github.com/YourOrg/ExampleModule/blob/main/LICENSE'
+            ProjectUri = 'https://github.com/YourOrg/ExampleModule'
             ReleaseNotes = @'
 ## v1.2.0 Release Notes
 
@@ -88,15 +88,15 @@ For detailed changes, see CHANGELOG.md
 
         # Enterprise-specific metadata
         Enterprise = @{
-            SupportContact = 'powershell-support@entravantage.com'
-            DocumentationUri = 'https://docs.entravantage.com/powershell/examplemodule'
-            TroubleshootingUri = 'https://docs.entravantage.com/powershell/examplemodule/troubleshooting'
-            SecurityContact = 'security@entravantage.com'
+            SupportContact = 'powershell-support@yourorg.com'
+            DocumentationUri = 'https://docs.yourorg.com/powershell/examplemodule'
+            TroubleshootingUri = 'https://docs.yourorg.com/powershell/examplemodule/troubleshooting'
+            SecurityContact = 'security@yourorg.com'
             ComplianceFrameworks = @('SOX', 'GDPR', 'HIPAA', 'PCI-DSS')
-            QualityStandards = 'https://github.com/EntraVantage/PowerShell-Copilot-Standards'
+            QualityStandards = 'https://github.com/fadwen/Powershell-Copilot-Standards'
         }
     }
 
     # Help Info URI for updatable help
-    HelpInfoURI = 'https://docs.entravantage.com/powershell/examplemodule/help'
+    HelpInfoURI = 'https://docs.yourorg.com/powershell/examplemodule/help'
 }

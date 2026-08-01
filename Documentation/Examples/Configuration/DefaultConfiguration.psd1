@@ -134,19 +134,19 @@
     # Integration Endpoints
     Integration = @{
         LoggingService = @{
-            Endpoint = 'https://logs.entravantage.com/api/v1/logs'
+            Endpoint = 'https://logs.yourorg.com/api/v1/logs'
             RequireAuthentication = $true
             TimeoutSeconds = 30
         }
 
         SecurityService = @{
-            Endpoint = 'https://security.entravantage.com/api/v1/audit'
+            Endpoint = 'https://security.yourorg.com/api/v1/audit'
             RequireAuthentication = $true
             TimeoutSeconds = 15
         }
 
         ComplianceService = @{
-            Endpoint = 'https://compliance.entravantage.com/api/v1/events'
+            Endpoint = 'https://compliance.yourorg.com/api/v1/events'
             RequireAuthentication = $true
             TimeoutSeconds = 45
         }
