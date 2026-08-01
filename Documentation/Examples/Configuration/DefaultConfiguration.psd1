@@ -60,7 +60,9 @@
     Performance = @{
         # String operation thresholds (expert feedback integration)
         StringConcatenationThreshold = 100  # Use StringBuilder above this
-        ArrayAppendThreshold = 50           # Use ArrayList above this
+        # Above this, use direct loop assignment or List[T] - never ArrayList.
+        # On PowerShell 7.5+, += on object arrays is optimized and this threshold can be relaxed.
+        ArrayAppendThreshold = 50
 
         # Memory management
         MaxMemoryUsageMB = 512

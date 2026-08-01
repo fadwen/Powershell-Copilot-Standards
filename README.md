@@ -4,10 +4,16 @@
 [![BlueSky](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fpublic.api.bsky.app%2Fxrpc%2Fapp.bsky.actor.getProfile%2F%3Factor%3Dtechbyjeff.net&query=%24.followersCount&style=social&logo=bluesky&label=Follow%20on%20BSky)](https://bsky.app/profile/techbyjeff.net)
 [![Blog](https://img.shields.io/badge/Read_My_Blog-TechbyJeff-lightgrey?style=flat-square&logo=ghost)](https://techbyjeff.net)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PowerShell](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)](https://github.com/PowerShell/PowerShell)
+[![PowerShell](https://img.shields.io/badge/PowerShell-7.6_LTS-blue.svg)](https://github.com/PowerShell/PowerShell)
 [![GitHub Copilot](https://img.shields.io/badge/GitHub%20Copilot-Optimized-green.svg)](https://github.com/features/copilot)
 
 Enterprise-grade PowerShell development standards and GitHub Copilot instructions for consistent, secure, and high-quality PowerShell code across teams and projects.
+
+> **Target versions** (verified 2026-08-01): **PowerShell 7.6 (LTS)** is the default target,
+> supported through 14-Nov-2028. Windows PowerShell 5.1 remains supported as a compatibility
+> target. **PowerShell 7.4 and 7.5 both reach end of support on 10-Nov-2026** — plan upgrades now.
+> See [powershell-version.instructions.md](.github/instructions/powershell-version.instructions.md)
+> for the full lifecycle table, version-gated features, and breaking changes.
 
 ## 🚀 Quick Start
 
@@ -79,6 +85,7 @@ PowerShell-Copilot-Standards/
 ├── .github/
 │   ├── copilot-instructions.md      # Main Copilot instructions
 │   ├── instructions/                # Detailed instruction files
+│   │   └── powershell-version.instructions.md  # Version baseline & lifecycle
 │   ├── prompts/                     # Quick-access prompts
 │   └── workflows/                   # CI/CD templates
 ├── Documentation/                   # Reference materials

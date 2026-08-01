@@ -11,6 +11,9 @@
     Description = 'Example enterprise PowerShell module demonstrating best practices for data processing, user management, and system administration with comprehensive security and compliance features.'
 
     # PowerShell Requirements
+    # This example deliberately demonstrates the cross-version target (Windows PowerShell 5.1 +
+    # PowerShell 7.x). New modules should default to PowerShellVersion = '7.6' with
+    # CompatiblePSEditions = @('Core') - see Templates/Powershell-Module/ModuleName.psd1
     PowerShellVersion = '5.1'
     CompatiblePSEditions = @('Desktop', 'Core')
 

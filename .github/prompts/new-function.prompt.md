@@ -15,7 +15,7 @@ Create a PowerShell function with these specifications:
 **Context:**
 - Current file: ${fileBasename}
 - Project: ${workspaceFolderBasename}
-- PowerShell version: ${input:psVersion:5.1,7.x:7.x}
+- PowerShell version: ${input:psVersion:7.6,5.1+7.6:7.6}
 
 **Requirements:**
 - Use modern PowerShell patterns (PSCredential::new(), $_ in catch blocks)

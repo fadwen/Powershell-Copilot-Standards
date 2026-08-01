@@ -62,7 +62,7 @@
     Last Updated: 2024-01-15
     
     DEPENDENCIES:
-    - Windows PowerShell 5.1+ or PowerShell 7.x
+    - PowerShell 7.6 (LTS) or Windows PowerShell 5.1
     - WinRM enabled on target computers
     - Appropriate permissions on target systems
     
