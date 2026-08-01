@@ -7,12 +7,14 @@ tools: ['codebase']
 Create a complete PowerShell module for ${workspaceFolderBasename} with enterprise standards:
 
 **Module Specifications:**
+
 - **Module Name**: ${input:moduleName:MyEnterpriseModule}
 - **Primary Purpose**: ${input:purpose:Describe the main business function this module serves}
 - **Target Audience**: ${input:audience:System Administrators,Developers,End Users,Automation Systems}
 - **Complexity Level**: ${input:complexity:Simple (1-5 functions),Medium (5-15 functions),Complex (15+ functions)}
 
 **Module Structure to Generate:**
+
 ```
 ${input:moduleName}/
 ├── ${input:moduleName}.psd1           # Module manifest
@@ -27,6 +29,7 @@ ${input:moduleName}/
 ```
 
 **Requirements:**
+
 - Generate module manifest with proper metadata and versioning
 - Create folder structure with sample function templates
 - Include comprehensive README with installation instructions

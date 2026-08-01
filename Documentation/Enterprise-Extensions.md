@@ -1,14 +1,17 @@
 # Enterprise Extensions to PowerShell Community Standards
 
 ## 🏢 Overview
+
 This document extends the established PowerShell community best practices with enterprise-specific patterns, addressing organizational requirements for security, compliance, and operational excellence.
 
 ## 🛡️ Advanced Error Handling for Enterprise Environments
 
 ### Throw Behavior with ErrorAction
+
 **Critical Understanding**: The `throw` statement behavior with `-ErrorAction SilentlyContinue` can create unexpected execution patterns in enterprise environments.
 
 #### The Problem
+
 ```powershell
 function Validate-CriticalData {
     param([string]$Data)
@@ -26,6 +29,7 @@ Write-Output "Processing continues..."  # This executes unexpectedly!
 ```
 
 #### Enterprise Solution Pattern
+
 ```powershell
 function Validate-CriticalData {
     [CmdletBinding()]
@@ -55,6 +59,7 @@ function Validate-CriticalData {
 ```
 
 ### Enterprise Error Escalation Patterns
+
 ```powershell
 function Invoke-EnterpriseOperation {
     [CmdletBinding()]
@@ -111,9 +116,11 @@ function Invoke-EnterpriseOperation {
 ## 🔍 Parameter Validation for Enterprise Functions
 
 ### The Challenge
+
 Enterprise functions often pass parameters to downstream systems without ensuring values are present, leading to subtle failures in complex workflows.
 
 #### Problematic Pattern
+
 ```powershell
 function Connect-EnterpriseService {
     param(
@@ -130,6 +137,7 @@ function Connect-EnterpriseService {
 ```
 
 #### Enterprise Solution Pattern
+
 ```powershell
 function Connect-EnterpriseService {
     [CmdletBinding()]
@@ -220,6 +228,7 @@ function Connect-EnterpriseService {
 ## 🏭 Enterprise Compliance Patterns
 
 ### SOX Compliance Integration
+
 ```powershell
 function Invoke-SOXControlledOperation {
     [CmdletBinding(SupportsShouldProcess)]
@@ -295,6 +304,7 @@ function Invoke-SOXControlledOperation {
 ## 🔒 Enterprise Security Extensions
 
 ### Credential Management with Parameter Validation
+
 ```powershell
 function New-EnterpriseCredential {
     [CmdletBinding()]
@@ -355,6 +365,7 @@ function New-EnterpriseCredential {
 ## 📊 Enterprise Monitoring and Alerting
 
 ### Performance Monitoring with Validation
+
 ```powershell
 function Measure-EnterprisePerformance {
     [CmdletBinding()]
@@ -441,18 +452,21 @@ function Measure-EnterprisePerformance {
 ## 🎯 Enterprise Best Practices Summary
 
 ### Error Handling Extensions
+
 - ✅ Use `Write-Error -ErrorAction Stop` instead of bare `throw` for proper ErrorAction compliance
 - ✅ Implement severity-based error escalation for enterprise monitoring
 - ✅ Always include correlation IDs for enterprise debugging and auditing
 - ✅ Log all errors with sufficient context for enterprise troubleshooting
 
 ### Parameter Validation Extensions
+
 - ✅ Validate parameters before using in downstream function calls, especially for enterprise integrations
 - ✅ Use explicit `ValidateNotNullOrEmpty()` on mandatory parameters when they feed enterprise systems
 - ✅ Trim whitespace from string parameters before downstream usage
 - ✅ Provide clear, actionable error messages for parameter validation failures
 
 ### Enterprise Integration Patterns
+
 - ✅ Implement comprehensive audit logging for compliance requirements
 - ✅ Use correlation IDs throughout enterprise workflows
 - ✅ Include business context in all enterprise operations
@@ -460,6 +474,7 @@ function Measure-EnterprisePerformance {
 - ✅ Support enterprise alerting and escalation patterns
 
 ### Security Extensions
+
 - ✅ Use modern PowerShell credential patterns with enterprise validation
 - ✅ Log security events without exposing sensitive data
 - ✅ Implement defense-in-depth validation patterns

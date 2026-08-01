@@ -57,6 +57,7 @@ produce dynamic parameters.
 ## Advanced Mocking Strategies
 
 ### Context-Aware Mocking
+
 Create sophisticated mocks that respond differently based on parameters:
 
 ```powershell
@@ -123,6 +124,7 @@ BeforeAll {
 ```
 
 ### Database Connection Mocking
+
 Mock database operations with realistic behavior:
 
 ```powershell
@@ -224,6 +226,7 @@ BeforeAll {
 ```
 
 ### File System Mocking
+
 Mock file system operations with realistic behavior:
 
 ```powershell
@@ -330,6 +333,7 @@ BeforeAll {
 ```
 
 ### Network Service Mocking
+
 Mock network operations with failure simulation:
 
 ```powershell
@@ -429,6 +433,7 @@ BeforeAll {
 ```
 
 ### External Command Mocking
+
 Mock external executable commands:
 
 ```powershell
@@ -520,6 +525,7 @@ def456ghi789   redis     "docker-entrypoint.s…"   2 hours ago   Up 2 hours   6
 ## Mock Validation Patterns
 
 ### Parameter Filter Testing
+
 Validate that mocks are called with correct parameters:
 
 ```powershell
@@ -590,6 +596,7 @@ It "Should not write results when validation fails" {
 ```
 
 ### Mock Call Sequence Validation
+
 Ensure mocks are called in the correct order:
 
 ```powershell
@@ -637,6 +644,7 @@ element and names the index that diverged, instead of dumping two flattened stri
 ## Mock Best Practices
 
 ### Isolated Mock Scope
+
 Keep mocks isolated between tests:
 
 ```powershell
@@ -688,6 +696,7 @@ BeforeAll {
 ```
 
 ### Realistic Mock Data
+
 Use realistic data structures in mocks:
 
 ```powershell
@@ -713,6 +722,7 @@ BeforeAll {
 ```
 
 ### Mock Cleanup
+
 Ensure proper mock cleanup:
 
 ```powershell

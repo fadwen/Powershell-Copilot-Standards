@@ -7,6 +7,7 @@
 ## 🚀 Quick Start
 
 ### Installation
+
 ```powershell
 # From PowerShell Gallery
 Install-Module ModuleName -Scope CurrentUser
@@ -16,6 +17,7 @@ Import-Module ModuleName
 ```
 
 ### Basic Usage
+
 ```powershell
 # Basic function usage
 Get-TemplateFunction -Name "ExampleItem"
@@ -48,6 +50,7 @@ Get-TemplateFunction -Name "ExampleItem"
 ## 🔍 Troubleshooting
 
 For common issues and solutions, see:
+
 - [Common Issues](./Troubleshooting/Common/)
 - [Performance Issues](./Troubleshooting/Performance/)
 - [Security Issues](./Troubleshooting/Security/)

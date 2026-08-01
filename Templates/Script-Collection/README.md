@@ -26,6 +26,7 @@ ScriptCollection/
 ## 📋 Standards
 
 All scripts must include:
+
 - Comprehensive comment-based help
 - Parameter validation
 - Error handling with correlation IDs

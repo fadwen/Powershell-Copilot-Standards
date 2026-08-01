@@ -464,6 +464,7 @@ A `try`/`catch` whose assertions live only in the `catch` block passes silently 
 ## Security Test Guidelines
 
 ### Input Validation Testing
+
 - Test all forms of malicious input
 - Validate parameter length limits
 - Test encoding and special characters
@@ -471,6 +472,7 @@ A `try`/`catch` whose assertions live only in the `catch` block passes silently 
 - Test command injection attempts
 
 ### Credential Security Testing
+
 - Verify credentials are never exposed in logs
 - Test SecureString handling
 - Validate authentication mechanisms
@@ -478,6 +480,7 @@ A `try`/`catch` whose assertions live only in the `catch` block passes silently 
 - Verify secure credential transmission
 
 ### Access Control Testing
+
 - Test role-based access control
 - Validate file system permissions
 - Test session management
@@ -485,6 +488,7 @@ A `try`/`catch` whose assertions live only in the `catch` block passes silently 
 - Test privilege escalation prevention
 
 ### Data Protection Testing
+
 - Test encryption at rest and in transit
 - Validate secure data handling
 - Test password hashing algorithms
@@ -492,6 +496,7 @@ A `try`/`catch` whose assertions live only in the `catch` block passes silently 
 - Test data anonymization features
 
 ### Compliance and Audit Testing
+
 - Verify security event logging
 - Test data retention compliance
 - Validate audit trail integrity
@@ -499,6 +504,7 @@ A `try`/`catch` whose assertions live only in the `catch` block passes silently 
 - Verify regulatory requirement adherence
 
 ### Error Handling Security
+
 - Ensure no sensitive data in error messages
 - Test error information disclosure
 - Validate secure error logging

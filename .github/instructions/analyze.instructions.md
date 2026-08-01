@@ -14,24 +14,28 @@ Analyze the provided PowerShell code using enterprise-grade analysis standards. 
 Execute the following analysis components:
 
 ### 1. Code Quality Assessment
+
 - **PSScriptAnalyzer Validation**: Check against all standard rules plus enterprise-specific rules
 - **Best Practices Compliance**: Verify adherence to PowerShell development standards
 - **Code Structure**: Evaluate function design, parameter validation, and pipeline efficiency
 - **Documentation Quality**: Assess comment-based help completeness and accuracy
 
 ### 2. Security Analysis
+
 - **Credential Leak Detection**: Scan for hardcoded passwords, API keys, or sensitive data
 - **Input Validation**: Verify all user inputs are properly validated and sanitized
 - **Path Traversal Protection**: Check for unsafe file path handling
 - **Injection Prevention**: Identify potential code injection vulnerabilities
 
 ### 3. Performance Evaluation
+
 - **Memory Usage**: Assess memory management and resource disposal
 - **Pipeline Optimization**: Evaluate pipeline usage and efficiency
 - **Scalability**: Review code for performance with large datasets
 - **Algorithm Efficiency**: Identify optimization opportunities
 
 ### 4. Compliance Verification
+
 - **PowerShell Standards**: Verify compliance with approved verbs and naming conventions
 - **File Organization**: Check adherence to standardized folder structure
 - **Testing Coverage**: Evaluate test completeness and quality
@@ -42,25 +46,30 @@ Execute the following analysis components:
 Provide analysis results in this structured format:
 
 ### 🚨 Critical Issues (Must Fix)
+
 - List any critical security vulnerabilities or breaking errors
 - Include specific line numbers and remediation steps
 
 ### ⚠️ High Priority Issues
+
 - Security concerns that should be addressed before production
 - Performance bottlenecks affecting scalability
 - Standards violations impacting maintainability
 
 ### 📋 Medium Priority Recommendations
+
 - Code quality improvements
 - Performance optimizations
 - Best practice adherence
 
 ### 💡 Low Priority Suggestions
+
 - Style improvements
 - Documentation enhancements
 - Optional optimizations
 
 ### 📊 Analysis Summary
+
 - Overall code quality score (1-100)
 - Security risk level (Low/Medium/High/Critical)
 - Performance rating (Poor/Fair/Good/Excellent)
@@ -79,6 +88,7 @@ Provide analysis results in this structured format:
 ## Remediation Guidance
 
 For each issue identified:
+
 - Provide specific fix recommendations with code examples
 - Reference relevant troubleshooting documentation in `./Troubleshooting/` folder
 - Suggest appropriate test cases to validate fixes

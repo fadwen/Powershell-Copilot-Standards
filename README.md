@@ -18,6 +18,7 @@ Enterprise-grade PowerShell development standards and GitHub Copilot instruction
 ## 🚀 Quick Start
 
 ### For New Projects
+
 ```bash
 # Use as template repository or clone
 git clone https://github.com/fadwen/PowerShell-Copilot-Standards.git
@@ -28,6 +29,7 @@ cd PowerShell-Copilot-Standards
 ```
 
 ### For Existing Projects
+
 ```bash
 # Add as submodule
 git submodule add https://github.com/fadwen/PowerShell-Copilot-Standards.git .copilot-standards
@@ -42,18 +44,21 @@ ln -s .copilot-standards/.github/copilot-instructions.md .github/copilot-instruc
 ## 📋 What's Included
 
 ### 🤖 GitHub Copilot Integration
+
 - **Main Instructions**: Comprehensive enterprise PowerShell standards
 - **Prompt Files**: Quick-access prompts for common tasks
 - **Variable Prompts**: Interactive code generation
 - **Quality Gates**: Automated validation and enforcement
 
 ### 📚 PowerShell Standards
+
 - **Community Best Practices**: Integrated PowerShell community guidelines
 - **Enterprise Security**: SOX, GDPR, HIPAA compliance frameworks
 - **Performance Optimization**: Memory management and pipeline efficiency
 - **Testing Standards**: Comprehensive Pester testing patterns
 
 ### 🛠️ Development Tools
+
 - **Project Templates**: Module, script collection, and application templates
 - **Validation Scripts**: Automated standards compliance checking
 - **CI/CD Integration**: GitHub Actions and Azure DevOps templates
@@ -62,17 +67,20 @@ ln -s .copilot-standards/.github/copilot-instructions.md .github/copilot-instruc
 ## 🎯 Key Features
 
 ### ✨ Automatic Code Generation
+
 - **Enterprise Functions**: Complete functions with security, error handling, and documentation
 - **Module Scaffolding**: Full module structure with tests and documentation
 - **CI/CD Pipelines**: Automated quality gates and deployment workflows
 
 ### 🔒 Security by Design
+
 - **Input Validation**: Comprehensive sanitization and validation patterns
 - **Credential Management**: SecretManagement integration and secure handling
 - **Compliance Frameworks**: Built-in SOX, GDPR, and HIPAA compliance
 - **Security Scanning**: Automated vulnerability detection
 
 ### 📊 Quality Assurance
+
 - **Code Analysis**: Comprehensive quality assessment tools
 - **Performance Testing**: Automated benchmarking and optimization
 - **Documentation Standards**: Complete comment-based help and README generation
@@ -98,7 +106,9 @@ PowerShell-Copilot-Standards/
 ## 🚀 Getting Started
 
 ### 1. Enable Copilot Instructions
+
 In VS Code, add to your settings.json:
+
 ```json
 {
   "chat.promptFiles": true,
@@ -109,21 +119,25 @@ In VS Code, add to your settings.json:
 ### 2. Choose Your Integration Method
 
 #### Option A: Template Repository (New Projects)
+
 1. Click "Use this template" above
 2. Create your new repository
 3. Start developing with standards automatically applied
 
 #### Option B: Git Submodule (Existing Projects)
+
 ```bash
 git submodule add https://github.com/fadwen/PowerShell-Copilot-Standards.git .copilot-standards
 ```
 
 #### Option C: Direct Copy (Simple Projects)
+
 ```powershell
 ./Tools/Install-CopilotStandards.ps1 -ProjectPath "." -StandardsType "Basic"
 ```
 
 ### 3. Verify Setup
+
 ```powershell
 # Test standards compliance
 ./Tools/Test-StandardsCompliance.ps1 -Path "."
@@ -135,6 +149,7 @@ git submodule add https://github.com/fadwen/PowerShell-Copilot-Standards.git .co
 ## 💡 Usage Examples
 
 ### Quick Function Creation
+
 ```powershell
 # Use the new-function prompt in Copilot Chat
 /new-function
@@ -143,6 +158,7 @@ git submodule add https://github.com/fadwen/PowerShell-Copilot-Standards.git .co
 ```
 
 ### Security Review
+
 ```powershell
 # Select PowerShell code, then use security-review prompt
 /security-review
@@ -150,6 +166,7 @@ git submodule add https://github.com/fadwen/PowerShell-Copilot-Standards.git .co
 ```
 
 ### Performance Optimization
+
 ```powershell
 # Select code that needs optimization
 /optimize-performance
@@ -159,13 +176,16 @@ git submodule add https://github.com/fadwen/PowerShell-Copilot-Standards.git .co
 ## 🧪 Testing and Quality
 
 ### Automated Testing
+
 All generated code includes:
+
 - **Unit Tests**: Pester tests with 80%+ coverage
 - **Integration Tests**: External dependency validation
 - **Performance Tests**: Benchmarking and regression detection
 - **Security Tests**: Input validation and credential handling
 
 ### Quality Gates
+
 - **PSScriptAnalyzer**: Zero violations with enterprise rules
 - **Security Scanning**: Credential leak and vulnerability detection
 - **Community Standards**: PowerShell best practices compliance
@@ -174,7 +194,9 @@ All generated code includes:
 ## 🔧 Customization
 
 ### Team-Specific Instructions
+
 Create `.instructions.md` files in your project for team-specific standards:
+
 ```markdown
 ---
 applyTo: "**/*.ps1"
@@ -186,7 +208,9 @@ applyTo: "**/*.ps1"
 ```
 
 ### Project-Specific Prompts
+
 Add custom prompts for your specific use cases:
+
 ```markdown
 ---
 mode: 'agent'
@@ -201,11 +225,13 @@ Create function for infrastructure management with:
 ## 📚 Documentation
 
 ### Core Documentation
+
 - **[Implementation Guide](./Documentation/Implementation-Guide.md)**: Step-by-step setup and usage
 - **[PowerShell Best Practices](./Documentation/PowerShell-Best-Practices.md)**: Community standards reference
 - **[Enterprise Extensions](./Documentation/Enterprise-Extensions.md)**: Organization-specific additions
 
 ### Quick References
+
 - **[Prompt Files Guide](./Documentation/Prompt-Files-Guide.md)**: How to use and create prompts
 - **[Troubleshooting](./Troubleshooting/)**: Organized problem-solving guides
 - **[Examples](./Documentation/Examples/)**: Real-world usage examples
@@ -213,12 +239,14 @@ Create function for infrastructure management with:
 ## 🤝 Contributing
 
 ### Adding New Standards
+
 1. Create feature branch: `git checkout -b feature/new-standard`
 2. Add instruction files with comprehensive examples
 3. Include validation tests and documentation
 4. Submit pull request with impact assessment
 
 ### Improving Existing Standards
+
 1. Test changes with real-world scenarios
 2. Validate backward compatibility
 3. Update documentation and examples
@@ -227,13 +255,16 @@ Create function for infrastructure management with:
 ## 📊 Metrics and Success
 
 ### Quality Improvements
+
 Teams using these standards typically see:
+
 - **40% faster** function development
 - **60% reduction** in code review cycles
 - **80% fewer** security vulnerabilities
 - **90% improvement** in documentation completeness
 
 ### Adoption Tracking
+
 - Code quality scores (PSScriptAnalyzer compliance)
 - Security posture improvements
 - Development velocity gains
@@ -242,13 +273,16 @@ Teams using these standards typically see:
 ## 🆘 Support
 
 ### Getting Help
+
 - **Issues**: Report bugs or request features via GitHub Issues
 - **Discussions**: Ask questions in GitHub Discussions
 - **Documentation**: Check the Documentation folder
 - **Troubleshooting**: See organized guides in Troubleshooting folder
 
 ### Enterprise Support
+
 For enterprise implementation assistance:
+
 - Implementation consulting
 - Custom instruction development
 - Team training and onboarding

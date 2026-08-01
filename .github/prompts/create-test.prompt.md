@@ -7,11 +7,13 @@ tools: ['codebase']
 Create Pester tests for this PowerShell code:
 
 **Code to Test:**
+
 ```powershell
 ${selection}
 ```
 
 **Test Configuration:**
+
 - Test type: ${input:testType:Unit,Integration,Performance,Security:Unit}
 - Coverage target: ${input:coverage:80%,90%,95%:90%}
 - Environment: ${input:environment:Local,CI/CD,Both:Both}
@@ -20,6 +22,7 @@ ${selection}
 **Test Requirements:**
 
 **1. Modern Test Patterns ✅**
+
 - Use Pester 6.x syntax and features (Windows PowerShell 5.1 or PowerShell 7.4+)
 - Prefer the `Should-*` assertions (dash, no space) for new test files; classic
   `Should -Be` remains supported for existing suites
@@ -33,30 +36,35 @@ ${selection}
 - Use modern mocking techniques (`Should-Invoke` / `Should-NotInvoke`)
 
 **2. Comprehensive Coverage ✅**
+
 - Happy path scenarios
 - Edge cases and boundary conditions
 - Error handling verification (using $_ patterns)
 - Parameter validation testing
 
 **3. Enterprise Test Standards ✅**
+
 - Correlation ID tracking in tests
 - Environment-specific test configurations
 - Security validation tests
 - Performance assertion tests
 
 **4. Mock Strategy ✅**
+
 - External dependencies isolation
 - Credential handling tests (using modern patterns)
 - Database/API interaction mocking
 - File system operation mocking
 
 **5. Test Organization ✅**
+
 - Clear Describe/Context/It structure
 - Meaningful test names and descriptions
 - Proper test data management
 - Setup and teardown patterns
 
 **Generate tests that:**
+
 - ✅ Validate modern PowerShell patterns (PSCredential::new(), $_ usage)
 - ✅ Test error handling appropriately
 - ✅ Include security scenario validation

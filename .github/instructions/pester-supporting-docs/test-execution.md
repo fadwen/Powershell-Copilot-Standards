@@ -475,6 +475,7 @@ losing coverage.
 ## Quick Execution Commands
 
 ### Development Testing
+
 ```powershell
 # Quick unit tests
 .\Invoke-Tests.ps1 -TestType Unit -Environment Development
@@ -490,6 +491,7 @@ losing coverage.
 ```
 
 ### CI/CD Pipeline Integration
+
 ```powershell
 # Full CI test suite
 .\Invoke-Tests.ps1 -TestType All -Environment CI -CodeCoverage
@@ -589,6 +591,7 @@ If it only passes as part of a full run, it is not self-contained.
 ## Test Execution Best Practices
 
 ### Pre-Test Validation
+
 ```powershell
 # Validate environment before testing
 function Test-TestEnvironment {
@@ -656,6 +659,7 @@ Run this as the first CI step. A discovery failure is cheap to find here and con
 inside a full run.
 
 ### Tagging Audit
+
 ```powershell
 # Fail the build if any test escaped the tagging convention
 $config = New-PesterConfiguration
@@ -672,6 +676,7 @@ if ($untagged.TotalCount -gt 0) {
 ```
 
 ### Coverage Gate
+
 ```powershell
 # CoveragePercentTarget sets the reported target; it does not fail the run.
 # Enforce the gate yourself.
@@ -690,6 +695,7 @@ if ($result.CodeCoverage) {
 ```
 
 ### Post-Test Cleanup
+
 ```powershell
 # Clean up test artifacts
 function Clear-TestArtifacts {
@@ -704,6 +710,7 @@ function Clear-TestArtifacts {
 ```
 
 ### Test Result Analysis
+
 ```powershell
 # Analyze test trends
 function Get-TestTrends {

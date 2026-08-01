@@ -1,17 +1,20 @@
 # WinRM Configuration and Troubleshooting - Security-Focused
 
 ## 🔒 Security Notice
+
 **Expert Feedback Integration**: This guide has been updated to remove insecure patterns and promote enterprise-grade security practices for WinRM configuration.
 
 ## WinRM Connection Issues
 
 ### Problem
+
 ```
 Connecting to remote server failed with the following error message:
 WinRM cannot complete the operation.
 ```
 
 ### Prerequisites Check
+
 ```powershell
 # Test WinRM connectivity with proper error handling
 function Test-EnterpriseWinRMConnectivity {
@@ -54,6 +57,7 @@ Test-EnterpriseWinRMConnectivity -ComputerName "SERVER01"
 ```
 
 ### Secure WinRM Setup (Enterprise Pattern)
+
 ```powershell
 # On target server (run as Administrator)
 function Set-EnterpriseWinRMConfiguration {
@@ -121,11 +125,13 @@ function Set-EnterpriseWinRMConfiguration {
 ## Authentication Issues - Secure Solutions
 
 ### Problem
+
 Access denied errors when connecting remotely
 
 ### ✅ Secure Solutions
 
 #### 1. User Permissions (Proper RBAC)
+
 ```powershell
 function Grant-EnterpriseWinRMAccess {
     [CmdletBinding(SupportsShouldProcess)]
@@ -184,6 +190,7 @@ function Grant-EnterpriseWinRMAccess {
 ```
 
 #### 2. Secure Trusted Hosts Configuration (Domain vs. Workgroup)
+
 ```powershell
 function Set-SecureTrustedHosts {
     [CmdletBinding(SupportsShouldProcess)]
@@ -258,6 +265,7 @@ Set-SecureTrustedHosts -ComputerNames @("SERVER01.contoso.com", "SERVER02.contos
 ```
 
 #### 3. Secure Delegation (When Required)
+
 ```powershell
 # ⚠️ Expert Feedback: CredSSP is the weaker of available delegation options
 # Use only when constrained delegation is not available
@@ -339,6 +347,7 @@ function Enable-SecureDelegation {
 ## 🛡️ Security Best Practices Summary
 
 ### ✅ Do These
+
 - **Use Kerberos authentication** in domain environments
 - **Require encryption** for all WinRM communications
 - **Use specific computer names** in trusted hosts (never wildcards)
@@ -348,6 +357,7 @@ function Enable-SecureDelegation {
 - **Log all configuration changes** for audit purposes
 
 ### ❌ Avoid These
+
 - **Basic Authentication**: Easily compromised, not enterprise-suitable
 - **CredSSP as first choice**: Weaker delegation option
 - **Wildcard trusted hosts**: Security risk in production
@@ -355,6 +365,7 @@ function Enable-SecureDelegation {
 - **Overly broad firewall rules**: Use specific WinRM rules only
 
 ### 🔍 Troubleshooting Security Issues
+
 ```powershell
 # Check current WinRM security configuration
 Get-WSManInstance -ResourceURI winrm/config/service/auth

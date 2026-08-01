@@ -118,6 +118,7 @@ options. You can no longer silently configure a report that never gets written. 
 ## Environment-Specific Configurations
 
 ### Development Configuration
+
 ```powershell
 # PesterConfiguration.Development.psd1
 @{
@@ -138,6 +139,7 @@ options. You can no longer silently configure a report that never gets written. 
 ```
 
 ### CI/CD Configuration
+
 ```powershell
 # PesterConfiguration.CI.psd1
 @{
@@ -170,6 +172,7 @@ options. You can no longer silently configure a report that never gets written. 
 ```
 
 ### Performance Testing Configuration
+
 ```powershell
 # PesterConfiguration.Performance.psd1
 @{
@@ -213,6 +216,7 @@ Invoke-Pester -Configuration $config
 -Path` including parametrized files built with `-Data`).
 
 **Falls back to a sequential run with a warning** when:
+
 - Running on Windows PowerShell 5.1
 - Using in-memory `ScriptBlock` containers
 - `CodeCoverage` is enabled (coverage is always collected sequentially)
@@ -259,6 +263,7 @@ see [Pester 6 Migration Guide](./v6-migration.md).
 ## Dynamic Configuration Loading
 
 ### Configuration Loader Function
+
 ```powershell
 function Get-PesterConfiguration {
     [CmdletBinding()]
@@ -319,6 +324,7 @@ if ($config.CodeCoverage.CoveragePercentTarget.Value -ne $mergedConfig.CodeCover
 ## Test Filtering Configuration
 
 ### Tag-Based Filtering
+
 ```powershell
 # Filter by test type
 $config.Filter.Tag = @('Unit')           # Only unit tests
@@ -348,6 +354,7 @@ Never use `None` as a literal tag name. If an existing suite does, rename it - f
 also selects every untagged test.
 
 ### Path-Based Filtering
+
 ```powershell
 # Test specific modules
 $config.Run.Path = @('./Tests/Unit/Public/Get-*.Tests.ps1')
@@ -373,6 +380,7 @@ $config.Run.ExcludePath = @(
 ## Code Coverage Configuration
 
 ### Coverage Paths
+
 ```powershell
 $config.CodeCoverage.Path = @(
     './Public/*.ps1',           # All public functions
@@ -418,6 +426,7 @@ $config.CodeCoverage.ReportRoot = "$PSScriptRoot/.."
 ## Output Configuration
 
 ### Verbosity Levels
+
 ```powershell
 $config.Output.Verbosity = 'None'        # No output
 $config.Output.Verbosity = 'Minimal'     # Only summary
@@ -427,6 +436,7 @@ $config.Output.Verbosity = 'Diagnostic'  # Full diagnostic information
 ```
 
 ### Render Mode
+
 ```powershell
 $config.Output.RenderMode = 'Auto'          # detect terminal capability (default)
 $config.Output.RenderMode = 'Ansi'          # force ANSI/VT sequences
@@ -435,6 +445,7 @@ $config.Output.RenderMode = 'Plaintext'     # no color - best for log capture
 ```
 
 ### CI/CD Integration
+
 ```powershell
 $config.Output.CIFormat = 'GithubActions'  # GitHub Actions error/warning annotations
 $config.Output.CIFormat = 'AzureDevops'    # Azure DevOps logging commands
@@ -443,6 +454,7 @@ $config.Output.CILogLevel = 'Error'        # Error | Warning
 ```
 
 ### Stack Traces
+
 ```powershell
 $config.Output.StackTraceVerbosity = 'None'
 $config.Output.StackTraceVerbosity = 'FirstLine'
@@ -453,6 +465,7 @@ $config.Output.StackTraceVerbosity = 'Full'
 ## Test Result Configuration
 
 ### Output Formats
+
 ```powershell
 $config.TestResult.OutputFormat = 'NUnitXml'   # NUnit 2.5 schema, most widely consumed (default)
 $config.TestResult.OutputFormat = 'NUnit2.5'   # explicit alias for the above
@@ -479,6 +492,7 @@ Export-JUnitReport -Result $result -Path './Tests/Results/JUnit.xml'
 ## Configuration Best Practices
 
 ### Environment Detection
+
 ```powershell
 # Auto-detect CI/CD environment
 if ($env:CI -eq 'true' -or $env:BUILD_ID) {
@@ -493,6 +507,7 @@ $config = Get-PesterConfiguration -Environment $environment
 ```
 
 ### Configuration Validation
+
 ```powershell
 function Test-PesterConfiguration {
     param([PesterConfiguration]$Configuration)
@@ -534,6 +549,7 @@ Note that reading a value off the configuration object gives you an option wrapp
 to get the underlying setting.
 
 ### Configuration Inheritance
+
 ```powershell
 # Base configuration for organization
 $orgConfig = @{
