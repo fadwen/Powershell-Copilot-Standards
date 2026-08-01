@@ -336,51 +336,66 @@ function Get-ModuleCredential {
 ## Testing Framework Integration
 
 ### Pester Test Structure
-Generate comprehensive test suites:
+Generate comprehensive test suites targeting **Pester 6.0+**:
 
 ```powershell
 # Tests/Unit/Public/Verb-Noun.Tests.ps1
-#Requires -Module Pester
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
 
 BeforeAll {
+    # Pester 6 discovers and runs one file at a time - each file must be self-contained
     $ModulePath = Join-Path $PSScriptRoot '..\..\..\..\ModuleName.psd1'
     Import-Module $ModulePath -Force
 }
 
 Describe "Verb-Noun" -Tag "Unit", "Public" {
     Context "Parameter Validation" {
-        It "Should accept valid input: <TestInput>" -TestCases @(
-            @{ TestInput = 'ValidValue1' }
-            @{ TestInput = 'ValidValue2' }
+        # -ForEach data is injected as variables - no param() block needed.
+        # Never name a key 'Input' - it collides with the automatic variable.
+        It "Should accept valid input: <TestValue>" -ForEach @(
+            @{ TestValue = 'ValidValue1' }
+            @{ TestValue = 'ValidValue2' }
         ) {
-            param($TestInput)
-            { Verb-Noun -ParameterName $TestInput } | Should -Not -Throw
+            # There is no Should-NotThrow - just call it; a throw fails the test
+            Verb-Noun -ParameterName $TestValue
         }
 
         It "Should reject invalid input" {
-            { Verb-Noun -ParameterName $null } | Should -Throw
+            { Verb-Noun -ParameterName $null } | Should-Throw
         }
     }
 
     Context "Functionality" {
+        # Only one BeforeEach per block - Pester 6 throws on duplicates
         BeforeEach {
-            Mock External-Dependency { return "MockedResult" }
+            Mock External-Dependency { "MockedResult" }
         }
 
         It "Should return expected result" {
-            $result = Verb-Noun -ParameterName "TestValue"
-            $result | Should -Not -BeNullOrEmpty
+            Verb-Noun -ParameterName "TestValue" | Should-NotBeNull
+        }
+
+        It "Should call the dependency once" {
+            Verb-Noun -ParameterName "TestValue"
+            Should-Invoke External-Dependency -Times 1 -Exactly
         }
     }
 
     Context "Error Handling" {
         It "Should handle errors gracefully" {
             Mock External-Dependency { throw "Test Error" }
-            { Verb-Noun -ParameterName "TestValue" } | Should -Throw "*Test Error*"
+            { Verb-Noun -ParameterName "TestValue" } |
+                Should-Throw -ExceptionMessage "*Test Error*"
         }
     }
 }
 ```
+
+Key Pester 6 points: `Should-*` assertions replace `Should -Be` for new tests,
+`Assert-MockCalled` was removed in favour of `Should-Invoke`, duplicate setup blocks throw, and
+every file must import its own dependencies. See
+[Pester instructions](./pester.instructions.md) and the
+[migration guide](./pester-supporting-docs/v6-migration.md).
 
 ## Performance Optimization
 
