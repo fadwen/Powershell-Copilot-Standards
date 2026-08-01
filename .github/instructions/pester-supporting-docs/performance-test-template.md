@@ -1,14 +1,24 @@
 # Performance Test Template
 
+Targets **Pester 6.0+**. Uses the `Should-*` assertion syntax - see
+[Assertion Guide](./assertion-guide.md).
+
+**NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
+text descriptions and standard ASCII characters only.
+
 ## Standard Performance Test Structure
 
 Use this template for performance benchmarking and regression detection:
 
 ```powershell
-#Requires -Module Pester
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
+
+# Performance measurement is meaningless when other test files are competing for the
+# CPU. This directive keeps the file on the serial path even when Run.Parallel is set.
+#pester:no-parallel
 
 BeforeAll {
-    # Import module under test
+    # Import module under test. Each file is self-contained in Pester 6.
     $ModulePath = Join-Path $PSScriptRoot '..\..\ModuleName.psd1'
     Import-Module $ModulePath -Force
 
@@ -44,8 +54,18 @@ Describe "Performance Tests" -Tag "Performance", "Benchmark" {
             [System.GC]::WaitForPendingFinalizers()
         }
 
-        It "Should process single item within baseline" {
-            $baseline = $PerformanceBaselines.SingleItemBaseline ?? [TimeSpan]::FromSeconds(1)
+        It "Should process a single item faster than the baseline" {
+            # Should-BeFasterThan takes the scriptblock and a duration string or TimeSpan,
+            # and reports the measured time in the failure message.
+            { Function-Name -ParameterName 'SingleItem' } | Should-BeFasterThan '1s'
+        }
+
+        It "Should process single item within baseline across iterations" {
+            $baseline = if ($PerformanceBaselines.SingleItemBaseline) {
+                $PerformanceBaselines.SingleItemBaseline
+            } else {
+                [TimeSpan]::FromSeconds(1)
+            }
             $measurements = @()
 
             # Run multiple iterations for accurate measurement
@@ -56,11 +76,14 @@ Describe "Performance Tests" -Tag "Performance", "Benchmark" {
                 $measurements += $executionTime.TotalMilliseconds
             }
 
-            $averageTime = [TimeSpan]::FromMilliseconds(($measurements | Measure-Object -Average).Average)
-            $maxTime = [TimeSpan]::FromMilliseconds(($measurements | Measure-Object -Maximum).Maximum)
+            $averageMs = ($measurements | Measure-Object -Average).Average
+            $maxMs     = ($measurements | Measure-Object -Maximum).Maximum
 
-            $averageTime | Should -BeLessThan $baseline
-            $maxTime | Should -BeLessThan ($baseline.TotalMilliseconds * 1.5) # Allow 50% variance for max
+            # Compare like with like - milliseconds against milliseconds. Comparing a
+            # TimeSpan against a raw number silently coerces and gives nonsense results.
+            $averageMs | Should-BeLessThan $baseline.TotalMilliseconds
+            $maxMs     | Should-BeLessThan ($baseline.TotalMilliseconds * 1.5) `
+                -Because 'peak may exceed the average baseline by up to 50%'
         }
 
         It "Should scale efficiently with data volume" {
@@ -83,18 +106,22 @@ Describe "Performance Tests" -Tag "Performance", "Benchmark" {
 
             # Should scale sub-linearly due to optimizations
             $scalingEfficiency = $timeScaleFactor / $dataScaleFactor
-            $scalingEfficiency | Should -BeLessThan 1.5  # Allow for some overhead
+            $scalingEfficiency | Should-BeLessThan 1.5 -Because 'processing should scale sub-linearly'
         }
 
         It "Should complete large datasets within time limit" {
             $largeDataset = 1..5000
+            $result = $null
 
+            # Do not put assertions inside Measure-Command - the assertion cost lands in
+            # the measurement, and a failure there reports a confusing location.
             $executionTime = Measure-Command {
                 $result = Function-Name -ParameterName $largeDataset
-                $result.Count | Should -Be 5000  # Verify all items processed
             }
 
-            $executionTime | Should -BeLessThan $PerformanceConfig.MaxExecutionTime
+            $result | Should-BeCollection -Count 5000
+            $executionTime.TotalMilliseconds |
+                Should-BeLessThan $PerformanceConfig.MaxExecutionTime.TotalMilliseconds
         }
 
         It "Should maintain consistent performance across iterations" {
@@ -114,7 +141,7 @@ Describe "Performance Tests" -Tag "Performance", "Benchmark" {
             $cv = $stdDev / $average
 
             # CV should be less than 20% for consistent performance
-            $cv | Should -BeLessThan 0.20
+            $cv | Should-BeLessThan 0.20 -Because 'execution time should be stable across runs'
         }
     }
 
@@ -127,7 +154,7 @@ Describe "Performance Tests" -Tag "Performance", "Benchmark" {
             $afterMemory = [System.GC]::GetTotalMemory($false)  # Don't force GC yet
             $memoryUsedMB = ($afterMemory - $beforeMemory) / 1MB
 
-            $memoryUsedMB | Should -BeLessThan $PerformanceConfig.MaxMemoryUsageMB
+            $memoryUsedMB | Should-BeLessThan $PerformanceConfig.MaxMemoryUsageMB
         }
 
         It "Should release memory after completion" {
@@ -144,7 +171,7 @@ Describe "Performance Tests" -Tag "Performance", "Benchmark" {
             $memoryDifference = [Math]::Abs($afterMemory - $beforeMemory) / 1MB
 
             # Should release most memory (allow 10MB tolerance)
-            $memoryDifference | Should -BeLessThan 10
+            $memoryDifference | Should-BeLessThan 10 -Because 'the function should not retain allocations'
         }
 
         It "Should not have memory leaks with repeated calls" {
@@ -169,7 +196,7 @@ Describe "Performance Tests" -Tag "Performance", "Benchmark" {
             $memoryGrowth = $lastMeasurement - $firstMeasurement
 
             # Allow maximum 5MB growth over 20 iterations
-            $memoryGrowth | Should -BeLessThan 5
+            $memoryGrowth | Should-BeLessThan 5 -Because 'repeated calls must not leak'
         }
     }
 
@@ -177,14 +204,16 @@ Describe "Performance Tests" -Tag "Performance", "Benchmark" {
         It "Should achieve minimum throughput requirements" {
             $testData = 1..1000
             $requiredThroughput = 50  # items per second
+            $results = $null
 
             $executionTime = Measure-Command {
                 $results = Function-Name -ParameterName $testData
-                $results.Count | Should -Be 1000
             }
 
+            $results | Should-BeCollection -Count 1000
+
             $actualThroughput = 1000 / $executionTime.TotalSeconds
-            $actualThroughput | Should -BeGreaterThan $requiredThroughput
+            $actualThroughput | Should-BeGreaterThan $requiredThroughput
         }
 
         It "Should handle concurrent execution efficiently" {
@@ -212,18 +241,16 @@ Describe "Performance Tests" -Tag "Performance", "Benchmark" {
             $concurrentJobs | Remove-Job
 
             # Verify all jobs completed successfully
-            $results | ForEach-Object {
-                $_.Success | Should -Be $true
-                $_.ItemsProcessed | Should -Be 200
-                $_.ExecutionTime | Should -BeLessThan 30000  # 30 seconds max
-            }
+            $results | Should-All { $_.Success }
+            $results | Should-All { $_.ItemsProcessed -eq 200 }
+            $results | Should-All { $_.ExecutionTime -lt 30000 }   # 30 seconds max
 
             # Verify concurrent execution didn't significantly degrade performance
             $averageConcurrentTime = ($results.ExecutionTime | Measure-Object -Average).Average
             $serialTime = Measure-Command { Function-Name -ParameterName (1..200) }
 
             # Concurrent execution should not be more than 2x slower per job
-            $averageConcurrentTime | Should -BeLessThan ($serialTime.TotalMilliseconds * 2)
+            $averageConcurrentTime | Should-BeLessThan ($serialTime.TotalMilliseconds * 2)
         }
     }
 
@@ -241,7 +268,7 @@ Describe "Performance Tests" -Tag "Performance", "Benchmark" {
 
                 # CPU usage should be reasonable (less than 80% for single-threaded operation)
                 $cpuUsage = $afterCpu - $beforeCpu
-                $cpuUsage | Should -BeLessThan 80
+                $cpuUsage | Should-BeLessThan 80
             } else {
                 Set-ItResult -Skipped -Because "CPU performance counters not available"
             }
@@ -257,7 +284,7 @@ Describe "Performance Tests" -Tag "Performance", "Benchmark" {
             $newTempFiles = $tempFilesAfter.Count - $tempFilesBefore.Count
 
             # Should not create more than 5 temporary files
-            $newTempFiles | Should -BeLessOrEqual 5
+            $newTempFiles | Should-BeLessThanOrEqual 5
         }
     }
 }
@@ -276,6 +303,54 @@ AfterAll {
     $performanceMetrics | ConvertTo-Json -Depth 10 | Out-File $resultsPath
 }
 ```
+
+## Pester 6 Notes for Performance Tests
+
+### Always opt out of parallel execution
+Put `#pester:no-parallel` at the top of every performance test file. Timing measurements taken while
+other test files compete for CPU are noise. Opted-out files run serially in the parent session while
+other files run in parallel, so you keep the speedup elsewhere without corrupting the benchmarks.
+
+Belt and braces: also keep `Run.Parallel = $false` in `PesterConfiguration.Performance.psd1`.
+
+### Use `Should-BeFasterThan` for simple time limits
+
+```powershell
+{ Function-Name -ParameterName 'x' } | Should-BeFasterThan '250ms'
+{ Function-Name -ParameterName 'x' } | Should-BeSlowerThan '10ms'
+```
+
+It accepts a duration string (`'250ms'`, `'2s'`) or a `TimeSpan`, measures the scriptblock, and puts
+the actual measured time in the failure message. Prefer it over `Measure-Command` plus a comparison
+for single-shot limits. Keep `Measure-Command` where you need the measurement itself for ratios,
+averages, or coefficient-of-variation math.
+
+### Compare like with like
+The most common bug in hand-rolled performance assertions is comparing a `TimeSpan` against a raw
+number:
+
+```powershell
+# WRONG - TimeSpan vs. double; the comparison does not mean what it looks like
+$elapsed | Should-BeLessThan ($baseline.TotalMilliseconds * 1.5)
+
+# RIGHT - both sides in milliseconds
+$elapsed.TotalMilliseconds | Should-BeLessThan ($baseline.TotalMilliseconds * 1.5)
+
+# ALSO RIGHT - both sides TimeSpan
+$elapsed | Should-BeLessThan ([TimeSpan]::FromMilliseconds($baseline.TotalMilliseconds * 1.5))
+```
+
+Pester 6's type-aware assertions make the mismatch visible in the failure message, but the fix is to
+not write it in the first place.
+
+### Keep assertions out of `Measure-Command`
+An assertion inside the measured scriptblock adds its own cost to the measurement, and a failure
+there reports a confusing location. Capture the result, measure, then assert.
+
+### Coverage is never collected in parallel
+When `CodeCoverage` is enabled the whole run falls back to sequential, with a warning. Do not enable
+coverage on the performance job - it will not parallelize and the tracer adds overhead to exactly
+the thing you are measuring.
 
 ## Performance Test Guidelines
 

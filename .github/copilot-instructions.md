@@ -461,30 +461,39 @@ try {
 - **Security Tests**: Required for credential handling and input validation
 
 ### Pester Test Template
+
+Targets Pester 6.0+. See [Testing Framework](./instructions/pester.instructions.md) for the
+full standards and [Assertion Guide](./instructions/pester-supporting-docs/assertion-guide.md)
+for the `Should-*` reference.
+
 ```powershell
-#Requires -Module Pester
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
 
 Describe "Get-ExampleData" -Tag "Unit" {
     BeforeAll {
-        # Import module and set up mocks
+        # Pester 6 discovers and runs one file at a time, so each file
+        # imports its own dependencies. Only one BeforeAll per block -
+        # duplicates throw.
         Import-Module $PSScriptRoot\..\ModuleName.psd1 -Force
 
         # Mock external dependencies following community patterns
         Mock Write-Verbose { }
-        Mock Get-OptionalData { return $MockResult }
+        Mock Get-OptionalData { $MockResult }
     }
 
     Context "Valid Input" {
-        It "Should return expected result for <TestCase>" -TestCases @(
-            @{ Input = 'ValidValue1'; Expected = 'ExpectedResult1' }
-            @{ Input = 'ValidValue2'; Expected = 'ExpectedResult2' }
+        # -ForEach data is injected as variables; no param() block needed.
+        # Never use 'Input' as a key - it collides with the automatic variable
+        # and the test data will not bind.
+        It "Should return expected result for <TestValue>" -ForEach @(
+            @{ TestValue = 'ValidValue1'; Expected = 'ExpectedResult1' }
+            @{ TestValue = 'ValidValue2'; Expected = 'ExpectedResult2' }
         ) {
-            param($Input, $Expected)
+            $result = Get-ExampleData -Name $TestValue
 
-            $result = Get-ExampleData -Name $Input
-            $result | Should -BeOfType [PSCustomObject]
-            $result.PSTypeName | Should -Be 'ProcessedData'
-            $result.Name | Should -Be $Expected
+            $result | Should-HaveType ([PSCustomObject])
+            $result.PSTypeName | Should-Be 'ProcessedData'
+            $result.Name | Should-Be $Expected
         }
     }
 
@@ -492,7 +501,8 @@ Describe "Get-ExampleData" -Tag "Unit" {
         It "Should handle errors correctly using proper error patterns" {
             Mock Get-OptionalData { throw "Test error" }
 
-            { Get-ExampleData -Name "TestValue" } | Should -Throw "*Test error*"
+            { Get-ExampleData -Name "TestValue" } |
+                Should-Throw -ExceptionMessage "*Test error*"
         }
     }
 }
@@ -578,7 +588,7 @@ Use these prompts for quality assurance:
 - **Community Standards**: Reference `.github/instructions/community-standards.instructions.md`
 - **Style Guide**: Reference `.github/instructions/style-enforcement.instructions.md`
 - **Troubleshooting**: Always organized in `./Troubleshooting/` folder structure
-- **Testing**: Use Pester 5.x with comprehensive coverage requirements
+- **Testing**: Use Pester 6.x with comprehensive coverage requirements
 - **Security**: Implement defense-in-depth with community-approved patterns
 - **Performance**: Optimize using community-identified best practices and expert feedback
 

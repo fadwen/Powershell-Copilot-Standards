@@ -15,15 +15,22 @@ ${selection}
 - Test type: ${input:testType:Unit,Integration,Performance,Security:Unit}
 - Coverage target: ${input:coverage:80%,90%,95%:90%}
 - Environment: ${input:environment:Local,CI/CD,Both:Both}
-- Pester version: ${input:pesterVersion:5.x,4.x:5.x}
+- Pester version: ${input:pesterVersion:6.x,5.x:6.x}
 
 **Test Requirements:**
 
 **1. Modern Test Patterns ✅**
-- Use Pester 5.x syntax and features
+- Use Pester 6.x syntax and features (Windows PowerShell 5.1 or PowerShell 7.4+)
+- Prefer the `Should-*` assertions (dash, no space) for new test files; classic
+  `Should -Be` remains supported for existing suites
+- Make every test file self-contained: Pester 6 discovers and runs one file at a time,
+  so each file imports its own modules and does its own `BeforeDiscovery` setup
+- Build `-ForEach` / `-TestCases` data in `BeforeDiscovery`, never `BeforeAll`
+- Do not use `Assert-MockCalled`, `Assert-VerifiableMock`, `-Focus`, or
+  `Set-ItResult -Pending` - all removed in Pester 6
 - Implement proper Arrange-Act-Assert structure
 - Include parameterized tests where appropriate
-- Use modern mocking techniques
+- Use modern mocking techniques (`Should-Invoke` / `Should-NotInvoke`)
 
 **2. Comprehensive Coverage ✅**
 - Happy path scenarios
