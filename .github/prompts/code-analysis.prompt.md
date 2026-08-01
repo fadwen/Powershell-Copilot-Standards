@@ -32,7 +32,8 @@ ${selection}
 **3. Performance Patterns ✅**
 
 - Context-aware string operations (simple vs complex)
-- Efficient collection handling (avoid array += in loops)
+- Collection handling: flag `+=` only where the declared target is below 7.5, in which it is still
+  O(n²), or where the loop is unbounded. PowerShell 7.5 optimised it. Never suggest `ArrayList`
 - Appropriate use of pipeline vs loops
 - Memory-conscious patterns for large datasets
 

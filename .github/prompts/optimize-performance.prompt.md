@@ -27,7 +27,8 @@ ${selection}
 4. **Algorithm Complexity**: Identify O(n²) operations, inefficient filtering and searching, redundant
    work, and poor data structure choices
 5. **Resource Management**: COM objects, file handles, database connections, network call batching
-6. **Parallel Processing**: PowerShell 7+ ForEach-Object -Parallel opportunities
+6. **Parallel Processing**: `ForEach-Object -Parallel` opportunities (PowerShell 7.4+; 7.6 is the
+   current LTS - 7.0 through 7.3 are retired)
 
 **Deliverables:**
 
