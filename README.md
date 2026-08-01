@@ -310,15 +310,6 @@ Track these before and after adoption if you want a real before/after comparison
 - **Documentation**: Check the Documentation folder
 - **Troubleshooting**: See organized guides in Troubleshooting folder
 
-### Enterprise Support
-
-For enterprise implementation assistance:
-
-- Implementation consulting
-- Custom instruction development
-- Team training and onboarding
-- Metrics and success tracking
-
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
