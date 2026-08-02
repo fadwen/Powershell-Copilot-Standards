@@ -1,35 +1,38 @@
 # =============================================================================
-# DO NOT USE THIS FILE AS A MODEL. IT DELIBERATELY VIOLATES THE STANDARDS.
+# DO NOT COPY FROM THIS FILE WITHOUT READING THIS HEADER.
 #
-# It exists so the quality gates have something to catch. Running
-# Tools/Test-StandardsCompliance.ps1 against it reports UseApprovedVerbs,
+# Test-QualityGates and Process-TestData DELIBERATELY VIOLATE THE STANDARDS.
+# They exist so the quality gates have something to catch. Running
+# Tools/Test-StandardsCompliance.ps1 against this file reports UseApprovedVerbs,
 # AvoidPSCustomObjectOutputType and UseDollarUnderscoreInCatch, which is the
 # point. Both CI workflows exclude it from production analysis by name.
 #
-# Violations present on purpose: Write-Host instead of Write-Verbose, $Error[0]
-# in catch blocks instead of $_, a non-approved verb (Process-TestData), array
-# appending in a loop, string concatenation in a loop, a redundant
-# ValidateNotNullOrEmpty on a mandatory parameter, an unused parameter, and
-# [OutputType([PSCustomObject])].
+# Violations present on purpose, all of them in those two functions: Write-Host
+# instead of Write-Verbose, $Error[0] in catch blocks instead of $_, a
+# non-approved verb (Process-TestData), array appending in a loop, string
+# concatenation in a loop, a redundant ValidateNotNullOrEmpty on a mandatory
+# parameter, an unused parameter, and [OutputType([PSCustomObject])].
 #
-# For code to copy, see Basic-Function-Example.ps1 or Module-Structure-Example/.
+# Get-TestResult, at the bottom, is the one compliant function in the file and
+# is here as the contrast. It passes PSScriptAnalyzer clean. For fuller models
+# see Basic-Function-Example.ps1 or Module-Structure-Example/.
 #
-# Security issues specifically were resolved - plaintext credentials and string
-# interpolated SQL are gone - so this file is safe to keep in the repository.
-# The quality issues above remain intentionally.
+# Security issues are NOT among the deliberate violations - plaintext
+# credentials and interpolated SQL were removed, so this file is safe to keep in
+# the repository. The spots where that matters are marked "Not a violation".
 # =============================================================================
 
 function Test-QualityGates {
     <#
     .SYNOPSIS
-    Test function to demonstrate quality gate enforcement
+    Deliberately non-compliant function used to prove the quality gates fire.
 
     .DESCRIPTION
-    This function intentionally contains several quality issues that should be
-    caught by the PowerShell quality gates, including parameter validation issues,
-    performance anti-patterns, but with security issues RESOLVED.
+    Contains quality violations on purpose - see the file header for the list.
+    Not a model. Security issues specifically are absent, so the file is safe to
+    keep in the repository.
 
-    .PARAMETER UserName  
+    .PARAMETER UserName
     The username to process
 
     .PARAMETER ServerList
@@ -41,79 +44,79 @@ function Test-QualityGates {
     .PARAMETER DatabaseCredential
     Secure credential for database access
 
+    .PARAMETER UnusedParameter
+    Declared and never referenced - one of the deliberate violations
+
     .EXAMPLE
     $cred = Get-Credential
     Test-QualityGates -UserName "testuser" -ServerList @("server1", "server2") -DatabaseCredential $cred
-    
-    Demonstrates basic usage with security issues resolved.
+
+    Demonstrates the call shape. The quality violations are in the body.
 
     .NOTES
-    Author: Jeffrey Stuhr
     Purpose: Quality gate testing and demonstration
     #>
     [CmdletBinding()]
-    [OutputType([PSCustomObject])]  # This should be descriptive type name
+    [OutputType([PSCustomObject])]  # Violation: should be a descriptive type name
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateNotNullOrEmpty()]  # Expert feedback: redundant on mandatory params
+        [ValidateNotNullOrEmpty()]  # Violation: redundant on a mandatory parameter
         [string]$UserName,
-        
+
         [Parameter()]
         [string[]]$ServerList,
-        
+
         [Parameter()]
         [object[]]$ProcessData,
-        
+
         [Parameter()]
-        [PSCredential]$DatabaseCredential,  # ✅ FIXED: Use PSCredential instead of plain text
-        
+        [PSCredential]$DatabaseCredential,  # Not a violation: PSCredential, not plain text
+
         [Parameter()]
-        [string]$UnusedParameter  # Quality issue: unused parameter (kept for demonstration)
+        [string]$UnusedParameter  # Violation: declared and never referenced
     )
-    
+
     begin {
-        Write-Host "Starting quality gate test..." -ForegroundColor Green  # Issue: using Write-Host
-        
-        # Performance issue: building arrays in loops
+        Write-Host "Starting quality gate test..." -ForegroundColor Green  # Violation: Write-Host
+
+        # Violation: array built by appending in the loop below
         $results = @()
-        
-        # ✅ FIXED: Use secure credential handling
+
+        # Not a violation: the credential is never expanded to plain text
         if ($DatabaseCredential) {
             Write-Verbose "Database credential provided securely"
         } else {
             Write-Verbose "No database credential provided"
         }
     }
-    
+
     process {
         try {
-            # Issue: using $Error[0] instead of $_ (expert feedback)
             Write-Verbose "Processing user: $UserName"
-            
-            # Parameter validation issue: not checking before downstream usage
-            $userInfo = Get-ADUser -Identity $UserName  # Could fail if UserName is empty
-            
-            # Performance anti-pattern: array appending in loop
+
+            # Violation: result used downstream without being checked first
+            $userInfo = Get-ADUser -Identity $UserName
+
+            # Violation: array appending in a loop reallocates on every pass
             foreach ($server in $ServerList) {
-                $results += "Processing $server"  # Creates new array each time
+                $results += "Processing $server"
             }
-            
-            # String concatenation issue: should use StringBuilder for large operations
+
+            # Violation: string concatenation in a loop - StringBuilder belongs here
             $logOutput = ""
             for ($i = 0; $i -lt 1000; $i++) {
-                $logOutput += "Log entry $i`n"  # Inefficient for large operations
+                $logOutput += "Log entry $i`n"
             }
-            
-            # ✅ FIXED: Use parameterized queries instead of string interpolation
-            $query = "SELECT * FROM Users WHERE Name = @UserName"  # Parameterized query
+
+            # Not a violation: parameterized query, not string interpolation
+            $query = "SELECT * FROM Users WHERE Name = @UserName"
             $queryParams = @{ UserName = $UserName }
-            
-            # Issue: throw that can be silenced (expert feedback Part 2)
+
+            # Violation: a bare throw here can be silenced by -ErrorAction SilentlyContinue
             if (-not $userInfo) {
-                throw "User not found: $UserName"  # Can be silenced with -ErrorAction SilentlyContinue
+                throw "User not found: $UserName"
             }
-            
-            # Create result with quality issues (but security fixed)
+
             $result = [PSCustomObject]@{
                 UserName = $UserName
                 ServersProcessed = $results.Count
@@ -123,50 +126,56 @@ function Test-QualityGates {
                 HasDatabaseCredential = [bool]$DatabaseCredential
                 ProcessedAt = Get-Date
             }
-            
+
             return $result
         }
         catch {
-            # Issue: using $Error[0] instead of $_ (expert feedback Part 1)
-            $currentError = $Error[0]  # Should use $_ in catch blocks
+            # Violation: $Error[0] instead of $_ - $Error is global and mutable, so
+            # this can report an unrelated error
+            $currentError = $Error[0]
             Write-Error "Processing failed: $($currentError.Exception.Message)"
             throw
         }
     }
-    
+
     end {
-        Write-Host "Quality gate test completed" -ForegroundColor Yellow  # Issue: Write-Host again
+        Write-Host "Quality gate test completed" -ForegroundColor Yellow  # Violation: Write-Host
     }
 }
 
-# Additional function with non-approved verb (quality issue)
-function Process-TestData {  # Issue: "Process" is not an approved PowerShell verb
+
+# Violation: "Process" is not an approved PowerShell verb - see Get-Verb
+function Process-TestData {
     param(
         [string]$Data
     )
-    
-    # Simple processing
+
     return "Processed: $Data"
 }
 
-# Function with correct patterns for comparison
-function Get-TestResults {
+
+function Get-TestResult {
     <#
     .SYNOPSIS
-    Correctly implemented function following all standards
-    
+    The compliant contrast to the two functions above.
+
     .DESCRIPTION
-    This function demonstrates proper PowerShell patterns that should pass
-    all quality gates without issues.
-    
+    Demonstrates the patterns the standards ask for: an approved verb with a
+    singular noun, a mandatory parameter without a redundant validator,
+    correlation ID tracking, $_ in the catch block, and a PSTypeName-stamped
+    output object. Passes PSScriptAnalyzer clean.
+
     .PARAMETER TestName
     Name of the test to run
-    
+
+    .PARAMETER CorrelationId
+    Correlation ID for tracing; generated when not supplied
+
     .EXAMPLE
-    Get-TestResults -TestName "SecurityTest"
-    
-    Runs the specified test and returns results.
-    
+    Get-TestResult -TestName "SecurityTest"
+
+    Runs the specified test and returns the result.
+
     .OUTPUTS
     TestResult. Returns test execution results.
     #>
@@ -177,24 +186,24 @@ function Get-TestResults {
     param(
         [Parameter(Mandatory)]  # No redundant ValidateNotNullOrEmpty
         [string]$TestName,
-        
+
         [Parameter()]
         [string]$CorrelationId = [System.Guid]::NewGuid().ToString()
     )
-    
+
     begin {
         Write-Verbose "Starting test: $TestName - CorrelationId: $CorrelationId"
     }
-    
+
     process {
         try {
-            # Proper parameter validation before downstream usage
+            # Validate before downstream use. Mandatory rejects '' at binding time,
+            # but whitespace binds fine and still has to be caught.
             if (-not $TestName.Trim()) {
                 Write-Error "TestName cannot be empty or whitespace" -ErrorAction Stop
                 return
             }
-            
-            # Simulate test execution
+
             $testResult = [PSCustomObject]@{
                 PSTypeName = 'TestResult'
                 TestName = $TestName.Trim()
@@ -202,22 +211,24 @@ function Get-TestResults {
                 CorrelationId = $CorrelationId
                 ExecutedAt = Get-Date
             }
-            
+
             Write-Output $testResult
         }
         catch {
-            # Correct error handling using $_ (expert feedback)
+            # Correct: $_ in the catch block, and the structured detail is emitted
+            # rather than assembled and dropped
             $errorDetails = @{
                 TestName = $TestName
                 ErrorMessage = $_.Exception.Message
                 CorrelationId = $CorrelationId
             }
-            
-            Write-Verbose "Test failed: $TestName - Error: $($_.Exception.Message)"
+
+            Write-Verbose ("Test failed: {0} - Error: {1} - CorrelationId: {2}" -f
+                $errorDetails.TestName, $errorDetails.ErrorMessage, $errorDetails.CorrelationId)
             Write-Error "Test execution failed: $($_.Exception.Message)" -ErrorAction Stop
         }
     }
-    
+
     end {
         Write-Verbose "Test completed: $TestName - CorrelationId: $CorrelationId"
     }
