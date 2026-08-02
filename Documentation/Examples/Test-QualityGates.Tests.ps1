@@ -1,10 +1,28 @@
 #Requires -Module Pester
 
 BeforeAll {
-    # Dot-source the file under test
-    $TestFilePath = Join-Path $PSScriptRoot 'Test-QualityGates.ps1'
-    if (Test-Path $TestFilePath) {
-        . $TestFilePath
+    $script:SourcePath = Join-Path $PSScriptRoot 'Test-QualityGates.ps1'
+    . $script:SourcePath
+
+    # Parse once. The file-level checks below inspect the AST rather than raw
+    # text, because this file documents the patterns it violates - a regex for
+    # 'Write-Host' matches the comments describing the violation as readily as
+    # the call itself, and would report inflated counts that never go to zero.
+    $script:Ast = [System.Management.Automation.Language.Parser]::ParseFile(
+        $script:SourcePath, [ref]$null, [ref]$null)
+
+    $script:Functions = $script:Ast.FindAll({
+            param($node)
+            $node -is [System.Management.Automation.Language.FunctionDefinitionAst]
+        }, $true)
+
+    function Get-CallsTo {
+        param([string]$Name)
+        $script:Ast.FindAll({
+                param($node)
+                $node -is [System.Management.Automation.Language.CommandAst] -and
+                $node.GetCommandName() -eq $Name
+            }, $true)
     }
 
     # Test-QualityGates calls Get-ADUser, which ships with RSAT and is absent on CI
@@ -102,21 +120,24 @@ Describe "Test-QualityGates Function" -Tag "Unit", "QualityDemo" {
     }
 }
 
-Describe "Get-TestResults Function" -Tag "Unit", "GoodExample" {
+Describe "Get-TestResult Function" -Tag "Unit", "GoodExample" {
 
     Context "Proper Implementation Validation" {
-        It "Should use approved PowerShell verb" {
-            # Should -BeIn has no 1:1 replacement; Should-Any expresses the same check
-            $approvedVerbs = Get-Verb | Select-Object -ExpandProperty Verb
-            $approvedVerbs | Should-Any { $_ -eq 'Get' }
+        It "Is named with an approved verb and a singular noun" {
+            $verb, $noun = 'Get-TestResult' -split '-', 2
+
+            (Get-Verb).Verb | Should-Any { $_ -eq $verb }
+            # PSUseSingularNouns fires on a trailing 's'. The plural form is what
+            # this function was called before, and it was a real analyzer warning.
+            $noun.EndsWith('s') | Should-BeFalse
         }
 
         It "Should accept mandatory TestName parameter" {
-            Get-TestResults -TestName "SecurityTest"
+            Get-TestResult -TestName "SecurityTest"
         }
 
         It "Should generate correlation ID automatically" {
-            $result = Get-TestResults -TestName "AutoTest"
+            $result = Get-TestResult -TestName "AutoTest"
             $result.CorrelationId | Should-NotBeEmptyString
             $result.CorrelationId |
                 Should-MatchString "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
@@ -125,17 +146,17 @@ Describe "Get-TestResults Function" -Tag "Unit", "GoodExample" {
         It "Should handle empty test name appropriately" {
             # A Mandatory [string] rejects '' during binding, before the body runs,
             # so the message comes from PowerShell - not the function's own guard.
-            { Get-TestResults -TestName "" } | Should-Throw -ExceptionMessage '*empty string*'
+            { Get-TestResult -TestName "" } | Should-Throw -ExceptionMessage '*empty string*'
         }
 
         It "Should handle whitespace-only test name" {
             # Whitespace binds fine, so the function's own validation produces this one
-            { Get-TestResults -TestName "   " } |
+            { Get-TestResult -TestName "   " } |
                 Should-Throw -ExceptionMessage '*cannot be empty or whitespace*'
         }
 
         It "Should return properly typed result" {
-            $result = Get-TestResults -TestName "TypeTest"
+            $result = Get-TestResult -TestName "TypeTest"
             # PSTypeName is consumed when constructing the object; it sets the type
             # name rather than remaining as a readable property.
             $result.PSObject.TypeNames[0] | Should-Be "TestResult"
@@ -143,7 +164,7 @@ Describe "Get-TestResults Function" -Tag "Unit", "GoodExample" {
         }
 
         It "Should include all required properties" {
-            $result = Get-TestResults -TestName "PropertyTest"
+            $result = Get-TestResult -TestName "PropertyTest"
 
             $result.TestName | Should-Be "PropertyTest"
             $result.Status | Should-NotBeEmptyString
@@ -154,14 +175,28 @@ Describe "Get-TestResults Function" -Tag "Unit", "GoodExample" {
 
     Context "Parameter Validation Best Practices" {
         It "Should trim whitespace from TestName parameter" {
-            $result = Get-TestResults -TestName "  TrimTest  "
+            $result = Get-TestResult -TestName "  TrimTest  "
             $result.TestName | Should-Be "TrimTest"
         }
 
         It "Should accept custom correlation ID" {
             $customId = [System.Guid]::NewGuid().ToString()
-            $result = Get-TestResults -TestName "CustomIdTest" -CorrelationId $customId
+            $result = Get-TestResult -TestName "CustomIdTest" -CorrelationId $customId
             $result.CorrelationId | Should-Be $customId
+        }
+    }
+
+    Context "Analyzer Cleanliness" {
+        It "Produces no analyzer warnings or errors, as the file header claims" {
+            # The function is documented as the compliant contrast. Before this test
+            # existed it carried two warnings - an unused $errorDetails hashtable and
+            # a plural noun - so the claim was false and nothing caught it.
+            $start = ($script:Functions | Where-Object { $_.Name -eq 'Get-TestResult' }).Extent.StartLineNumber
+
+            $findings = Invoke-ScriptAnalyzer -Path $script:SourcePath -Severity Warning, Error |
+                Where-Object { $_.Line -ge $start }
+
+            ($findings | ForEach-Object { "$($_.RuleName) L$($_.Line)" }) -join '; ' | Should-Be ''
         }
     }
 }
@@ -169,10 +204,9 @@ Describe "Get-TestResults Function" -Tag "Unit", "GoodExample" {
 Describe "Process-TestData Function" -Tag "Unit", "QualityIssue" {
 
     Context "Verb Validation" {
-        It "Should use non-approved verb (demonstrates quality issue)" {
-            # This test documents the quality issue for educational purposes
-            $approvedVerbs = Get-Verb | Select-Object -ExpandProperty Verb
-            $approvedVerbs | Should-All { $_ -ne 'Process' }
+        It "Uses a verb PowerShell does not approve, which is the demonstration" {
+            $verb = ('Process-TestData' -split '-', 2)[0]
+            (Get-Verb).Verb | Should-All { $_ -ne $verb }
         }
     }
 
@@ -184,63 +218,91 @@ Describe "Process-TestData Function" -Tag "Unit", "QualityIssue" {
     }
 }
 
-Describe "Quality Standards Compliance" -Tag "Integration", "QualityCheck" {
+Describe "Deliberate Violations Stay Pinned" -Tag "Integration", "QualityCheck" {
+
+    # These lock the file's stated violations to what it actually contains. The
+    # header lists them, Tools/Test-StandardsCompliance.ps1 is expected to catch
+    # them, and both CI workflows exclude the file on that basis. If someone
+    # cleans one up, these fail and force the header and the exclusion to be
+    # revisited rather than silently drifting out of date.
 
     Context "PowerShell Best Practices" {
-        It "Should use Write-Verbose instead of Write-Host in functions" {
-            # This test would check for Write-Host usage (quality issue in Test-QualityGates)
-            $testFile = Get-Content -Path (Join-Path $PSScriptRoot 'Test-QualityGates.ps1') -Raw
+        It "Keeps exactly the two Write-Host calls the header describes" {
+            $calls = Get-CallsTo -Name 'Write-Host'
 
-            # Count Write-Host occurrences (should be minimal in production code)
-            $writeHostCount = ([regex]::Matches($testFile, 'Write-Host', 'IgnoreCase')).Count
-
-            # Document the quality issue
-            if ($writeHostCount -gt 0) {
-                Write-Warning "Found $writeHostCount instances of Write-Host in test file (quality issue for demonstration)"
+            $calls.Count | Should-Be 2
+            # Both belong to the non-compliant function, not the compliant one
+            $goodStart = ($script:Functions | Where-Object { $_.Name -eq 'Get-TestResult' }).Extent.StartLineNumber
+            foreach ($call in $calls) {
+                $call.Extent.StartLineNumber | Should-BeLessThan $goodStart
             }
         }
 
-        It "Should use approved PowerShell verbs in all functions" {
-            $testFile = Get-Content -Path (Join-Path $PSScriptRoot 'Test-QualityGates.ps1') -Raw
-            $approvedVerbs = Get-Verb | Select-Object -ExpandProperty Verb
+        It "Keeps Process-TestData as the only non-approved verb in the file" {
+            $approvedVerbs = (Get-Verb).Verb
+            $nonApproved = $script:Functions.Name |
+                Where-Object { ($_ -split '-', 2)[0] -notin $approvedVerbs }
 
-            # Find function definitions
-            $functionMatches = [regex]::Matches($testFile, 'function\s+([A-Za-z]+)-([A-Za-z0-9]+)', 'IgnoreCase')
+            ($nonApproved -join ', ') | Should-Be 'Process-TestData'
+        }
 
-            $verbIssues = @()
-            foreach ($match in $functionMatches) {
-                $verb = $match.Groups[1].Value
-                if ($verb -notin $approvedVerbs) {
-                    $verbIssues += $verb
-                }
-            }
+        It 'Keeps the $Error[0] catch block that UseDollarUnderscoreInCatch reports' {
+            $indexed = $script:Ast.FindAll({
+                    param($node)
+                    $node -is [System.Management.Automation.Language.IndexExpressionAst] -and
+                    $node.Target.VariablePath.UserPath -eq 'Error'
+                }, $true)
 
-            if ($verbIssues.Count -gt 0) {
-                Write-Warning "Found non-approved verbs: $($verbIssues -join ', ') (quality issues for demonstration)"
+            $indexed.Count | Should-Be 1
+        }
+    }
+
+    Context "The Compliance Checker" {
+        It "Reports the three rules the file header says it reports" {
+            # This is the file's reason for existing, and the basis on which both
+            # CI workflows exclude it from production analysis. The Tools suite
+            # proves each rule fires against a synthetic fixture; nothing proved
+            # it fires against the file the header points at.
+            $checker = Join-Path $PSScriptRoot '..' '..' 'Tools' 'Test-StandardsCompliance.ps1' | Resolve-Path
+
+            $result = & $checker -Path $script:SourcePath -PassThru 6>$null
+
+            foreach ($rule in 'UseApprovedVerbs', 'AvoidPSCustomObjectOutputType', 'UseDollarUnderscoreInCatch') {
+                $result.ComplianceIssues.RuleName | Should-ContainCollection $rule
             }
         }
     }
 
     Context "Security Best Practices" {
-        It "Should not contain hardcoded passwords" {
-            $testFile = Get-Content -Path (Join-Path $PSScriptRoot 'Test-QualityGates.ps1') -Raw
+        It "Contains no hardcoded passwords" {
+            # Unlike the checks above this is not a pinned violation - security
+            # issues were removed from this file deliberately, and must stay out.
+            $content = Get-Content -Path $script:SourcePath -Raw
 
-            # Check for common password patterns
             $passwordPatterns = @(
                 'password\s*[:=]\s*["\x27]\w{3,}["\x27]',
                 '\$\w*[Pp]assword\w*\s*=\s*["\x27]\w+["\x27]'
             )
 
-            $securityIssues = @()
-            foreach ($pattern in $passwordPatterns) {
-                if ($testFile -match $pattern) {
-                    $securityIssues += "Hardcoded password pattern found"
-                }
-            }
+            $found = $passwordPatterns | Where-Object { $content -match $_ }
 
-            if ($securityIssues.Count -gt 0) {
-                Write-Warning "Security issues found: $($securityIssues -join ', ') (quality issues for demonstration)"
-            }
+            ($found -join '; ') | Should-Be ''
+        }
+
+        It "Contains no interpolated SQL" {
+            $content = Get-Content -Path $script:SourcePath -Raw
+            $content | Should-NotMatchString 'SELECT .*\$\w+'
+        }
+    }
+
+    Context "File Encoding" {
+        It "Is pure ASCII, so PSUseBOMForUnicodeEncodedFile stays quiet" {
+            # The file previously used checkmark emoji in its comments, which made
+            # it non-ASCII without a BOM and tripped the rule.
+            $content = [System.IO.File]::ReadAllText($script:SourcePath)
+            $nonAscii = [regex]::Matches($content, '[^\x00-\x7F]')
+
+            $nonAscii.Count | Should-Be 0
         }
     }
 }
