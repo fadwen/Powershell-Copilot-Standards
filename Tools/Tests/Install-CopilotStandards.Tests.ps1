@@ -135,6 +135,85 @@ Describe 'Install-CopilotStandards' -Tag 'Unit', 'Tools' {
             Test-Path (Join-Path $script:ProjectPath 'Public') | Should-BeFalse
             Test-Path (Join-Path $script:ProjectPath '.gitignore') | Should-BeFalse
         }
+
+        It 'Installs no sync workflow when -WhatIf is supplied' {
+            & $script:ScriptPath -ProjectPath $script:ProjectPath -IncludeSyncWorkflow -WhatIf `
+                -InformationAction SilentlyContinue -WarningAction SilentlyContinue
+
+            Test-Path (Join-Path $script:ProjectPath '.github/workflows') | Should-BeFalse
+        }
+    }
+
+    Context 'Sync workflow installation' {
+
+        It 'Installs no workflow by default' {
+            & $script:ScriptPath -ProjectPath $script:ProjectPath -InformationAction SilentlyContinue
+
+            Test-Path (Join-Path $script:ProjectPath '.github/workflows') | Should-BeFalse
+        }
+
+        It 'Installs the workflow when -IncludeSyncWorkflow is supplied' {
+            & $script:ScriptPath -ProjectPath $script:ProjectPath -IncludeSyncWorkflow `
+                -InformationAction SilentlyContinue -WarningAction SilentlyContinue
+
+            Test-Path (Join-Path $script:ProjectPath '.github/workflows/sync-copilot-standards.yml') |
+                Should-BeTrue
+        }
+
+        It 'Installs a workflow that mirrors the three instruction paths' {
+            & $script:ScriptPath -ProjectPath $script:ProjectPath -IncludeSyncWorkflow `
+                -InformationAction SilentlyContinue -WarningAction SilentlyContinue
+
+            $content = Get-Content (Join-Path $script:ProjectPath '.github/workflows/sync-copilot-standards.yml') -Raw
+
+            $content | Should-MatchString 'copilot-instructions\.md'
+            $content | Should-MatchString 'instructions prompts'
+            $content | Should-MatchString 'workflow_dispatch'
+        }
+
+        It 'Installs a workflow free of the deprecated Node 20 action majors' {
+            # actions/checkout below v7 and create-pull-request below v8 declare
+            # node20, which GitHub-hosted runners now warn about.
+            & $script:ScriptPath -ProjectPath $script:ProjectPath -IncludeSyncWorkflow `
+                -InformationAction SilentlyContinue -WarningAction SilentlyContinue
+
+            $content = Get-Content (Join-Path $script:ProjectPath '.github/workflows/sync-copilot-standards.yml') -Raw
+
+            $content | Should-MatchString 'actions/checkout@v7'
+            $content | Should-MatchString 'peter-evans/create-pull-request@v8'
+            $content | Should-NotMatchString 'actions/checkout@v[1-6]\b'
+        }
+
+        It 'Does not overwrite a workflow the project has already tuned' {
+            $workflowDir = Join-Path $script:ProjectPath '.github/workflows'
+            New-Item -Path $workflowDir -ItemType Directory -Force | Out-Null
+            $existing = Join-Path $workflowDir 'sync-copilot-standards.yml'
+            Set-Content -Path $existing -Value '# hand-tuned, keep me'
+
+            & $script:ScriptPath -ProjectPath $script:ProjectPath -IncludeSyncWorkflow `
+                -InformationAction SilentlyContinue -WarningAction SilentlyContinue
+
+            Get-Content $existing -Raw | Should-MatchString 'hand-tuned, keep me'
+        }
+
+        It 'Warns about the pull request permission the workflow needs' {
+            $warnings = & $script:ScriptPath -ProjectPath $script:ProjectPath -IncludeSyncWorkflow `
+                -InformationAction SilentlyContinue 3>&1 | Out-String
+
+            $warnings | Should-MatchString 'approve pull requests'
+        }
+
+        It 'Leaves other workflows in the project alone' {
+            $workflowDir = Join-Path $script:ProjectPath '.github/workflows'
+            New-Item -Path $workflowDir -ItemType Directory -Force | Out-Null
+            $unrelated = Join-Path $workflowDir 'ci.yml'
+            Set-Content -Path $unrelated -Value '# the project''s own CI'
+
+            & $script:ScriptPath -ProjectPath $script:ProjectPath -IncludeSyncWorkflow `
+                -InformationAction SilentlyContinue -WarningAction SilentlyContinue
+
+            Get-Content $unrelated -Raw | Should-MatchString "project's own CI"
+        }
     }
 
     Context 'Symlink installation' {

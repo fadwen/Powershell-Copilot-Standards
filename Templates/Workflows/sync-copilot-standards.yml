@@ -1,0 +1,90 @@
+name: Sync Copilot Standards
+
+# Keeps this repository's Copilot instruction files in sync with the standards
+# repository, and opens a pull request whenever they drift.
+#
+# Copy to .github/workflows/sync-copilot-standards.yml in the consuming project.
+#
+# Before the first run, enable:
+#   Settings -> Actions -> General -> Workflow permissions
+#     -> "Allow GitHub Actions to create and approve pull requests"
+# Without it the job detects drift correctly and then fails at the PR step.
+#
+# Forked the standards repository? Change STANDARDS_REPO below. It is the only
+# line that needs editing.
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  STANDARDS_REPO: fadwen/Powershell-Copilot-Standards
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out this repository
+        uses: actions/checkout@v7
+
+      - name: Check out the standards repository
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ env.STANDARDS_REPO }}
+          path: .standards
+
+      - name: Mirror instruction files
+        run: |
+          set -euo pipefail
+          src=.standards/.github
+
+          cp "$src/copilot-instructions.md" .github/copilot-instructions.md
+
+          # Mirror, not merge: files deleted upstream are deleted here too.
+          # Local edits to these paths are overwritten. Customisations belong
+          # upstream, or in a file outside the three mirrored paths.
+          for dir in instructions prompts; do
+            rm -rf ".github/$dir"
+            cp -r "$src/$dir" ".github/$dir"
+          done
+
+          rm -rf .standards
+
+      - name: Detect drift
+        id: drift
+        run: |
+          # Stage first: a file added upstream is untracked here, and plain
+          # `git diff` would not see it.
+          git add -A .github
+          if git diff --cached --quiet -- .github; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Instruction files are already up to date."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --cached --stat -- .github
+          fi
+
+      - name: Open pull request
+        if: steps.drift.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          branch: chore/sync-copilot-standards
+          delete-branch: true
+          commit-message: 'chore: sync Copilot instructions from standards repo'
+          title: 'chore: sync Copilot instructions from standards repo'
+          body: |
+            Automated sync from the PowerShell Copilot Standards repository.
+
+            Covers `.github/copilot-instructions.md`, `.github/instructions/` and
+            `.github/prompts/`. Other workflows in `.github/workflows/` are
+            repo-specific and are not touched by this job.
+
+            Review the diff before merging. Anything intended as a permanent local
+            customisation belongs upstream, or this job will overwrite it again on
+            the next run.
