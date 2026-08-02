@@ -16,6 +16,15 @@
 .PARAMETER LinkType
     How to install: Copy, Symlink, Submodule
 
+.PARAMETER IncludeSyncWorkflow
+    Also installs .github/workflows/sync-copilot-standards.yml, a weekly job that
+    mirrors the instruction files from the standards repository and opens a pull
+    request when they drift. Without it the files are copied once and then rot.
+
+    The target repository needs "Allow GitHub Actions to create and approve pull
+    requests" enabled under Settings > Actions > General. An existing workflow file
+    is never overwritten.
+
 .EXAMPLE
     .\Install-CopilotStandards.ps1 -ProjectPath "C:\Projects\MyModule" -StandardsType "Module"
 
@@ -25,6 +34,11 @@
     .\Install-CopilotStandards.ps1 -ProjectPath "." -StandardsType "Basic" -LinkType "Symlink"
 
     Creates symbolic links to standards in current directory
+
+.EXAMPLE
+    .\Install-CopilotStandards.ps1 -ProjectPath "." -IncludeSyncWorkflow
+
+    Installs the standards and the weekly drift-check workflow that keeps them current
 
 .NOTES
     Author: Jeffrey Stuhr
@@ -53,7 +67,10 @@ param(
 
     [Parameter(HelpMessage = "How to install the standards")]
     [ValidateSet('Copy', 'Symlink', 'Submodule')]
-    [string]$LinkType = 'Copy'
+    [string]$LinkType = 'Copy',
+
+    [Parameter(HelpMessage = "Also install the weekly standards drift-check workflow")]
+    [switch]$IncludeSyncWorkflow
 )
 
 begin {
@@ -134,8 +151,9 @@ process {
                             if (-not $isAdmin) {
                                 Write-Warning "Symbolic links on Windows require Administrator privileges. Falling back to Copy method."
                                 $LinkType = 'Copy'
-                                # Recursively call with Copy method
-                                & $MyInvocation.MyCommand.Path -ProjectPath $ProjectPath -StandardsType $StandardsType -LinkType 'Copy'
+                                # Recursively call with Copy method. IncludeSyncWorkflow has to
+                                # ride along, or the fallback silently drops it.
+                                & $MyInvocation.MyCommand.Path -ProjectPath $ProjectPath -StandardsType $StandardsType -LinkType 'Copy' -IncludeSyncWorkflow:$IncludeSyncWorkflow
                                 return
                             }
                             cmd /c mklink "$destInstructions" "$sourceInstructions" 2>$null
@@ -175,6 +193,31 @@ process {
                         Pop-Location
                     }
                 }
+            }
+        }
+
+        # Install the drift-check workflow
+        if ($IncludeSyncWorkflow) {
+            $workflowSource = Join-Path $StandardsPath "Templates\Workflows\sync-copilot-standards.yml"
+            $workflowDir = Join-Path $githubPath "workflows"
+            $workflowDest = Join-Path $workflowDir "sync-copilot-standards.yml"
+
+            if (-not (Test-Path $workflowSource)) {
+                throw "Sync workflow template not found at '$workflowSource'"
+            }
+
+            if (Test-Path $workflowDest) {
+                # Never clobber a workflow the project has already tuned - schedule,
+                # branch name and STANDARDS_REPO are all meant to be edited locally.
+                Write-Warning "Sync workflow already exists at '$workflowDest' - leaving it unchanged"
+            }
+            elseif ($PSCmdlet.ShouldProcess($workflowDest, "Install sync workflow")) {
+                if (-not (Test-Path $workflowDir)) {
+                    New-Item -Path $workflowDir -ItemType Directory -Force | Out-Null
+                }
+                Copy-Item -Path $workflowSource -Destination $workflowDest
+                Write-Information "Installed the standards sync workflow" -InformationAction Continue
+                Write-Warning "Enable 'Allow GitHub Actions to create and approve pull requests' under Settings > Actions > General, or the workflow will fail at the pull request step"
             }
         }
 

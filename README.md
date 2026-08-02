@@ -110,6 +110,7 @@ PowerShell-Copilot-Standards/
 │   └── workflows/                       # Quality gates run on every pull request
 ├── Documentation/                       # Reference materials and worked examples
 ├── Templates/                           # Module, script-collection, and application templates
+│   └── Workflows/                       # Workflows to copy into consuming projects
 ├── Tools/                               # Install-CopilotStandards, Test-StandardsCompliance
 ├── Troubleshooting/                     # Organized problem-solving guides
 ├── .markdownlint.json                   # Documentation lint rules enforced in CI
@@ -157,6 +158,21 @@ git submodule add https://github.com/fadwen/PowerShell-Copilot-Standards.git .co
 ```powershell
 ./Tools/Install-CopilotStandards.ps1 -ProjectPath "." -StandardsType "Basic"
 ```
+
+#### Option D: Direct Copy, Kept in Sync (Recommended)
+
+Options A through C copy the instruction files once. They then drift as this repository moves on.
+Adding `-IncludeSyncWorkflow` also installs a weekly job that mirrors the instruction files and
+opens a pull request when they fall behind:
+
+```powershell
+./Tools/Install-CopilotStandards.ps1 -ProjectPath "." -StandardsType "Basic" -IncludeSyncWorkflow
+```
+
+The workflow needs **Settings → Actions → General → Workflow permissions → "Allow GitHub Actions to
+create and approve pull requests"** enabled on the target repository, and it overwrites local edits
+to the mirrored paths. See [Templates/Workflows/](Templates/Workflows/README.md) for both caveats in
+full.
 
 ### 3. Verify Setup
 
