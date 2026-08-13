@@ -149,6 +149,28 @@ This is the same rule as everywhere else in Pester 6 - every case a mock is expe
 be declared - and it is easy to miss when writing a guard, because the guard reads as though it only
 concerns the calls it names.
 
+### Why The Guard Needs Both Pieces
+
+Run the same guard against a call made from inside another module, with and without the option, and
+the two failure modes are opposite:
+
+| | Filter matches (blocked path) | Filter does not match (allowed path) |
+| --- | --- | --- |
+| `Mock.Global = $false` | **Guard never fires.** The mock does not cover the module, so the real command runs | Real command runs |
+| `Mock.Global = $true` | Guard throws, as intended | **Unmatched-mock error.** Not fall-through |
+
+The left column is the reason to turn `Mock.Global` on: without it a guard aimed at "any code under
+test" silently does not apply to the module callers it was written for, and a destructive command
+runs for real while the test still passes.
+
+The right column is the reason the guard still needs a default mock. Turning the option on converts
+the permitted calls from "reach the real command" into "error", so a guard that looked complete
+before now fails on traffic it was never meant to block.
+
+The apparent fall-through with the option off is not fall-through at all - it is the mock failing to
+reach that caller. Nothing restores Pester 5's fall-through behavior; `Mock.Global` is the only
+setting in the `Mock` configuration section.
+
 ### Calling the Real Command From Inside a Mock
 
 When the permitted calls must genuinely run, the default mock has to invoke the original command.
