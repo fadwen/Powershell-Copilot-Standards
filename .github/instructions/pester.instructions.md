@@ -155,8 +155,12 @@ Tag every `Describe` block. `None` is a **reserved** filter value in Pester 6 me
 tags" - never use it as a literal tag. Verify tagging coverage with:
 
 ```powershell
-Invoke-Pester -Path ./Tests -TagFilter 'None'   # should find zero tests
+Invoke-Pester -Path ./Tests -TagFilter 'None'   # a well-tagged suite RUNS zero tests
 ```
+
+Read the **Passed** count, not the discovered count - `TotalCount` ignores the filter. Scripted
+gates must count `$result.Tests | Where-Object ShouldRun`; see
+[Test Structure Guide](./pester-supporting-docs/test-structure-guide.md).
 
 ### Testing Private Functions
 
