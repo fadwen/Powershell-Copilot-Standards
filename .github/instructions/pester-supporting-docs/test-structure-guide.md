@@ -1,6 +1,6 @@
 # Pester Test Structure Guide
 
-Targets **Pester 6.0+**.
+Targets **Pester 6.1+**.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -53,8 +53,9 @@ Pester.BeforeContainer.ps1     <- optional, at REPOSITORY ROOT (not in Tests/)
 ```
 
 `Pester.BeforeContainer.ps1` must sit at the repository root - the directory containing `.git`, which
-Pester exposes as `Run.RepoRoot`. When present and `Run.BeforeContainer` is not set, Pester
-dot-sources it before **every** test file is discovered and run, in both serial and parallel runs.
+Pester exposes as `Run.RepoRoot`. When present, Pester dot-sources it before **every** test file is
+discovered and run, in both serial and parallel runs. As of 6.1 this is the only shared-bootstrap
+mechanism; the `Run.BeforeContainer` option was removed.
 
 ## Test File Isolation (Pester 6)
 
@@ -66,7 +67,7 @@ runspace.
 discovery-time setup. It cannot rely on a file that happened to be discovered earlier.
 
 ```powershell
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
 
 BeforeDiscovery {
     # Only what is needed to BUILD the test tree: -ForEach data, helper commands
@@ -94,10 +95,16 @@ Import-Module "$PSScriptRoot/Source/ModuleName.psd1" -Force
 . "$PSScriptRoot/Tests/TestHelpers/TestHelpers.ps1"
 ```
 
-Or configure it explicitly, which overrides the convention file:
+Anchor every path in it to `$PSScriptRoot`. The file runs before each container in both serial and
+parallel runs, and a relative path would resolve against whatever the working directory happens to
+be - which is precisely why the `Run.BeforeContainer` scriptblock option was removed in 6.1.
+
+If the bootstrap does not appear to run, check `Run.RepoRoot`. It is resolved from the .NET process
+working directory rather than `$PWD`, so a run launched from outside the repository looks for the
+file in the wrong place and simply finds nothing:
 
 ```powershell
-$config.Run.BeforeContainer = { . './Tests/TestHelpers/Bootstrap.ps1' }
+$config.Run.RepoRoot = $PSScriptRoot
 ```
 
 This supplements per-file setup; it does not remove the requirement that a file be independently

@@ -113,7 +113,7 @@ not the audit configuration.
 
 ```powershell
 # Pester 6 test execution with coverage
-Import-Module Pester -MinimumVersion 6.0.0 -Force
+Import-Module Pester -MinimumVersion 6.1.0 -Force
 
 $pesterConfig = New-PesterConfiguration
 $pesterConfig.Run.Path = './Tests'

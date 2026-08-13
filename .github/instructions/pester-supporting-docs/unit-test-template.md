@@ -1,6 +1,6 @@
 # Unit Test Template
 
-Targets **Pester 6.0+**. Uses the `Should-*` assertion syntax - see
+Targets **Pester 6.1+**. Uses the `Should-*` assertion syntax - see
 [Assertion Guide](./assertion-guide.md) for the full reference and the v5 mapping table.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
@@ -16,7 +16,7 @@ text descriptions and standard ASCII characters only.
 Use this template for all unit tests:
 
 ```powershell
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
 
 BeforeDiscovery {
     # Pester 6 discovers and runs one file at a time, so this file must set up

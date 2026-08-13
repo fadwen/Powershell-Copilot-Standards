@@ -62,8 +62,9 @@ ln -s .copilot-standards/.github/copilot-instructions.md .github/copilot-instruc
   version-dependent `+=` guidance that changed in PowerShell 7.5
 - **Modern Tooling**: `Install-PSResource` (Microsoft.PowerShell.PSResourceGet) over PowerShellGet
   v2, with a capability check for Windows PowerShell 5.1 fallback
-- **Testing Standards**: Pester 6 patterns — `Should-*` assertions, `BeforeDiscovery` data,
-  self-contained test files, and 12 supporting guides covering mocking, CI, and templates
+- **Testing Standards**: Pester 6.1 patterns — `Should-*` assertions, custom assertions via
+  `New-ShouldAssertion`, `BeforeDiscovery` data, self-contained test files, and 13 supporting guides
+  covering mocking, CI, and templates
 
 ### 🛠️ Development Tools
 
@@ -104,8 +105,8 @@ PowerShell-Copilot-Standards/
 │   ├── copilot-instructions.md          # Main Copilot instructions (applied automatically)
 │   ├── instructions/                    # 12 scoped instruction files, applied by `applyTo` glob
 │   │   ├── powershell-version.instructions.md   # Version baseline, lifecycle, breaking changes
-│   │   ├── pester.instructions.md               # Pester 6 core testing standards
-│   │   └── pester-supporting-docs/              # 12 guides: mocking, CI, templates, v6 migration
+│   │   ├── pester.instructions.md               # Pester 6.1 core testing standards
+│   │   └── pester-supporting-docs/              # 13 guides: mocking, assertions, CI, templates
 │   ├── prompts/                         # 10 `/prompt-name` files for Copilot Chat
 │   └── workflows/                       # Quality gates run on every pull request
 ├── Documentation/                       # Reference materials and worked examples
@@ -215,7 +216,7 @@ full.
 
 ### Automated Testing
 
-Standards for the code you generate — Pester 6 throughout:
+Standards for the code you generate — Pester 6.1 throughout:
 
 - **Unit Tests**: Pester tests targeting 80%+ coverage
 - **Integration Tests**: External dependency validation
@@ -277,9 +278,9 @@ Create function for infrastructure management with:
 
 - **[PowerShell Version Baseline](./.github/instructions/powershell-version.instructions.md)**:
   Support lifecycle, choosing a target, version-gated features, breaking changes
-- **[Pester 6 Testing Standards](./.github/instructions/pester.instructions.md)**: Core testing
-  requirements, with [12 supporting guides](./.github/instructions/pester-supporting-docs/) for
-  mocking, CI, templates, and v6 migration
+- **[Pester 6.1 Testing Standards](./.github/instructions/pester.instructions.md)**: Core testing
+  requirements, with [13 supporting guides](./.github/instructions/pester-supporting-docs/) for
+  mocking, assertions, CI, templates, and v6 migration
 - **[Implementation Guide](./Documentation/Implementation-Guide.md)**: Step-by-step setup and usage
 - **[PowerShell Best Practices](./Documentation/PowerShell-Best-Practices.md)**: Community standards reference
 - **[Enterprise Extensions](./Documentation/Enterprise-Extensions.md)**: Organization-specific additions

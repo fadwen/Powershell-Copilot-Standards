@@ -8,8 +8,9 @@ description: 'Creates comprehensive Pester 6 test suites for PowerShell code wit
 
 Generate enterprise-grade Pester test suites following these core requirements.
 
-**Target version: Pester 6.0+** on Windows PowerShell 5.1 or PowerShell 7.4+. Pester 6 removed
-support for PowerShell 3, 4, 6, and unsupported 7.x.
+**Target version: Pester 6.1+** on Windows PowerShell 5.1 or PowerShell 7.4+. Pester 6 removed
+support for PowerShell 3, 4, 6, and unsupported 7.x. 6.1 is additive over 6.0 - no test file needs
+to change to move between them.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -41,6 +42,9 @@ Generate tests using these templates:
 - **Existing files**: keep the file's existing style. Do not mix `Should -Be` and `Should-Be`
   within a single file.
 - **Do not** set `Should.DisableV5 = $true` until every test file in the repository is migrated.
+- **Custom assertions**: the `Should-*` set is open for extension in 6.1 via `New-ShouldAssertion` -
+  see [Custom Assertion Guide](./pester-supporting-docs/custom-assertions.md). Write one only when
+  the same domain rule is asserted across several files and naming the offending value is the point.
 
 ### Migrating From Pester 5
 
@@ -68,6 +72,20 @@ that break existing suites outright:
 - **Configuration**: Use [Pester Configuration Guide](./pester-supporting-docs/pester-configuration.md)
 - **Test Execution**: Use [Test Execution Guide](./pester-supporting-docs/test-execution.md)
 - **CI/CD Integration**: Follow [CI/CD Integration Guide](./pester-supporting-docs/cicd-integration.md)
+
+### Experimental Options
+
+Three configuration options are experimental, off by default, and may change. Do not enable them in
+generated code unless asked; when a project does enable one, these are the consequences:
+
+| Option | Effect | Note |
+| --- | --- | --- |
+| `Run.Parallel` | One test file per runspace | Requires PowerShell 7+ and file-based containers. Coverage works from 6.1 but is forced onto slower breakpoint mode |
+| `Run.Shuffle` | Randomizes file, block, and test order | Fails tests that depend on declaration order. Prints a seed; `Run.ShuffleSeed` replays it. Opt a file out with `#pester:no-shuffle` |
+| `Mock.Global` | A mock applies to calls from any module in the runspace | `-ModuleName` becomes a resolution hint, not a scope. Does **not** reinstate fall-through - a `-ParameterFilter` guard still needs a default mock |
+
+All three are per-run configuration, not per-file, apart from the `#pester:no-parallel` and
+`#pester:no-shuffle` directives.
 
 ### Quality Standards
 
@@ -97,7 +115,7 @@ files, and under `Run.Parallel` each file is discovered in its own runspace.
 Each test file must import the modules it needs and perform its own discovery-time setup:
 
 ```powershell
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
 
 BeforeDiscovery {
     # Anything needed to BUILD the test tree (-ForEach data, helper commands)
@@ -110,8 +128,11 @@ BeforeAll {
 }
 ```
 
-When several files share bootstrap, use `Run.BeforeContainer` or a `Pester.BeforeContainer.ps1` at
-the repository root rather than relying on another file having run first.
+When several files share bootstrap, put a `Pester.BeforeContainer.ps1` at the repository root rather
+than relying on another file having run first. It is dot-sourced before every container. The
+`Run.BeforeContainer` option that also did this was **removed in 6.1**; the convention file is the
+only mechanism. It fires only when `Run.RepoRoot` points at the directory holding it - see
+[Pester Configuration Guide](./pester-supporting-docs/pester-configuration.md).
 
 ### Quick Test Generation Pattern
 

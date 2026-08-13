@@ -17,13 +17,13 @@ ${selection}
 - Test type: ${input:testType:Unit,Integration,Performance,Security:Unit}
 - Coverage target: ${input:coverage:80%,90%,95%:90%}
 - Environment: ${input:environment:Local,CI/CD,Both:Both}
-- Pester version: ${input:pesterVersion:6.x,5.x:6.x}
+- Pester version: ${input:pesterVersion:6.1+,5.x:6.1+}
 
 **Test Requirements:**
 
 **1. Modern Test Patterns ✅**
 
-- Use Pester 6.x syntax and features. Pester 6 requires Windows PowerShell 5.1 or PowerShell 7.4+;
+- Use Pester 6.1+ syntax and features. Pester 6 requires Windows PowerShell 5.1 or PowerShell 7.4+;
   target 7.6 (LTS) for new work, as 7.4 and 7.5 reach end of support on 10-Nov-2026
 - Prefer the `Should-*` assertions (dash, no space) for new test files; classic
   `Should -Be` remains supported for existing suites

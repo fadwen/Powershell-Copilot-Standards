@@ -15,8 +15,11 @@ apply.
 
 ```powershell
 #Requires -Version 5.1
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
 ```
+
+These standards target **6.1+**. Nothing in 6.1 breaks a 6.0 suite, so the migration below is the
+whole job; see [Moving From 6.0 to 6.1](#moving-from-60-to-61) at the end for what 6.1 adds.
 
 ## Upgrade Checklist
 
@@ -82,17 +85,17 @@ BeforeDiscovery {
 
 Runtime setup in `BeforeAll` was never affected by this and still works as before.
 
-**Shared bootstrap.** When several files need the same setup, use `Run.BeforeContainer` - one or
-more scriptblocks that run before **every** test file is discovered and run, in both serial and
-parallel runs:
+**Shared bootstrap.** When several files need the same setup, put a `Pester.BeforeContainer.ps1` in
+the repository root (`Run.RepoRoot`). Pester dot-sources it before **every** test file is discovered
+and run, in both serial and parallel runs:
 
 ```powershell
-$config.Run.BeforeContainer = { . './setup.ps1' }
+# Pester.BeforeContainer.ps1, at the repository root
+. "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
 ```
 
-If you do not set it, Pester looks for a single `Pester.BeforeContainer.ps1` in the repository root
-(`Run.RepoRoot`, found from the nearest `.git` directory) and dot-sources it when present. Setting
-`Run.BeforeContainer` overrides the convention file.
+6.0 also offered a `Run.BeforeContainer` configuration option for this. It was **removed in 6.1** -
+see [Moving From 6.0 to 6.1](#moving-from-60-to-61). The convention file is now the only mechanism.
 
 **Console output changed.** A run prints one `Running tests from N files.` banner, then per-file
 results, then one grand-total summary. The old `Starting discovery in N files.` /
@@ -126,7 +129,7 @@ they read properly in the test name instead of printing as `System.Object[]`.
 | --- | --- |
 | `Run.Parallel` | New. Experimental parallel runner, one file per runspace |
 | `Run.ParallelThrottleLimit` | New. Cap concurrent files; `0` (default) uses all processors |
-| `Run.BeforeContainer` | New. Scriptblocks run before every file is discovered and run |
+| `Run.BeforeContainer` | New in 6.0, **removed in 6.1**. Use a `Pester.BeforeContainer.ps1` at the repo root |
 | `Run.RepoRoot` | New. Repository root, found from the `.git` directory |
 | `Run.FailOnNullOrEmptyForEach` | New, default `$true`. Empty `-ForEach` fails discovery |
 | `Run.SkipRemainingOnFailure` | `None`, `Run`, `Container`, `Block` |
@@ -186,8 +189,10 @@ $config.Run.ParallelThrottleLimit = 4   # 0 (default) uses all processors
 ```
 
 Requires PowerShell 7+ and file-based containers. Falls back to a sequential run **with a warning**
-on Windows PowerShell 5.1, for in-memory `ScriptBlock` containers, when `CodeCoverage` is enabled,
-and when `Run.SkipRemainingOnFailure = 'Run'`.
+on Windows PowerShell 5.1, for in-memory `ScriptBlock` containers, and when
+`Run.SkipRemainingOnFailure = 'Run'`. Coverage under parallel was unsupported in 6.0 and works from
+6.1 onward, at the cost of forced breakpoint mode - see
+[Test Execution Guide](./test-execution.md).
 
 Opt a single file out with a comment directive parsed like `#requires`:
 
@@ -229,3 +234,104 @@ Invoke-Pester -Path ./Tests -TagFilter 'None'
 
 Step 4 is the highest-value check: it walks every file through discovery, so duplicate
 `BeforeAll`/`AfterEach` blocks and empty `-ForEach` sets throw there without paying for a full run.
+
+## Moving From 6.0 to 6.1
+
+6.1.0 is overwhelmingly additive for **test files** - the assertion and mocking APIs a test file uses
+did not lose anything. The breakages are in **configuration** and in a few positional parameters.
+
+```powershell
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
+```
+
+### Removed in 6.1
+
+Neither of these appears in the 6.1.0 release announcement. Check for both before upgrading.
+
+- [ ] **`Run.BeforeContainer` was removed.** 6.0 had two bootstrap mechanisms - this option and the
+      `Pester.BeforeContainer.ps1` convention file. The option had no file to anchor relative paths
+      against, so it was dropped. Assigning it now throws
+      `The property 'BeforeContainer' cannot be found on this object`. Move the scriptblock body
+      into a `Pester.BeforeContainer.ps1` at the repository root.
+
+- [ ] **A hashtable config loses it silently.** `New-PesterConfiguration -Hashtable` ignores unknown
+      keys, so a `Run.BeforeContainer` entry in a `PesterConfiguration.psd1` does **not** throw - the
+      bootstrap simply stops running. Grep for the name rather than relying on the run to tell you.
+
+- [ ] **`Should-BeEquivalent -StrictOrder` was removed.** It never worked. If a call passes it,
+      the switch was not doing what its name implied - assert collection order with
+      `Should-BeCollection` instead.
+
+### Positional Parameters Moved
+
+6.1 made `-Actual` bind consistently across the new assertions: **`Position = 0` on a single-subject
+assertion**, `Position = 1` when a positional `-Expected` already sits at `Position = 0`. Named
+arguments and piped input are unaffected; only positional `-Actual` calls can break.
+
+`Should-BeHashtable` is the one most likely to bite - its `-Actual` moved from position 1 to 0:
+
+```powershell
+Get-Command -Syntax Should-BeHashtable    # confirm against the installed version
+```
+
+`-Expected` also became **mandatory** on `Should-NotBeString`, `Should-BeFasterThan`, and
+`Should-BeSlowerThan`. A call that omitted it was not asserting anything meaningful, so this
+surfaces a latent bug rather than creating one.
+
+`Should-Throw -Because` became **named-only**; a positional third argument no longer binds to it.
+
+### What Is New
+
+| Addition | Where |
+| --- | --- |
+| `New-ShouldAssertion` - author your own `Should-*` assertions | [Custom Assertion Guide](./custom-assertions.md) |
+| `Mock.Global` - a mock reaches every module in the runspace (experimental) | [Mocking Patterns Guide](./mocking-patterns.md#global-mocks-experimental) |
+| `Run.Shuffle` / `Run.ShuffleSeed` - randomize order to surface order dependence (experimental) | [Test Execution Guide](./test-execution.md) |
+| `Output.ShowTags` - append `[Tags: ...]` to output lines | [Pester Configuration Guide](./pester-configuration.md) |
+| `Output.CIDebugOutput` - surface verbose/debug on a CI debug re-run | [Pester Configuration Guide](./pester-configuration.md) |
+| `Should-BeString -NormalizeLineEnding` | [Assertion Guide](./assertion-guide.md) |
+| `Should-ContainCollection -IgnoreOrder` | [Assertion Guide](./assertion-guide.md) |
+| Code coverage collected under `Run.Parallel` | [Test Execution Guide](./test-execution.md) |
+
+### Behavior Worth Knowing About
+
+None of these fail an existing suite, but they change what you see:
+
+- **`Should-Throw -ExceptionMessage` explains wildcard mismatches.** A message containing `[ ] * ?`
+  that failed against itself now says why instead of printing two identical-looking strings.
+- **Report output paths are resolved to absolute during configuration,** including a relative
+  `CodeCoverage.ReportRoot`. A job that wrote its report relative to a directory it changed into
+  mid-run now writes where the path pointed when the configuration was built.
+- **`Should-BeString -Expected` accepts an empty string,** which previously tripped the mandatory
+  check.
+- **`ExcludePath` excludes directories,** not only files. An entry that was silently doing nothing
+  starts excluding.
+- **A stray unmatched-label `break`/`continue` fails its test** instead of aborting the whole run,
+  so a suite that appeared to stop early now reports a failure and keeps going - expect the failed
+  count to rise and the test count to rise with it.
+- **The `Normal`-verbosity passing container line carries a test count.** Anything scraping that
+  line needs to tolerate the extra field.
+- **Type assertions honor `PSTypeNames`,** so `Should-HaveType 'MyModule.Session'` works against a
+  synthetic type name.
+- **Skipped data-driven tests expand their names.** `handles <_>` repeated N times becomes
+  `handles foo`, `handles bar`. A CI report that keyed off the raw template text will see new
+  strings.
+- **Complex values are summarised in failure messages.** A `CommandInfo` renders as
+  `FunctionInfo{Name=Invoke-Pester}` instead of expanding into a slow, huge tree.
+- **Containers that fail during discovery reach the `TestResult` XML** instead of vanishing from it.
+  A report consumer counting test cases may see entries it did not see before - which is the point.
+
+### Adopting the Experimental Options
+
+`Mock.Global` and `Run.Shuffle` are both off by default and configured per run:
+
+```powershell
+$config = New-PesterConfiguration
+$config.Mock.Global = $true
+$config.Run.Shuffle = $true
+```
+
+Turning either on can surface real problems in an existing suite - that is what they are for.
+`Mock.Global` can make a previously-unmocked call start hitting a mock; `Run.Shuffle` fails tests
+that depended on declaration order. Both may still change before they are declared stable, so pin
+the behavior you rely on in a dedicated job rather than across the whole suite.

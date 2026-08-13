@@ -1,6 +1,6 @@
 # Mocking Patterns Guide
 
-Targets **Pester 6.0+**.
+Targets **Pester 6.1+**.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -72,6 +72,121 @@ InModuleScope MyModule {
 Worked instance:
 [Module-Structure-Example/Tests](../../../Documentation/Examples/Module-Structure-Example/Tests/)
 mocks a private function this way to exercise a per-item failure path.
+
+## Global Mocks (Experimental)
+
+New in Pester 6.1, off by default.
+
+Scoping is the part of mocking that most often goes wrong, and it fails quietly. A mock applies to
+calls from the scope that declared it, or from the one module named by `-ModuleName`. A call that
+originates anywhere else reaches the **real command**. When the code under test calls a helper module
+that calls `Invoke-WebRequest`, mocking `Invoke-WebRequest` in the test file does nothing, the test
+still hits the network, and nothing announces it.
+
+`Mock.Global` makes a mock reach the command wherever it is called, from any module or script in the
+runspace:
+
+```powershell
+$config = New-PesterConfiguration
+$config.Mock.Global = $true
+```
+
+The mock itself is written exactly as before - one declaration now covers every caller:
+
+```powershell
+Mock Invoke-WebRequest { '<html />' }
+
+Get-Data                 # a function in another module that calls Invoke-WebRequest
+Should-Invoke Invoke-WebRequest -Times 1
+```
+
+### What Changes
+
+| | Default | `Mock.Global = $true` |
+| --- | --- | --- |
+| Reach | The declaring scope, or the module named by `-ModuleName` | Every module and script in the runspace |
+| `-ModuleName` | Selects the scope the mock applies to | A hint used only to resolve the command |
+| Lifetime | Removed when the declaring block ends | Unchanged |
+| Nested Pester runs | Not visible | Not visible - the mock is tied to the run that created it |
+
+Because `-ModuleName` stops being a scope, existing mocks keep working unchanged. The one behavior
+that can move is a mocked command called from a module you did **not** name: that call used to reach
+the real command and now gets the mock. That is the change to look for when turning the option on -
+in most suites it is also the bug the option exists to prevent.
+
+### Guarding Against A Command Running For Real
+
+The clearest use is proving a destructive or outbound command is never genuinely invoked, without
+enumerating every module that might reach it:
+
+```powershell
+# Fail loudly on any real network call, from anywhere in the suite
+Mock Invoke-RestMethod { throw 'blocked: unmocked network call' }
+```
+
+A guard narrowed with `-ParameterFilter` needs one more piece. **`Mock.Global` does not reinstate
+fall-through** - the Pester 6 removal described above still applies, so a call that matches no filter
+does not reach the real command, it fails:
+
+```text
+No mock for command 'Remove-Item' matched the call: none of the parameter filters matched, and there
+is no default mock to fall back to. Add a default mock (e.g. `Mock Remove-Item { ... }`) or adjust an
+existing -ParameterFilter.
+```
+
+Declare the allowed case explicitly alongside the guard:
+
+```powershell
+# Any delete outside TestDrive fails the test, wherever it was called from
+Mock Remove-Item { throw "blocked: Remove-Item outside TestDrive ($Path)" } `
+    -ParameterFilter { $Path -notlike "$TestDrive*" }
+
+# Required: the calls the guard permits still need a mock to land on
+Mock Remove-Item { }
+```
+
+This is the same rule as everywhere else in Pester 6 - every case a mock is expected to handle must
+be declared - and it is easy to miss when writing a guard, because the guard reads as though it only
+concerns the calls it names.
+
+### Calling the Real Command From Inside a Mock
+
+When the permitted calls must genuinely run, the default mock has to invoke the original command.
+Capture it with `Get-Command` in a `BeforeAll` - **before** the mock is defined, or `Get-Command`
+resolves to the mock - and call it with `&`, forwarding the automatic `$PesterBoundParameters`
+hashtable that Pester exposes inside a `-MockWith` body:
+
+```powershell
+BeforeAll {
+    $originalRemoveItem = Get-Command Remove-Item -CommandType Cmdlet
+}
+
+It 'deletes inside TestDrive and blocks everything else' {
+    Mock Remove-Item { throw "blocked: Remove-Item outside TestDrive ($Path)" } `
+        -ParameterFilter { $Path -notlike "$TestDrive*" }
+
+    # The permitted calls really delete
+    Mock Remove-Item { & $originalRemoveItem @PesterBoundParameters }
+
+    # ...
+}
+```
+
+`$PesterBoundParameters` is the hashtable of parameters the caller bound, so splatting it forwards
+the call unchanged. This is the supported way to wrap rather than replace a command - decorating its
+output, counting calls while keeping real behavior, or letting a filtered subset through.
+
+`$PSBoundParameters` is **not** the equivalent inside a mock body and does not carry the caller's
+arguments; use `$PesterBoundParameters`.
+
+### Status
+
+`Mock.Global` is experimental and may change. The Pester team has said it wants this to become the
+default in v7 and is collecting reports either way - including "turned it on, nothing changed" -
+through the [Pester issue tracker](https://github.com/pester/Pester/issues).
+
+Configure it per run rather than per file: there is no file-level directive to opt in or out, so a
+suite either runs with global mocks or it does not.
 
 ## Advanced Mocking Strategies
 
@@ -694,12 +809,12 @@ rather than adding a second setup block.
 
 Pester 6 discovers and runs one file at a time, and under `Run.Parallel` each file gets its own
 runspace. A mock defined in one test file is never visible to another. Define every mock a file
-needs inside that file. For mock setup shared across many files, use `Run.BeforeContainer` or a
-`Pester.BeforeContainer.ps1` at the repository root to dot-source a shared mock factory - but note
-that `Mock` itself must still be called inside a `Describe`/`Context`/`BeforeAll` scope:
+needs inside that file. For mock setup shared across many files, dot-source a shared mock factory
+from a `Pester.BeforeContainer.ps1` at the repository root - but note that `Mock` itself must still
+be called inside a `Describe`/`Context`/`BeforeAll` scope:
 
 ```powershell
-# TestHelpers/MockFactory.ps1 - dot-sourced via Run.BeforeContainer
+# TestHelpers/MockFactory.ps1 - dot-sourced from Pester.BeforeContainer.ps1
 function Set-StandardExternalMock {
     param([string]$ModuleName)
     Mock Invoke-RestMethod { @{ Status = 'Healthy' } } -ModuleName $ModuleName

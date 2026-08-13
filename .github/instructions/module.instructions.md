@@ -366,11 +366,11 @@ function Get-ModuleCredential {
 
 ### Pester Test Structure
 
-Generate comprehensive test suites targeting **Pester 6.0+**:
+Generate comprehensive test suites targeting **Pester 6.1+**:
 
 ```powershell
 # Tests/Unit/Public/Verb-Noun.Tests.ps1
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
 
 BeforeAll {
     # Pester 6 discovers and runs one file at a time - each file must be self-contained

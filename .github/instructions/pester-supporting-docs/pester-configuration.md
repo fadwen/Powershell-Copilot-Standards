@@ -1,6 +1,6 @@
 # Pester Configuration Guide
 
-Targets **Pester 6.0+**. All settings below were verified against the `PesterConfiguration` object.
+Targets **Pester 6.1+**. All settings below were verified against the `PesterConfiguration` object.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -29,6 +29,10 @@ Use this standardized configuration for consistent test execution:
         # EXPERIMENTAL. Off by default. See "Parallel Execution" below.
         Parallel              = $false
         ParallelThrottleLimit = 0
+
+        # EXPERIMENTAL. Off by default. See "Shuffled Test Order" below.
+        Shuffle     = $false
+        ShuffleSeed = 0                    # 0 picks a new seed per run and prints it
     }
 
     Output = @{
@@ -36,7 +40,14 @@ Use this standardized configuration for consistent test execution:
         StackTraceVerbosity = 'Filtered'   # None | FirstLine | Filtered | Full
         CIFormat            = 'Auto'       # Auto | AzureDevops | GithubActions
         CILogLevel          = 'Error'
+        CIDebugOutput       = 'Auto'       # Auto | None - surface verbose/debug on CI debug runs
         RenderMode          = 'Auto'       # Auto | Ansi | ConsoleColor | Plaintext
+        ShowTags            = $false       # append [Tags: ...] to each output line
+    }
+
+    Mock = @{
+        # EXPERIMENTAL. Off by default. See "Global Mocks" below.
+        Global = $false
     }
 
     CodeCoverage = @{
@@ -219,9 +230,17 @@ Invoke-Pester -Configuration $config
 
 - Running on Windows PowerShell 5.1
 - Using in-memory `ScriptBlock` containers
-- `CodeCoverage` is enabled (coverage is always collected sequentially)
 - `Run.SkipRemainingOnFailure = 'Run'`
-- Every file opts out with `#pester:no-parallel`
+
+If every file opts out with `#pester:no-parallel` the run is simply sequential, with no warning -
+there is nothing left to parallelize.
+
+**Code coverage works under parallel** as of 6.1: each worker measures the same locations and the
+parent merges the per-location hits into one report. The cost is that coverage in a parallel run is
+forced onto **breakpoint mode**, because the profiler-based tracer keeps its state in a
+process-global static and is not concurrency-safe. `CodeCoverage.UseBreakpoints = $false` is ignored
+for the parallel path. Breakpoint coverage is substantially slower per file, so parallel plus
+coverage is not automatically faster than sequential plus the profiler - measure before adopting it.
 
 **Opting a file out** with a comment directive parsed like `#requires` (matched only inside real
 comment tokens, never inside strings):
@@ -245,20 +264,122 @@ change.
 
 ### Shared Per-File Setup
 
-`Run.BeforeContainer` takes scriptblocks that run before **every** test file is discovered and run,
-in both serial and parallel runs. This matters most under parallel, where each worker starts from a
-clean runspace:
+Pester dot-sources a **`Pester.BeforeContainer.ps1`** from the repository root before **every** test
+file is discovered and run, in both serial and parallel runs. This matters most under parallel,
+where each worker starts from a clean runspace:
 
 ```powershell
-$config.Run.BeforeContainer = { . './setup.ps1' }
+# Pester.BeforeContainer.ps1, at the repository root
+Import-Module "$PSScriptRoot/Tests/TestHelpers/Assertions.psd1" -Force
+. "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
 ```
 
-If unset, Pester dot-sources a `Pester.BeforeContainer.ps1` from the repository root
-(`Run.RepoRoot`, found from the nearest `.git` directory) when one is present - a zero-config
-per-repo bootstrap. Setting `Run.BeforeContainer` overrides the convention file.
+Because it is a real file it always exposes a stable `$PSScriptRoot` and `$PSCommandPath`, so
+relative paths have something reliable to anchor against.
+
+> **Removed in 6.1**: the `Run.BeforeContainer` configuration option. 6.0 shipped both the option
+> and the convention file; the option had no file to anchor relative paths against, so it was
+> dropped and the convention file kept. Assigning `$config.Run.BeforeContainer` now throws
+> `The property 'BeforeContainer' cannot be found on this object`. Move the scriptblock's body into
+> `Pester.BeforeContainer.ps1` at the repository root.
+
+### Run.RepoRoot Decides Whether It Fires
+
+The convention file is only looked for at `Run.RepoRoot`, and that default is easy to get wrong:
+
+```powershell
+$config.Run.RepoRoot = $PSScriptRoot    # be explicit in any script or CI job
+```
+
+`Run.RepoRoot` defaults to the nearest ancestor directory containing `.git`, searched upward from
+**`[System.IO.Directory]::GetCurrentDirectory()`** - the .NET process working directory - falling
+back to that directory when no `.git` is found. It is resolved once, when `New-PesterConfiguration`
+is called.
+
+That is _not_ PowerShell's `$PWD`, and `Set-Location` does not update it:
+
+```powershell
+Set-Location $repo
+(New-PesterConfiguration).Run.RepoRoot.Value   # still the directory the process started in
+```
+
+Nor is it derived from `Run.Path`, so pointing Pester at a test directory in another repository does
+not move it. When the two diverge the bootstrap silently does not run, and every test that depended
+on it fails with `CommandNotFoundException` rather than anything naming the real cause. Set
+`Run.RepoRoot` explicitly whenever the run does not start from the repository root.
 
 This does **not** replace per-file setup. Each file must still be able to be discovered on its own;
 see [Pester 6 Migration Guide](./v6-migration.md).
+
+## Shuffled Test Order (Experimental)
+
+New in 6.1. `Run.Shuffle` reorders the test files, and the blocks and tests inside them, so a suite
+that quietly depends on declaration order fails instead of passing by luck.
+
+```powershell
+$config = New-PesterConfiguration
+$config.Run.Path    = './Tests/Unit'
+$config.Run.Shuffle = $true
+Invoke-Pester -Configuration $config
+```
+
+Items are reordered only **within their own level** - a test never leaves its `Context`, and a
+`Context` never leaves its `Describe`. The tree keeps its shape; only sibling order changes.
+
+The run picks a seed, prints it at the start, and records it on the result object:
+
+```text
+Shuffling execution order using seed 852659930. Set 'Run.ShuffleSeed = 852659930' to repeat this order.
+```
+
+```powershell
+$config.Run.ShuffleSeed = 852659930     # replay the exact order that failed
+```
+
+```powershell
+# after a PassThru run, the seed that was actually used
+$result.Configuration.Run.ShuffleSeed.Value
+```
+
+`ShuffleSeed` defaults to `0`, which means "pick a new one each run". Capture the printed seed from
+a failing CI log before re-running, or the order is gone.
+
+A file whose blocks genuinely must run in sequence opts out with a comment directive, parsed like
+`#requires` and like `#pester:no-parallel`:
+
+```powershell
+#pester:no-shuffle
+Describe 'ordered migration steps' -Tag 'Integration' {
+}
+```
+
+Opting out is an admission of order dependence, so treat a `#pester:no-shuffle` file the same way as
+a `#pester:no-parallel` one - fine for a genuinely sequential integration script, a smell in a unit
+test file.
+
+The option is experimental and may change. Enabling it changes only ordering, never which tests run
+or how they are filtered.
+
+## Global Mocks (Experimental)
+
+New in 6.1. Normally a mock applies to calls from the scope that defined it, or from the single
+module named by `-ModuleName`. `Mock.Global` makes every mock apply to calls of that command from
+**any module or script in the runspace**:
+
+```powershell
+$config = New-PesterConfiguration
+$config.Mock.Global = $true
+```
+
+Mocks are written exactly as before - see
+[Mocking Patterns Guide](./mocking-patterns.md#global-mocks-experimental) for what changes in
+practice. With the option on, `-ModuleName` becomes a hint used to resolve the command rather than a
+scope, so existing mocks keep working. Mocks are still removed when the block that defined them
+ends, and are tied to the run that created them, so they cannot leak into a nested Pester-in-Pester
+run.
+
+The option is experimental and may change; the Pester team has stated an intent to make it the
+default in v7.
 
 ## Dynamic Configuration Loading
 
@@ -402,7 +523,8 @@ This is dramatically faster on large code bases. The old behavior is still avail
 $config.CodeCoverage.UseBreakpoints = $true   # only if you depend on breakpoint-based numbers
 ```
 
-Note that breakpoint-based coverage forces a sequential run when `Run.Parallel` is set.
+A parallel run overrides this and always uses breakpoints - see
+[Parallel Execution](#parallel-execution-experimental) above.
 
 ### Output Formats and Report Root
 
@@ -451,7 +573,23 @@ $config.Output.CIFormat = 'GithubActions'  # GitHub Actions error/warning annota
 $config.Output.CIFormat = 'AzureDevops'    # Azure DevOps logging commands
 $config.Output.CIFormat = 'Auto'           # Auto-detect (default)
 $config.Output.CILogLevel = 'Error'        # Error | Warning
+$config.Output.CIDebugOutput = 'Auto'      # Auto | None
 ```
+
+`CIDebugOutput = 'Auto'` (the default) surfaces `Write-Verbose` and `Write-Debug` output when the CI
+system is running with its own debug switch on - Azure DevOps `System.Debug`, GitHub Actions runner
+debug logging. Set it to `None` to keep a re-run-with-debug quiet.
+
+### Showing Tags
+
+```powershell
+$config.Output.ShowTags = $true
+# Describing Get-Planet [Tags: Slow, Unix]
+```
+
+Appends each `Describe`, `Context`, and `It` tag list to its output line. Use it when a `-Tag` or
+`-ExcludeTag` filter selects a surprising set of tests - it shows what the filter actually matched
+rather than leaving you to infer it from the names.
 
 ### Stack Traces
 
@@ -515,8 +653,8 @@ function Test-PesterConfiguration {
     # Validate Pester version
     $pester = Get-Module Pester -ListAvailable |
         Sort-Object Version -Descending | Select-Object -First 1
-    if ($pester.Version -lt [version]'6.0.0') {
-        throw "Pester 6.0+ required, found $($pester.Version)"
+    if ($pester.Version -lt [version]'6.1.0') {
+        throw "Pester 6.1+ required, found $($pester.Version)"
     }
 
     # Validate required paths exist
