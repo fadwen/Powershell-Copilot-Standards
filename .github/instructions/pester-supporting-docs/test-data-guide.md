@@ -1,6 +1,6 @@
 # Test Data Management Guide
 
-Targets **Pester 6.0+**.
+Targets **Pester 6.1+**.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -39,8 +39,8 @@ green. If the source is an empty array instead, Pester 6 fails discovery outrigh
 
 Because Pester 6 discovers **one file at a time**, discovery-time data must also be produced by the
 file that uses it - a helper module imported by another test file is not guaranteed to be loaded.
-Import helpers in the same file, or provide them via `Run.BeforeContainer` /
-`Pester.BeforeContainer.ps1`.
+Import helpers in the same file, or provide them via a `Pester.BeforeContainer.ps1` at the
+repository root.
 
 ### Test data must be deterministic at discovery time
 

@@ -1,5 +1,7 @@
 # Pester 6 Assertion Guide
 
+Targets **Pester 6.1+**.
+
 Pester 6 ships a new family of `Should-*` assertions (dash, no space) alongside the classic
 `Should -Be` operator. Both work. This guide covers which to use and how they differ.
 
@@ -23,11 +25,12 @@ The classic `Should` routes `-Be`, `-BeExactly`, `-Contain` and friends through 
 left side is always unwrapped by the pipeline and failure messages have to guess intent. The
 `Should-*` assertions are specialized and type-aware:
 
-- Failure messages are precise (string diffs mark the first differing character; collection
-  comparisons point at the first differing index).
+- Failure messages are precise (string diffs point a caret at the first differing character;
+  collection comparisons point at the first differing index).
 - `$Expected` drives the comparison type, so `1 | Should-Be $true` compares as booleans.
 - Type-specific switches live where they belong (`Should-BeString -IgnoreWhitespace`).
 - `$null`, empty collections, and single-item arrays behave consistently.
+- The set is **open** - see [Custom Assertion Guide](./custom-assertions.md) to add your own.
 
 ## Pipeline vs. -Actual
 
@@ -117,11 +120,23 @@ Plus dedicated assertions for exceptions (`Should-Throw`), mocks (`Should-Invoke
 
 ```powershell
 '  hello ' | Should-BeString 'hello' -TrimWhitespace
-'Hello'    | Should-BeString 'hello' -CaseSensitive     # fails, shows diff with arrow marker
+'Hello'    | Should-BeString 'hello' -CaseSensitive     # fails, caret marks the first difference
 'a  b'     | Should-BeString 'a b'   -IgnoreWhitespace
 $name      | Should-MatchString '^[A-Z][a-z]+$'
 $path      | Should-BeLikeString 'C:\Temp\*'
 ```
+
+Use `-NormalizeLineEnding` whenever the actual value came off disk. It treats `` `n `` and `` `r`n ``
+as equal, which is the difference between a test that passes everywhere and one that fails on
+whichever platform did not write the fixture:
+
+```powershell
+"a`r`nb"                     | Should-BeString "a`nb" -NormalizeLineEnding
+Get-Content $path -Raw       | Should-BeString $expected -NormalizeLineEnding
+```
+
+`Should-NotBeString` takes both `-TrimWhitespace` and `-NormalizeLineEnding`, and its `-Expected` is
+mandatory.
 
 ### Booleans and null
 
@@ -132,6 +147,24 @@ $result.Error  | Should-BeNull
 $result.Items  | Should-BeTruthy
 ```
 
+### Types
+
+```powershell
+$result           | Should-HaveType ([pscustomobject])
+$result.Retries   | Should-HaveType ([int])
+$result           | Should-NotHaveType ([hashtable])
+```
+
+`Should-HaveType` honors `PSTypeNames`, so an object decorated with a synthetic type name - the usual
+way a module brands its output - asserts against that name directly:
+
+```powershell
+$session | Should-HaveType 'MyModule.Session'
+```
+
+That is the assertion to reach for when a module's formatting or a `ValidateScript` depends on the
+type name, and it beats asserting on `$session.PSTypeNames[0]` as a string.
+
 ### Collections
 
 ```powershell
@@ -140,6 +173,15 @@ $result.Items  | Should-BeTruthy
 1, 2, 3          | Should-All { $_ -gt 0 }
 1, 2, 3          | Should-Any { $_ -gt 2 }
 @('a', 'b', 'c') | Should-ContainCollection @('a', 'c')   # ordered sub-collection, gaps allowed
+```
+
+`Should-ContainCollection` is order-sensitive by default. When the source genuinely has no defined
+order - a hashtable's keys, a directory listing, a set of exported command names - assert with
+`-IgnoreOrder` rather than sorting both sides at the call site:
+
+```powershell
+1, 2, 3                    | Should-ContainCollection @(3, 1) -IgnoreOrder
+$module.ExportedFunctions.Keys | Should-ContainCollection @('Get-Thing', 'Set-Thing') -IgnoreOrder
 ```
 
 ### Exceptions
@@ -163,6 +205,19 @@ type, or error id:
 `-ExceptionMessage` matches with wildcards, so `'kaboom'` matches the whole message and
 `'*kaboom*'` matches a substring. This differs from classic `Should -Throw '*kaboom*'`, where the
 leading wildcard was almost always required.
+
+Because the match is `-like`, the characters `[ ] * ?` in the expected message are **wildcards, not
+literals**. A message containing brackets fails against itself unless you escape them:
+
+```powershell
+{ throw 'value is [1]' } | Should-Throw -ExceptionMessage 'value is `[1]'
+{ throw 'value is [1]' } |
+    Should-Throw -ExceptionMessage ([System.Management.Automation.WildcardPattern]::Escape('value is [1]'))
+```
+
+Pester detects this specific case - when the two messages differ only in those characters the
+failure says so, rather than printing two strings that look identical. `Should-Throw -Because` is
+named-only; it cannot be passed positionally.
 
 There is no `Should-NotThrow`. Call the code directly - an unhandled exception fails the test:
 
@@ -209,7 +264,8 @@ $record.Created                | Should-BeBefore ([datetime]::Now)
 ```
 
 `Should-BeFasterThan` replaces hand-rolled `Measure-Command` plus `Should -BeLessThan` and avoids
-the TimeSpan-vs-double comparison mistakes that pattern invites.
+the TimeSpan-vs-double comparison mistakes that pattern invites. Its `-Expected` is mandatory, as is
+`Should-BeSlowerThan`'s - a bare `Should-BeFasterThan` no longer binds to a silent default.
 
 ### Deep object comparison
 
@@ -243,6 +299,41 @@ Prefer `-ExcludePathsNotOnExpected` over listing every field you do not care abo
 focused and resilient: a new field on the object under test will not break an assertion that never
 claimed to care about it.
 
+## Writing Your Own
+
+The `Should-*` family is open for extension. Declare a function, call `New-ShouldAssertion` inside
+it, and the result collects pipeline input, formats values, and fails through the same path a
+built-in assertion uses - so soft assertions and mock parameter filters work with no extra effort:
+
+```powershell
+function Assert-BeValidSemVer {
+    [CmdletBinding()]
+    param (
+        [Parameter(Position = 0, ValueFromPipeline)] $Actual,
+        [string] $Because
+    )
+
+    $assert = New-ShouldAssertion -Caller $PSCmdlet -Actual $Actual -Buffer $Input
+    $Actual = $assert.Actual()
+
+    $parsed = $null
+    if (-not [version]::TryParse($Actual, [ref] $parsed) -or $parsed.Build -lt 0) {
+        $assert.Fail(
+            'Expected a Major.Minor.Patch version,<because> but got <actual>.',
+            @{ Because = $Because })
+    }
+}
+
+Set-Alias -Name Should-BeValidSemVer -Value Assert-BeValidSemVer
+```
+
+Reach for this only when the same non-trivial check recurs across files **and** naming the offending
+value is the point. See [Custom Assertion Guide](./custom-assertions.md) for the full treatment -
+`-As` modes, message tokens, the `Assert-` verb packaging rule, and how to test the assertion itself.
+
+This replaces `Add-ShouldOperator` for new work. That mechanism still exists for the classic `Should`
+syntax, but it is a different shape and the runspace caps out at 32 operators.
+
 ## Soft Assertions
 
 Both syntaxes honor `Should.ErrorAction = 'Continue'`, which collects every failure in an `It`
@@ -275,3 +366,5 @@ into a wall of downstream noise.
   `$retries | Should-Be 3 -Because 'the transient-failure policy caps retries at 3'`.
 - Do not assert on the text of a message you also control and change often; assert on the error
   type or id instead.
+- Write a [custom assertion](./custom-assertions.md) only when the same domain rule is asserted in
+  several files and the built-in failure message cannot name what went wrong.

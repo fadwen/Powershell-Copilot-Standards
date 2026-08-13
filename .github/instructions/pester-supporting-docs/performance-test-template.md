@@ -1,6 +1,6 @@
 # Performance Test Template
 
-Targets **Pester 6.0+**. Uses the `Should-*` assertion syntax - see
+Targets **Pester 6.1+**. Uses the `Should-*` assertion syntax - see
 [Assertion Guide](./assertion-guide.md).
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
@@ -11,7 +11,7 @@ text descriptions and standard ASCII characters only.
 Use this template for performance benchmarking and regression detection:
 
 ```powershell
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
 
 # Performance measurement is meaningless when other test files are competing for the
 # CPU. This directive keeps the file on the serial path even when Run.Parallel is set.
@@ -350,11 +350,14 @@ not write it in the first place.
 An assertion inside the measured scriptblock adds its own cost to the measurement, and a failure
 there reports a confusing location. Capture the result, measure, then assert.
 
-### Coverage is never collected in parallel
+### Never enable coverage on a performance job
 
-When `CodeCoverage` is enabled the whole run falls back to sequential, with a warning. Do not enable
-coverage on the performance job - it will not parallelize and the tracer adds overhead to exactly
-the thing you are measuring.
+Coverage instruments exactly the thing you are measuring, so the numbers stop meaning anything.
+
+Pester 6.0 refused to combine coverage with `Run.Parallel` at all, falling back to sequential with a
+warning. 6.1 does collect coverage across parallel workers - but it forces breakpoint-based
+collection to do it, which is heavier per file than the default profiler tracer. Either way, a
+performance job should run sequentially with coverage off.
 
 ## Performance Test Guidelines
 

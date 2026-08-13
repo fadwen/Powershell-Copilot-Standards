@@ -515,12 +515,12 @@ try {
 
 ### Pester Test Template
 
-Targets Pester 6.0+. See [Testing Framework](./instructions/pester.instructions.md) for the
+Targets Pester 6.1+. See [Testing Framework](./instructions/pester.instructions.md) for the
 full standards and [Assertion Guide](./instructions/pester-supporting-docs/assertion-guide.md)
 for the `Should-*` reference.
 
 ```powershell
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
 
 Describe "Get-ExampleData" -Tag "Unit" {
     BeforeAll {
@@ -658,7 +658,7 @@ Use these prompts for quality assurance:
 - **Community Standards**: Reference `.github/instructions/community-standards.instructions.md`
 - **Style Guide**: Reference `.github/instructions/style-enforcement.instructions.md`
 - **Troubleshooting**: Always organized in `./Troubleshooting/` folder structure
-- **Testing**: Use Pester 6.x with comprehensive coverage requirements
+- **Testing**: Use Pester 6.1+ with comprehensive coverage requirements
 - **Security**: Implement defense-in-depth with community-approved patterns
 - **Performance**: Optimize using community-identified best practices and expert feedback
 

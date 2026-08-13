@@ -1,6 +1,6 @@
 # Test Execution Guide
 
-Targets **Pester 6.0+** on Windows PowerShell 5.1 or PowerShell 7.4+.
+Targets **Pester 6.1+** on Windows PowerShell 5.1 or PowerShell 7.4+.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -30,22 +30,27 @@ param(
     # EXPERIMENTAL: run test files concurrently, one file per runspace.
     # Requires PowerShell 7+; falls back to sequential with a warning otherwise.
     [switch]$Parallel,
-    [int]$ThrottleLimit = 0   # 0 = use all available processors
+    [int]$ThrottleLimit = 0,  # 0 = use all available processors
+
+    # EXPERIMENTAL: randomize file/block/test order to surface order dependence.
+    [switch]$Shuffle,
+    [int]$ShuffleSeed = 0     # 0 = new seed each run, printed at the start
 )
 
 begin {
     Write-Host "PowerShell Test Execution Framework" -ForegroundColor Cyan
     Write-Host "Test Type: $TestType | Environment: $Environment" -ForegroundColor Green
 
-    # Pester 6 is required - Should-* assertions and the parallel runner do not exist in v5
+    # Pester 6.1 is required - Should-* assertions, New-ShouldAssertion, the parallel
+    # runner, and Run.Shuffle are not all present in earlier versions
     $pester = Get-Module Pester -ListAvailable |
         Sort-Object Version -Descending | Select-Object -First 1
 
-    if (-not $pester -or $pester.Version -lt [version]'6.0.0') {
-        Write-Error "Pester 6.0+ is required (found: $(if ($pester) { $pester.Version } else { 'none' })). Install with: Install-Module Pester -MinimumVersion 6.0.0 -Force"
+    if (-not $pester -or $pester.Version -lt [version]'6.1.0') {
+        Write-Error "Pester 6.1+ is required (found: $(if ($pester) { $pester.Version } else { 'none' })). Install with: Install-Module Pester -MinimumVersion 6.1.0 -Force"
         exit 1
     }
-    Import-Module Pester -MinimumVersion 6.0.0 -Force
+    Import-Module Pester -MinimumVersion 6.1.0 -Force
 
     # Ensure output directory exists
     if (-not (Test-Path $OutputPath)) {
@@ -120,9 +125,6 @@ process {
             if ($PSVersionTable.PSVersion.Major -lt 7) {
                 Write-Warning "Run.Parallel requires PowerShell 7+; running sequentially."
             }
-            elseif ($CodeCoverage) {
-                Write-Warning "Code coverage forces a sequential run; ignoring -Parallel."
-            }
             elseif ($TestType -in 'Performance', 'Integration') {
                 Write-Warning "$TestType tests should not run in parallel; ignoring -Parallel."
             }
@@ -131,6 +133,28 @@ process {
                 $config.Run.ParallelThrottleLimit = $ThrottleLimit
                 $limitText = if ($ThrottleLimit -eq 0) { 'all processors' } else { "$ThrottleLimit files" }
                 Write-Host "Parallel execution enabled (throttle: $limitText)" -ForegroundColor Green
+
+                # Pester 6.1 collects coverage under parallel, but forces breakpoint mode
+                # to do it - which is far slower per file than the profiler tracer.
+                if ($CodeCoverage) {
+                    Write-Warning "Coverage under -Parallel uses breakpoints, not the profiler. Expect it to be slower than a sequential coverage run."
+                }
+            }
+        }
+
+        # Configure shuffled execution order
+        if ($Shuffle) {
+            if ($TestType -eq 'Performance') {
+                Write-Warning "Performance baselines assume a fixed order; ignoring -Shuffle."
+            }
+            else {
+                $config.Run.Shuffle = $true
+                if ($ShuffleSeed -ne 0) {
+                    $config.Run.ShuffleSeed = $ShuffleSeed
+                    Write-Host "Shuffled execution replaying seed $ShuffleSeed" -ForegroundColor Green
+                } else {
+                    Write-Host "Shuffled execution enabled (seed printed below)" -ForegroundColor Green
+                }
             }
         }
 
@@ -252,6 +276,10 @@ process {
             SkippedTests      = $result.SkippedCount
             CodeCoverage      = if ($result.CodeCoverage) { $result.CodeCoverage.CoveragePercent } else { $null }
             Parallel          = [bool]$config.Run.Parallel.Value
+            # Record the seed. A shuffle failure is only reproducible if the seed
+            # outlives the console log.
+            Shuffle           = [bool]$config.Run.Shuffle.Value
+            ShuffleSeed       = $result.Configuration.Run.ShuffleSeed.Value
             PesterVersion     = $pester.Version.ToString()
             PowerShellVersion = $PSVersionTable.PSVersion.ToString()
             Platform          = $PSVersionTable.Platform
@@ -488,6 +516,10 @@ losing coverage.
 
 # Fast feedback: unit tests in parallel, no coverage
 .\Invoke-Tests.ps1 -TestType Unit -Parallel
+
+# Surface order dependence, then replay the order that broke
+.\Invoke-Tests.ps1 -TestType Unit -Shuffle
+.\Invoke-Tests.ps1 -TestType Unit -Shuffle -ShuffleSeed 852659930
 ```
 
 ### CI/CD Pipeline Integration
@@ -530,12 +562,25 @@ The run keeps working but emits a **warning** when:
 | --- | --- |
 | Windows PowerShell 5.1 | `ForEach-Object -Parallel` requires PowerShell 7+ |
 | `ScriptBlock` containers | In-memory containers cannot cross runspaces |
-| `CodeCoverage` enabled | Coverage is always collected on the sequential path |
 | `Run.SkipRemainingOnFailure = 'Run'` | A cross-file stop cannot span runspaces |
-| Every file has `#pester:no-parallel` | Nothing left to parallelize |
 
-Because coverage forces sequential, run **two CI jobs**: a fast parallel job without coverage for
-feedback, and a sequential job with coverage for the gate.
+When every file opts out with `#pester:no-parallel` the run is simply sequential and no warning is
+printed - there is nothing left to parallelize.
+
+### Coverage Under Parallel
+
+Pester 6.0 collected no coverage in a parallel run. **6.1 collects it**: each worker measures the
+same locations and the parent merges the per-location hits, adding the coverage of any
+`#pester:no-parallel` files it ran in-session, into a single report.
+
+The catch is that a parallel run forces **breakpoint-based** coverage, because the profiler tracer
+keeps its state in a process-global static and is not concurrency-safe.
+`CodeCoverage.UseBreakpoints = $false` is ignored on that path. Breakpoint coverage is much slower
+per file, so parallel-plus-coverage can easily be slower overall than sequential-plus-profiler.
+
+Splitting into **two CI jobs** is still the recommendation - a fast parallel job without coverage for
+feedback, and a sequential job with the profiler for the coverage gate - but it is now a performance
+choice you can measure rather than a hard requirement.
 
 ### Which Files to Opt Out
 
@@ -571,14 +616,23 @@ each container.
 ### Prerequisite: Self-Contained Files
 
 Parallel only works if each file can be discovered and run on its own, because each worker starts
-from a **clean runspace**. Use `Run.BeforeContainer` for shared bootstrap:
+from a **clean runspace**. Put shared bootstrap in a `Pester.BeforeContainer.ps1` at the repository
+root, which Pester dot-sources before every file in both serial and parallel runs:
 
 ```powershell
-$config.Run.BeforeContainer = { . './Tests/TestHelpers/Bootstrap.ps1' }
+# Pester.BeforeContainer.ps1, at the repository root
+. "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
 ```
 
-Or place a `Pester.BeforeContainer.ps1` at the repository root, which Pester dot-sources
-automatically before every file when `Run.BeforeContainer` is not set.
+The `Run.BeforeContainer` option that also did this was **removed in 6.1**. If a CI job sets it, the
+assignment now throws.
+
+The file is only picked up from `Run.RepoRoot`, which is resolved from the .NET process working
+directory - not `$PWD` - so set it explicitly when the run does not start at the repository root:
+
+```powershell
+$config.Run.RepoRoot = $PSScriptRoot
+```
 
 Validate isolation before enabling parallel - run a single file on its own:
 
@@ -587,6 +641,67 @@ Invoke-Pester -Path ./Tests/Unit/Public/Get-Thing.Tests.ps1
 ```
 
 If it only passes as part of a full run, it is not self-contained.
+
+## Shuffled Test Order (Experimental)
+
+New in 6.1. `Run.Shuffle` reorders the test files, and the blocks and tests inside them, so a suite
+that depends on declaration order fails instead of passing by luck:
+
+```powershell
+$config = New-PesterConfiguration
+$config.Run.Path    = './Tests/Unit'
+$config.Run.Shuffle = $true
+Invoke-Pester -Configuration $config
+```
+
+```powershell
+# Via the runner
+.\Invoke-Tests.ps1 -TestType Unit -Shuffle
+```
+
+Reordering happens only within a level - a test never leaves its `Context`. The run prints the seed
+it picked and records it on the result:
+
+```text
+Shuffling execution order using seed 852659930. Set 'Run.ShuffleSeed = 852659930' to repeat this order.
+```
+
+```powershell
+$result.Configuration.Run.ShuffleSeed.Value    # the seed this run actually used
+$config.Run.ShuffleSeed = 852659930            # replay that exact order
+```
+
+Order dependence is the failure mode this finds, and it is one the per-file isolation model in
+Pester 6 already narrows: files no longer share discovery-time state, so what is left is order
+dependence _within_ a file - a `Describe` that leaves a `$script:` variable another one reads, a
+`BeforeAll` that creates a fixture a later `Context` mutates.
+
+### Reading a Shuffled Failure
+
+A failure that appears only under shuffle is a real defect in the tests, not a Pester problem. Work
+it in this order:
+
+1. Capture the seed from the run output. Without it the ordering is not reproducible.
+2. Re-run with `Run.ShuffleSeed` set to that value and confirm the failure repeats.
+3. Find the shared state. It is nearly always a `$script:` variable, a file left on disk outside
+   `TestDrive`, an environment variable, or a mock counter read across blocks.
+4. Fix the test, not the order. Move setup into the block that needs it, or reset state in
+   `AfterEach`.
+
+A file whose blocks genuinely must run in sequence opts out with a directive, parsed the same way as
+`#pester:no-parallel`:
+
+```powershell
+#pester:no-shuffle
+Describe 'ordered migration steps' -Tag 'Integration' {
+}
+```
+
+Treat that directive the way you treat `#pester:no-parallel`: reasonable for a sequential
+integration script, a smell in a unit test file.
+
+`Run.Shuffle` is experimental and may change. It affects ordering only - never which tests run, nor
+how filters apply.
 
 ## Test Execution Best Practices
 
@@ -611,8 +726,8 @@ function Test-TestEnvironment {
         Sort-Object Version -Descending | Select-Object -First 1
     if (-not $pester) {
         $issues += "Required module missing: Pester"
-    } elseif ($pester.Version -lt [version]'6.0.0') {
-        $issues += "Pester 6.0+ required (found $($pester.Version))"
+    } elseif ($pester.Version -lt [version]'6.1.0') {
+        $issues += "Pester 6.1+ required (found $($pester.Version))"
     }
 
     # Check test data availability

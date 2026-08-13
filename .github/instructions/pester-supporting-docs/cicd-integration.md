@@ -1,6 +1,6 @@
 # CI/CD Integration Guide
 
-Targets **Pester 6.0+**. Pester 6 supports **Windows PowerShell 5.1** and **PowerShell 7.4+** only -
+Targets **Pester 6.1+**. Pester 6 supports **Windows PowerShell 5.1** and **PowerShell 7.4+** only -
 support for PowerShell 3, 4, 6, and early/unsupported 7.x was removed, so drop `7.2` and `7.3` from
 existing test matrices.
 
@@ -16,9 +16,10 @@ text descriptions and standard ASCII characters only.
 
 Two facts shape the pipeline:
 
-1. **Code coverage forces a sequential run.** Enabling `CodeCoverage` disables `Run.Parallel` with a
-   warning. Run a fast parallel job for feedback and a separate sequential job with coverage for the
-   gate.
+1. **Coverage and parallel pull against each other.** Pester 6.0 refused to combine them at all;
+   6.1 merges coverage across workers but forces slower breakpoint-based collection to do it. Either
+   way, run a fast parallel job without coverage for feedback and a separate sequential job with the
+   profiler for the gate.
 2. **Discovery failures do not appear in `FailedCount`.** A file that fails discovery contributes
    zero failed tests. Every gate must also check `FailedContainersCount`, and a cheap discovery-only
    job should run first.
@@ -48,7 +49,7 @@ on:
 
 env:
   POWERSHELL_TELEMETRY_OPTOUT: 1
-  PESTER_VERSION: '6.0.1'
+  PESTER_VERSION: '6.1.0'
 
 jobs:
   # Fast structural check. Catches the Pester 6 breakages - duplicate setup blocks,
@@ -156,7 +157,7 @@ jobs:
     - name: Run Unit Tests
       shell: ${{ matrix.shell }}
       run: |
-        Import-Module Pester -MinimumVersion 6.0.0 -Force
+        Import-Module Pester -MinimumVersion 6.1.0 -Force
 
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Unit'
@@ -178,7 +179,7 @@ jobs:
     - name: Run Integration Tests
       shell: ${{ matrix.shell }}
       run: |
-        Import-Module Pester -MinimumVersion 6.0.0 -Force
+        Import-Module Pester -MinimumVersion 6.1.0 -Force
 
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Integration'
@@ -207,7 +208,8 @@ jobs:
           TestResults.xml
           IntegrationResults.xml
 
-  # Coverage must run sequentially - enabling CodeCoverage disables Run.Parallel.
+  # Coverage runs sequentially so it can use the fast profiler tracer. Pester 6.1
+  # does support coverage under Run.Parallel, but forces breakpoint mode to do it.
   coverage:
     needs: validate
     runs-on: windows-latest
@@ -223,7 +225,7 @@ jobs:
     - name: Run Tests with Coverage
       shell: pwsh
       run: |
-        Import-Module Pester -MinimumVersion 6.0.0 -Force
+        Import-Module Pester -MinimumVersion 6.1.0 -Force
 
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Unit'
@@ -298,7 +300,7 @@ jobs:
     - name: Run Security Tests
       shell: pwsh
       run: |
-        Import-Module Pester -MinimumVersion 6.0.0 -Force
+        Import-Module Pester -MinimumVersion 6.1.0 -Force
 
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Security'
@@ -362,7 +364,7 @@ jobs:
     - name: Run Performance Tests
       shell: pwsh
       run: |
-        Import-Module Pester -MinimumVersion 6.0.0 -Force
+        Import-Module Pester -MinimumVersion 6.1.0 -Force
 
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Performance'
@@ -475,7 +477,7 @@ stages:
         targetType: 'inline'
         script: |
           Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module Pester -MinimumVersion 6.0.0 -Force -Scope CurrentUser
+          Install-Module Pester -MinimumVersion 6.1.0 -Force -Scope CurrentUser
           Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
         pwsh: $(powershellVersion -eq '7.x')
 
@@ -497,7 +499,7 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
-          Import-Module Pester -MinimumVersion 6.0.0 -Force
+          Import-Module Pester -MinimumVersion 6.1.0 -Force
 
           $config = New-PesterConfiguration
           $config.Run.Path = './Tests'
@@ -565,7 +567,7 @@ stages:
         targetType: 'inline'
         script: |
           Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module Pester -MinimumVersion 6.0.0 -Force -Scope CurrentUser
+          Install-Module Pester -MinimumVersion 6.1.0 -Force -Scope CurrentUser
         pwsh: true
 
     - task: PowerShell@2
@@ -660,7 +662,7 @@ pipeline {
                     steps {
                         powershell '''
                             Set-PSRepository PSGallery -InstallationPolicy Trusted
-                            Install-Module Pester -MinimumVersion 6.0.0 -Force -Scope CurrentUser
+                            Install-Module Pester -MinimumVersion 6.1.0 -Force -Scope CurrentUser
 
                             $config = New-PesterConfiguration
                             $config.Run.Path = './Tests'
@@ -687,7 +689,7 @@ pipeline {
                     steps {
                         pwsh '''
                             Set-PSRepository PSGallery -InstallationPolicy Trusted
-                            Install-Module Pester -MinimumVersion 6.0.0 -Force -Scope CurrentUser
+                            Install-Module Pester -MinimumVersion 6.1.0 -Force -Scope CurrentUser
 
                             ./Invoke-Tests.ps1 -TestType All -Environment CI -CodeCoverage
                         '''
@@ -765,7 +767,7 @@ variables:
 .powershell_template: &powershell_template
   before_script:
     - Set-PSRepository PSGallery -InstallationPolicy Trusted
-    - Install-Module Pester -MinimumVersion 6.0.0 -Force -Scope CurrentUser
+    - Install-Module Pester -MinimumVersion 6.1.0 -Force -Scope CurrentUser
 
 # GitLab needs JUnit for test results and Cobertura for coverage. Pester 6
 # supports both natively - set TestResult.OutputFormat = 'JUnitXml' and
@@ -855,16 +857,26 @@ $config.Run.Container = @(
 $config.Run.Parallel = $true   # each file's -Data reaches its worker intact
 ```
 
-**Coverage forces sequential.** Split into two jobs - a parallel job without coverage for feedback,
-and a sequential job with coverage for the gate. Trying to get both in one job silently gives you
-the sequential one.
+**Coverage under parallel changed in 6.1.** Pester 6.0 collected no coverage in a parallel run; 6.1
+merges it across workers, but forces slower breakpoint-based collection to do it. Splitting into two
+jobs is still the better default - a parallel job without coverage for feedback, and a sequential
+job with the profiler for the gate - but measure before assuming either is faster.
 
 Each worker starts from a **clean runspace**, so every test file must be self-contained. Provide
-shared bootstrap through `Run.BeforeContainer` or a `Pester.BeforeContainer.ps1` at the repository
-root:
+shared bootstrap through a `Pester.BeforeContainer.ps1` at the repository root, which Pester
+dot-sources before every container:
 
 ```powershell
-$config.Run.BeforeContainer = { . './Tests/TestHelpers/Bootstrap.ps1' }
+# Pester.BeforeContainer.ps1, at the repository root
+. "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
+```
+
+The `Run.BeforeContainer` option was removed in 6.1 - a CI job that still sets it now throws. In CI
+also set `Run.RepoRoot` explicitly, because the default is resolved from the .NET process working
+directory and a job that runs Pester from a subdirectory will not find the bootstrap file:
+
+```powershell
+$config.Run.RepoRoot = $env:GITHUB_WORKSPACE   # or the equivalent for your CI system
 ```
 
 Verify isolation before enabling parallel in CI - if a file only passes as part of a full run, it is

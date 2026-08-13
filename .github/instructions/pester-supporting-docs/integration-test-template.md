@@ -1,6 +1,6 @@
 # Integration Test Template
 
-Targets **Pester 6.0+**. Uses the `Should-*` assertion syntax - see
+Targets **Pester 6.1+**. Uses the `Should-*` assertion syntax - see
 [Assertion Guide](./assertion-guide.md).
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
@@ -11,7 +11,7 @@ text descriptions and standard ASCII characters only.
 Use this template for integration tests that validate component interactions:
 
 ```powershell
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.0.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
 
 # Integration tests touch shared external resources - databases, ports, live endpoints -
 # so they must not run concurrently with other files.
