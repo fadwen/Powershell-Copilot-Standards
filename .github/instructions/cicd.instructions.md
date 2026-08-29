@@ -30,6 +30,7 @@ First, determine the pipeline requirements:
 - **Security**: Credential scanning and vulnerability assessment
 - **Performance**: Execution time and memory usage baselines
 - **Documentation**: README and troubleshooting documentation validation
+- **Help Docs**: PlatyPS Markdown structure valid, no placeholders, no drift against exported commands
 
 ## Pipeline Configuration
 
@@ -249,6 +250,61 @@ Automate troubleshooting documentation:
 - Create deployment summaries
 - Update troubleshooting guides in `./Troubleshooting/` folder
 - Maintain runbook documentation
+
+### Command Help Gate
+
+Command help is built and validated in the pipeline, not by hand. Full mechanics in
+[platyps.instructions.md](./platyps.instructions.md).
+
+```powershell
+# Pull request: validate the committed Markdown and fail on drift
+#Requires -Modules @{ ModuleName = 'Microsoft.PowerShell.PlatyPS'; ModuleVersion = '1.0.3' }
+
+Import-Module ./ModuleName.psd1 -Force
+
+# 1. Structure
+Measure-PlatyPSMarkdown -Path ./docs/ModuleName/*.md |
+    Where-Object Filetype -match 'CommandHelp' |
+    Test-MarkdownCommandHelp -Path {$_.FilePath} -DetailView
+
+# 2. No unfilled templates
+$unfilled = Select-String -Path ./docs/ModuleName/*.md -Pattern '\{\{\s*Fill in' -List
+if ($unfilled) {
+    Write-Error "Unfilled help placeholders in: $(($unfilled.Path | Split-Path -Leaf) -join ', ')" -ErrorAction Stop
+}
+
+# 3. Drift - every exported command documented, nothing documented that is gone
+$documented = (Get-ChildItem ./docs/ModuleName/*.md).BaseName | Where-Object { $_ -ne 'ModuleName' }
+$exported = (Get-Module ModuleName).ExportedFunctions.Keys
+$drift = @($exported | Where-Object { $_ -notin $documented }) +
+         @($documented | Where-Object { $_ -notin $exported })
+if ($drift) {
+    Write-Error "Help is out of sync with exported commands: $($drift -join ', ')" -ErrorAction Stop
+}
+```
+
+The `package-artifact` job builds MAML into the module before packaging, so the published module
+always ships current help:
+
+```powershell
+Measure-PlatyPSMarkdown -Path ./docs/ModuleName/*.md |
+    Where-Object Filetype -match 'CommandHelp' |
+    Import-MarkdownCommandHelp -Path {$_.FilePath} |
+    Export-MamlCommandHelp -OutputFolder ./maml -Force
+
+$cultureDir = Join-Path $ModuleOutputPath 'en-US'
+New-Item -Path $cultureDir -ItemType Directory -Force | Out-Null
+Copy-Item ./maml/ModuleName/ModuleName-Help.xml -Destination $cultureDir -Force
+```
+
+Install PlatyPS in the runner alongside the other build dependencies:
+
+```yaml
+- name: Install build modules
+  shell: pwsh
+  run: |
+    Install-PSResource -Name Pester, PSScriptAnalyzer, Microsoft.PowerShell.PlatyPS -TrustRepository
+```
 
 ## Configuration Templates
 

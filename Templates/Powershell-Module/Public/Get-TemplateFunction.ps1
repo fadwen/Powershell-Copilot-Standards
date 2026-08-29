@@ -1,4 +1,13 @@
 function Get-TemplateFunction {
+    # This is the pre-first-generation state of a public function. The full comment block
+    # below is still here because New-MarkdownCommandHelp reads it to seed the Markdown in
+    # docs/ModuleName/. After that first run, add an EXTERNALHELP keyword comment naming
+    # ModuleName-Help.xml and cut the block to a one-line SYNOPSIS - the Markdown becomes
+    # canonical from then on. Adding that keyword before generating would suppress this
+    # help and leave you with empty templates.
+    # See .github/instructions/platyps.instructions.md
+
+
     <#
     .SYNOPSIS
     Template function demonstrating enterprise PowerShell standards.

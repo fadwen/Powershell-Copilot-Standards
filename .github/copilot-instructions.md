@@ -130,6 +130,26 @@ Write-Warning "Security event: $SecurityEventDescription - User: $env:USERNAME -
 
 ## 🔧 Function Template
 
+This template shows a **standalone function or a private module function**, where the comment block
+is the only documentation. For a function exported from a module, the help content moves to PlatyPS
+Markdown and the block collapses to two lines:
+
+```powershell
+function Get-ExampleData {
+    # .EXTERNALHELP ModuleName-Help.xml
+
+    <#
+    .SYNOPSIS
+        Brief description using approved verb-noun pattern
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    # ... body identical to the template below
+}
+```
+
+See [PlatyPS Help Documentation](./instructions/platyps.instructions.md). Without the
+`.EXTERNALHELP` line, comment-based help wins and the module's shipped MAML is ignored.
+
 ```powershell
 function Get-ExampleData {
     <#
@@ -275,6 +295,10 @@ ProjectRoot/
 │   ├── Unit/
 │   ├── Integration/
 │   └── Performance/
+├── docs/                       # PlatyPS command help (Markdown source, committed)
+│   └── ModuleName/
+├── en-US/                      # Compiled MAML help, packaged with the module
+│   └── ModuleName-Help.xml
 ├── Troubleshooting/           # Organized troubleshooting docs
 │   ├── Common/
 │   ├── Security/
@@ -615,7 +639,11 @@ All generated code must automatically comply with:
 - [ ] **Version Targeting**: Declared `#requires -Version` / `PowerShellVersion` matches the features actually used, and
   is 7.6 unless 5.1 support is a stated requirement
 - [ ] **Output Types**: Use descriptive type names or custom classes, not misleading [PSCustomObject]
-- [ ] **Documentation**: Proper comment-based help format with opening `<#` marker
+- [ ] **Documentation**: Proper comment-based help format with opening `<#` marker; exported module
+  functions instead carry `# .EXTERNALHELP <ModuleName>-Help.xml` with their content in PlatyPS
+  Markdown under `docs/`
+- [ ] **Help Tooling**: `Microsoft.PowerShell.PlatyPS` 1.0.3+ only — never the retired `platyPS`
+  0.14 cmdlets (`New-MarkdownHelp`, `New-ExternalHelp`, `Get-HelpPreview`)
 - [ ] **Performance**: Loop output assigned directly where possible; no `ArrayList`; `+=` only where the target version
   makes it safe
 - [ ] **Error Termination**: Use `Write-Error -ErrorAction Stop` instead of bare `throw` when ErrorAction compliance is
@@ -627,7 +655,8 @@ All generated code must automatically comply with:
 
 - ✅ Uses approved PowerShell verbs and follows community naming conventions consistently
 - ✅ Implements proper error handling with `$_` usage and appropriate null checking
-- ✅ Includes comprehensive comment-based help with proper `<#` opening format
+- ✅ Includes comprehensive help content — comment-based help for private and standalone functions,
+  PlatyPS Markdown plus `.EXTERNALHELP` for exported module functions
 - ✅ Uses context-appropriate string operations and performance patterns
 - ✅ Follows modern PowerShell practices (PSCredential constructor, appropriate validation)
 - ✅ Includes appropriate Pester tests with community testing patterns
@@ -659,6 +688,7 @@ Use these prompts for quality assurance:
 - **Style Guide**: Reference `.github/instructions/style-enforcement.instructions.md`
 - **Troubleshooting**: Always organized in `./Troubleshooting/` folder structure
 - **Testing**: Use Pester 6.1+ with comprehensive coverage requirements
+- **Help Docs**: Use Microsoft.PowerShell.PlatyPS 1.0.3+ — Markdown in `docs/`, MAML in `en-US/`
 - **Security**: Implement defense-in-depth with community-approved patterns
 - **Performance**: Optimize using community-identified best practices and expert feedback
 
@@ -675,7 +705,8 @@ For specialized scenarios, reference these instruction files:
 - **Error Handling**: [Logging Framework](./instructions/errorsandlogs.instructions.md)
 - **Documentation**: [README Standards](./instructions/readme.instructions.md)
 - **Code Analysis**: [Quality Standards](./instructions/analyze.instructions.md)
-- **Comment Standards**: [Help Documentation](./instructions/comments.instructions.md)
+- **Comment Standards**: [Help Content Standards](./instructions/comments.instructions.md)
+- **Help Generation**: [PlatyPS Documentation](./instructions/platyps.instructions.md)
 - **Community Standards**: [Best Practices Integration](./instructions/community-standards.instructions.md)
 - **Style Enforcement**: [Style Guide Compliance](./instructions/style-enforcement.instructions.md)
 

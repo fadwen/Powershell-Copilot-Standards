@@ -49,6 +49,26 @@ Get-TemplateFunction -Name "ExampleItem"
 - **Examples**: Check the Documentation/Examples folder
 - **Troubleshooting**: See Troubleshooting folder for organized guides
 
+### Generating Command Help
+
+This template ships without `docs/` or `en-US/` because both are generated. Once your public
+functions exist, seed the Markdown from their comment-based help:
+
+```powershell
+Install-PSResource -Name Microsoft.PowerShell.PlatyPS
+Import-Module ./ModuleName.psd1 -Force
+
+New-MarkdownCommandHelp -ModuleInfo (Get-Module ModuleName) -OutputFolder ./docs -WithModulePage
+```
+
+From that point the Markdown under `docs/ModuleName/` is the source you edit, and each public
+function gets `# .EXTERNALHELP ModuleName-Help.xml` added while its comment block shrinks to a
+one-line `.SYNOPSIS`. **Add that keyword only after the first generation** — it suppresses
+comment-based help, so adding it earlier means PlatyPS has no prose to seed from.
+
+Full workflow, build step, and CI drift gate:
+[platyps.instructions.md](../../.github/instructions/platyps.instructions.md).
+
 ## 🔍 Troubleshooting
 
 For common issues and solutions, see:
