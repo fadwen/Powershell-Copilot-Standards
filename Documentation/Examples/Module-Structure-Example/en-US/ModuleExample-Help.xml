@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<helpItems xmlns:maml="http://schemas.microsoft.com/maml/2004/10" xmlns:command="http://schemas.microsoft.com/maml/dev/command/2004/10" xmlns:dev="http://schemas.microsoft.com/maml/dev/2004/10" schema="maml" xmlns="http://msh">
+  <command:command>
+    <command:details>
+      <command:name>Get-ExampleData</command:name>
+      <maml:description>
+        <maml:para>Retrieves service status for one or more services.</maml:para>
+      </maml:description>
+      <command:verb>Get</command:verb>
+      <command:noun>ExampleData</command:noun>
+    </command:details>
+    <maml:description>
+      <maml:para>The exported surface of this example module.
+Demonstrates the patterns the
+standards require:
+
+- An approved verb, with a descriptive [OutputType] rather than PSCustomObject
+- Pipeline input, so the function composes
+- A correlation ID generated once and carried through every call
+- $_ in the catch block, and per-item failure that does not abort the batch</maml:para>
+    </maml:description>
+    <command:syntax>
+      <command:syntaxItem>
+        <maml:name>Get-ExampleData</maml:name>
+        <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="false" position="0" aliases="none">
+          <maml:name>ServiceName</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string[]</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String[]</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
+          <maml:name>Environment</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">string</command:parameterValue>
+          <dev:type>
+            <maml:name>System.String</maml:name>
+          </dev:type>
+        </command:parameter>
+        <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="2" aliases="none">
+          <maml:name>CorrelationId</maml:name>
+          <maml:description />
+          <command:parameterValue required="true" variableLength="false">guid</command:parameterValue>
+          <dev:type>
+            <maml:name>System.Guid</maml:name>
+          </dev:type>
+        </command:parameter>
+      </command:syntaxItem>
+    </command:syntax>
+    <command:parameters>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="2" aliases="none">
+        <maml:name>CorrelationId</maml:name>
+        <maml:description>
+          <maml:para>Optional correlation identifier.
+One is generated when not supplied, which is
+why the parameter carries no ValidateNotNullOrEmpty - it is never empty.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.Guid</command:parameterValue>
+        <dev:type>
+          <maml:name>System.Guid</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="false" variableLength="false" globbing="false" pipelineInput="false" position="1" aliases="none">
+        <maml:name>Environment</maml:name>
+        <maml:description>
+          <maml:para>Environment to query.
+Defaults to Development so the example is safe to run.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String</maml:name>
+        </dev:type>
+      </command:parameter>
+      <command:parameter required="true" variableLength="false" globbing="false" pipelineInput="true (ByValue, ByPropertyName)" position="0" aliases="none">
+        <maml:name>ServiceName</maml:name>
+        <maml:description>
+          <maml:para>One or more service names to query.
+Accepts pipeline input.</maml:para>
+        </maml:description>
+        <command:parameterValue required="true" variableLength="true">System.String[]</command:parameterValue>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+      </command:parameter>
+    </command:parameters>
+    <command:inputTypes>
+      <command:inputType>
+        <dev:type>
+          <maml:name>System.String[]</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>One or more service names, bound from the pipeline by value or by property name. Piping a
+collection queries each service in turn; a failure on one does not stop the rest.</maml:para>
+        </maml:description>
+      </command:inputType>
+    </command:inputTypes>
+    <command:returnValues>
+      <command:returnValue>
+        <dev:type>
+          <maml:name>ExampleServiceResult</maml:name>
+        </dev:type>
+        <maml:description>
+          <maml:para>One object per service queried, carrying the service name, the environment, the resolved status,
+and the correlation ID shared by every result in the batch.</maml:para>
+        </maml:description>
+      </command:returnValue>
+    </command:returnValues>
+    <maml:alertSet>
+      <maml:alert>
+        <maml:para>Author: Jeffrey Stuhr
+Blog: https://www.techbyjeff.net
+LinkedIn: https://www.linkedin.com/in/jeffrey-stuhr-034214aa/
+
+TROUBLESHOOTING:
+- Connection issues: .\Troubleshooting\Common\Function-Issues.md</maml:para>
+      </maml:alert>
+    </maml:alertSet>
+    <command:examples>
+      <command:example>
+        <maml:title>--------- EXAMPLE 1 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>Get-ExampleData -ServiceName 'Billing'</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>DESCRIPTION: Queries a single service in the default environment.
+OUTPUT: One ExampleServiceResult.
+USE CASE: Ad-hoc check of a single service.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+      <command:example>
+        <maml:title>--------- EXAMPLE 2 ---------</maml:title>
+        <maml:introduction>
+          <maml:para>'Billing', 'Identity' | Get-ExampleData -Environment Test</maml:para>
+          <maml:para>&#x80;</maml:para>
+          <maml:para>DESCRIPTION: Queries two services via the pipeline.
+OUTPUT: One ExampleServiceResult per service.
+USE CASE: Batch check where one failure must not stop the rest.</maml:para>
+        </maml:introduction>
+        <dev:code />
+        <dev:remarks />
+      </command:example>
+    </command:examples>
+    <command:relatedLinks>
+      <maml:navigationLink>
+        <maml:linkText>Online Version</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Module structure standards</maml:linkText>
+        <maml:uri>https://github.com/fadwen/Powershell-Copilot-Standards/blob/main/.github/instructions/module.instructions.md</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Help documentation standards</maml:linkText>
+        <maml:uri>https://github.com/fadwen/Powershell-Copilot-Standards/blob/main/.github/instructions/platyps.instructions.md</maml:uri>
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>Function troubleshooting</maml:linkText>
+        <maml:uri>https://github.com/fadwen/Powershell-Copilot-Standards/blob/main/Troubleshooting/Common/Function-Issues.md</maml:uri>
+      </maml:navigationLink>
+    </command:relatedLinks>
+  </command:command>
+</helpItems>

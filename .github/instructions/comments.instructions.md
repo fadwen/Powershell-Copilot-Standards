@@ -240,7 +240,7 @@ Ensure generated help includes:
 - [ ] Cross-platform compatibility notes where applicable
 - [ ] Content is in the right file: Markdown under `docs/` for exported functions, the `.ps1` comment
       block for private functions and standalone scripts
-- [ ] Public functions carry `# .EXTERNALHELP <ModuleName>-Help.xml` and no duplicated detail in the
+- [ ] Public functions carry `.EXTERNALHELP <ModuleName>-Help.xml` and no duplicated detail in the
       comment block
 
 ### Technical Accuracy Validation
