@@ -16,8 +16,14 @@ Module-Structure-Example/
 │   └── ExampleClass.ps1   # ExampleServiceResult - a named output type
 ├── Private/
 │   └── Connect-ExampleService.ps1   # Internal, never exported
-└── Public/
-    └── Get-ExampleData.ps1          # The only exported function
+├── Public/
+│   └── Get-ExampleData.ps1          # The only exported function
+├── docs/                            # PlatyPS Markdown - the help source you edit
+│   └── ModuleExample/
+│       ├── ModuleExample.md         # Module page
+│       └── Get-ExampleData.md       # Command help, canonical
+└── en-US/
+    └── ModuleExample-Help.xml       # Compiled MAML - what Get-Help reads
 ```
 
 ## Why the folders exist
@@ -34,6 +40,29 @@ remove that freedom and slow module autoloading.
 **A class replaces `[PSCustomObject]`.** `[OutputType('ExampleServiceResult')]` tells a caller what
 they receive and gives them IntelliSense. The standards discourage `[OutputType([PSCustomObject])]`
 because it communicates nothing.
+
+**Help is generated, not hand-written.** `Get-ExampleData.ps1` keeps only `.EXTERNALHELP` and a
+one-line `.SYNOPSIS`; everything a user sees lives in `docs/ModuleExample/Get-ExampleData.md` and
+compiles to `en-US/ModuleExample-Help.xml`. Import the module and run
+`Get-Help Get-ExampleData -Full` to see the compiled help served.
+
+Rebuild after editing the Markdown:
+
+```powershell
+Import-Module Microsoft.PowerShell.PlatyPS
+
+Measure-PlatyPSMarkdown -Path ./docs/ModuleExample/*.md |
+    Where-Object Filetype -match 'CommandHelp' |
+    Import-MarkdownCommandHelp -Path {$_.FilePath} |
+    Export-MamlCommandHelp -OutputFolder ./maml -Force
+
+Copy-Item ./maml/ModuleExample/ModuleExample-Help.xml ./en-US/ -Force
+```
+
+`.EXTERNALHELP` sits **inside** the `<# #>` block deliberately. As a bare `#` comment preceded by
+ordinary prose it stops being recognized, and `Get-Help` silently falls back to the stub synopsis
+instead of the compiled help. See
+[platyps.instructions.md](../../../.github/instructions/platyps.instructions.md).
 
 ## Patterns demonstrated
 

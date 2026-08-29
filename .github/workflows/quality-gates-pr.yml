@@ -369,5 +369,13 @@ jobs:
     - name: Lint Markdown
       uses: DavidAnson/markdownlint-cli2-action@v14
       with:
-        globs: '**/*.md'
+        # PlatyPS-generated command help is excluded. The generator emits an
+        # unlabelled code fence in SYNTAX (MD040) and writes the module page
+        # description as one unwrapped line (MD013); both are structural to its
+        # schema and are rewritten on every Update-MarkdownCommandHelp run, so
+        # hand-correcting them is out of bounds. See
+        # .github/instructions/platyps.instructions.md
+        globs: |
+          **/*.md
+          !**/docs/*/*.md
         config: '.markdownlint.json'

@@ -88,7 +88,7 @@ ModuleName/
 
 `docs/` and `en-US/` are generated and maintained with **Microsoft.PowerShell.PlatyPS** — see
 [platyps.instructions.md](./platyps.instructions.md). Every function in `Public/` must carry
-`# .EXTERNALHELP ModuleName-Help.xml`, or the shipped MAML is silently ignored in favour of the
+`.EXTERNALHELP ModuleName-Help.xml`, or the shipped MAML is silently ignored in favour of the
 comment block.
 
 ### Module Manifest Creation
@@ -564,7 +564,7 @@ Ensure module meets all quality standards:
 
 - [ ] All public functions have a PlatyPS Markdown file under `docs/` with no `{{ Fill in`
       placeholders remaining; all private functions have comprehensive comment-based help
-- [ ] All public functions carry `# .EXTERNALHELP ModuleName-Help.xml`
+- [ ] All public functions carry `.EXTERNALHELP ModuleName-Help.xml`
 - [ ] MAML built to `en-US/ModuleName-Help.xml` and `Get-Help` verified against the packaged module
 - [ ] Pester tests achieve minimum 80% code coverage
 - [ ] PSScriptAnalyzer validation passes with no errors

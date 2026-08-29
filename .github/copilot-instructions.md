@@ -136,9 +136,8 @@ Markdown and the block collapses to two lines:
 
 ```powershell
 function Get-ExampleData {
-    # .EXTERNALHELP ModuleName-Help.xml
-
     <#
+    .EXTERNALHELP ModuleName-Help.xml
     .SYNOPSIS
         Brief description using approved verb-noun pattern
     #>
@@ -148,7 +147,9 @@ function Get-ExampleData {
 ```
 
 See [PlatyPS Help Documentation](./instructions/platyps.instructions.md). Without the
-`.EXTERNALHELP` line, comment-based help wins and the module's shipped MAML is ignored.
+`.EXTERNALHELP` line, comment-based help wins and the module's shipped MAML is ignored. Keep the
+keyword **inside** the `<# #>` block — as a bare `#` comment preceded by ordinary prose it stops
+being recognized, with no error and no warning.
 
 ```powershell
 function Get-ExampleData {
@@ -640,7 +641,7 @@ All generated code must automatically comply with:
   is 7.6 unless 5.1 support is a stated requirement
 - [ ] **Output Types**: Use descriptive type names or custom classes, not misleading [PSCustomObject]
 - [ ] **Documentation**: Proper comment-based help format with opening `<#` marker; exported module
-  functions instead carry `# .EXTERNALHELP <ModuleName>-Help.xml` with their content in PlatyPS
+  functions instead carry `.EXTERNALHELP <ModuleName>-Help.xml` with their content in PlatyPS
   Markdown under `docs/`
 - [ ] **Help Tooling**: `Microsoft.PowerShell.PlatyPS` 1.0.3+ only — never the retired `platyPS`
   0.14 cmdlets (`New-MarkdownHelp`, `New-ExternalHelp`, `Get-HelpPreview`)
