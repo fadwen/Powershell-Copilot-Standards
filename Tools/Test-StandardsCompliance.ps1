@@ -226,9 +226,14 @@ process {
                             $content, [ref]$tokens, [ref]$null)
                         if ($tokens) {
                             $sb = [System.Text.StringBuilder]::new($content)
-                            foreach ($tok in ($tokens | Where-Object {
-                                    $_.Kind -eq 'Comment' -or $_.Kind -eq 'StringLiteral' -or $_.Kind -eq 'StringExpandable'
-                                })) {
+                            # HereStringLiteral and HereStringExpandable are distinct token
+                            # kinds, not StringLiteral. Omitting them made every here-string
+                            # fixture in this tool's own test file register as a violation.
+                            $literalKinds = @(
+                                'Comment', 'StringLiteral', 'StringExpandable',
+                                'HereStringLiteral', 'HereStringExpandable'
+                            )
+                            foreach ($tok in ($tokens | Where-Object { $_.Kind -in $literalKinds })) {
                                 $start = $tok.Extent.StartOffset
                                 $len = $tok.Extent.EndOffset - $start
                                 if ($len -gt 0 -and ($start + $len) -le $sb.Length) {
@@ -283,6 +288,14 @@ process {
                                 Pattern  = 'New-Object\s+(-TypeName\s+)?(System\.Management\.Automation\.)?PSCredential'
                                 Message  = 'Uses New-Object for a credential; use [PSCredential]::new()'
                                 Severity = 'Warning'
+                            }
+                            # platyPS 0.14.2 is retired. Its cmdlets still resolve if the old
+                            # module is installed, so a build script using them keeps working
+                            # while producing help in a schema nothing else reads.
+                            'AvoidRetiredPlatyPSCmdlets' = @{
+                                Pattern  = '\b(New-MarkdownHelp|Update-MarkdownHelpModule|Update-MarkdownHelp|New-ExternalHelpCab|New-ExternalHelp|Get-HelpPreview)\b'
+                                Message  = 'Uses a retired platyPS 0.14 cmdlet; use Microsoft.PowerShell.PlatyPS 1.x (New-MarkdownCommandHelp, Export-MamlCommandHelp)'
+                                Severity = 'Error'
                             }
                         }
 

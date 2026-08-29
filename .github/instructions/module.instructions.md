@@ -68,6 +68,13 @@ ModuleName/
 │   ├── Unit/
 │   ├── Integration/
 │   └── Performance/
+├── docs/                          # PlatyPS command help - Markdown source, committed
+│   └── ModuleName/
+│       ├── ModuleName.md          # module page
+│       └── Get-ModuleFunction.md  # one file per exported command
+├── en-US/                         # Compiled help, packaged with the module
+│   ├── ModuleName-Help.xml        # built by Export-MamlCommandHelp - never hand-edited
+│   └── about_ModuleName.help.txt  # hand-written conceptual topic
 ├── Troubleshooting/              # Organized troubleshooting docs
 │   ├── Common/
 │   ├── Security/
@@ -78,6 +85,11 @@ ModuleName/
 ├── Scripts/                    # Utility scripts
 └── README.md                   # Main documentation
 ```
+
+`docs/` and `en-US/` are generated and maintained with **Microsoft.PowerShell.PlatyPS** — see
+[platyps.instructions.md](./platyps.instructions.md). Every function in `Public/` must carry
+`# .EXTERNALHELP ModuleName-Help.xml`, or the shipped MAML is silently ignored in favour of the
+comment block.
 
 ### Module Manifest Creation
 
@@ -127,6 +139,9 @@ helpers internal:
     }
 
     # Help Information
+    # Only set this if you actually publish an Updatable Help package to that location.
+    # Update-Help reports an error against a HelpInfoURI with no HelpInfo.xml behind it.
+    # Shipping MAML in en-US/ does not require this key.
     HelpInfoURI = 'https://docs.organization.com/powershell/modulename'
 }
 ```
@@ -547,7 +562,10 @@ Troubleshooting/
 
 Ensure module meets all quality standards:
 
-- [ ] All public functions have comprehensive comment-based help
+- [ ] All public functions have a PlatyPS Markdown file under `docs/` with no `{{ Fill in`
+      placeholders remaining; all private functions have comprehensive comment-based help
+- [ ] All public functions carry `# .EXTERNALHELP ModuleName-Help.xml`
+- [ ] MAML built to `en-US/ModuleName-Help.xml` and `Get-Help` verified against the packaged module
 - [ ] Pester tests achieve minimum 80% code coverage
 - [ ] PSScriptAnalyzer validation passes with no errors
 - [ ] Security validation completed (no credential leaks)

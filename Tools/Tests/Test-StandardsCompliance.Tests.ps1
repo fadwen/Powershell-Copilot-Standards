@@ -216,6 +216,30 @@ function Get-Thing {
             (Invoke-Compliance -Path $script:FixturePath).ComplianceIssues.RuleName |
                 Should-ContainCollection 'UseBlockCommentBasedHelp'
         }
+
+        It 'Flags a retired platyPS 0.14 cmdlet' {
+            New-Fixture -Name 'OldPlatyPS.ps1' -Content @'
+function Build-Docs {
+    param([Parameter(Mandatory)][string]$ModuleName)
+    New-MarkdownHelp -Module $ModuleName -OutputFolder ./docs
+    New-ExternalHelp -Path ./docs -OutputPath ./en-US
+}
+'@
+            (Invoke-Compliance -Path $script:FixturePath).ComplianceIssues.RuleName |
+                Should-ContainCollection 'AvoidRetiredPlatyPSCmdlets'
+        }
+
+        It 'Does not flag the supported Microsoft.PowerShell.PlatyPS cmdlets' {
+            New-Fixture -Name 'NewPlatyPS.ps1' -Content @'
+function Build-Docs {
+    param([Parameter(Mandatory)][string]$ModuleName)
+    New-MarkdownCommandHelp -ModuleInfo (Get-Module $ModuleName) -OutputFolder ./docs
+    Export-MamlCommandHelp -OutputFolder ./maml
+}
+'@
+            (Invoke-Compliance -Path $script:FixturePath).ComplianceIssues.RuleName |
+                Should-NotContainCollection 'AvoidRetiredPlatyPSCmdlets'
+        }
     }
 
     Context 'Anti-pattern rules ignore comments and strings' {

@@ -94,7 +94,7 @@ ln -s .copilot-standards/.github/copilot-instructions.md .github/copilot-instruc
 
 - **Code Analysis**: Comprehensive quality assessment tools
 - **Performance Testing**: Automated benchmarking and optimization
-- **Documentation Standards**: Complete comment-based help and README generation
+- **Documentation Standards**: PlatyPS-generated command help, comment-based help, README generation
 - **Community Compliance**: PowerShell best practices enforcement
 
 ## 📁 Repository Structure
@@ -103,9 +103,10 @@ ln -s .copilot-standards/.github/copilot-instructions.md .github/copilot-instruc
 PowerShell-Copilot-Standards/
 ├── .github/
 │   ├── copilot-instructions.md          # Main Copilot instructions (applied automatically)
-│   ├── instructions/                    # 12 scoped instruction files, applied by `applyTo` glob
+│   ├── instructions/                    # 13 scoped instruction files, applied by `applyTo` glob
 │   │   ├── powershell-version.instructions.md   # Version baseline, lifecycle, breaking changes
 │   │   ├── pester.instructions.md               # Pester 6.1 core testing standards
+│   │   ├── platyps.instructions.md              # Help docs: PlatyPS Markdown to MAML
 │   │   └── pester-supporting-docs/              # 13 guides: mocking, assertions, CI, templates
 │   ├── prompts/                         # 10 `/prompt-name` files for Copilot Chat
 │   └── workflows/                       # Quality gates run on every pull request
@@ -281,6 +282,8 @@ Create function for infrastructure management with:
 - **[Pester 6.1 Testing Standards](./.github/instructions/pester.instructions.md)**: Core testing
   requirements, with [13 supporting guides](./.github/instructions/pester-supporting-docs/) for
   mocking, assertions, CI, templates, and v6 migration
+- **[PlatyPS Help Documentation](./.github/instructions/platyps.instructions.md)**: Generating and
+  shipping module help with Microsoft.PowerShell.PlatyPS — Markdown source, MAML output, drift gate
 - **[Implementation Guide](./Documentation/Implementation-Guide.md)**: Step-by-step setup and usage
 - **[PowerShell Best Practices](./Documentation/PowerShell-Best-Practices.md)**: Community standards reference
 - **[Enterprise Extensions](./Documentation/Enterprise-Extensions.md)**: Organization-specific additions
