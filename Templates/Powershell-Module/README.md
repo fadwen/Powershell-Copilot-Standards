@@ -62,9 +62,10 @@ New-MarkdownCommandHelp -ModuleInfo (Get-Module ModuleName) -OutputFolder ./docs
 ```
 
 From that point the Markdown under `docs/ModuleName/` is the source you edit, and each public
-function gets `# .EXTERNALHELP ModuleName-Help.xml` added while its comment block shrinks to a
-one-line `.SYNOPSIS`. **Add that keyword only after the first generation** — it suppresses
-comment-based help, so adding it earlier means PlatyPS has no prose to seed from.
+function gets `.EXTERNALHELP ModuleName-Help.xml` added as the first entry inside its `<# #>` block,
+while the rest of the block shrinks to a one-line `.SYNOPSIS`. **Add that keyword only after the
+first generation** — it suppresses comment-based help, so adding it earlier means PlatyPS has no
+prose to seed from.
 
 Full workflow, build step, and CI drift gate:
 [platyps.instructions.md](../../.github/instructions/platyps.instructions.md).

@@ -42,8 +42,8 @@ generation — see [that ordering rule](#add-it-after-first-generation-not-befor
 
 ```text
 Public/Get-Thing.ps1
-  |  # .EXTERNALHELP ModuleName-Help.xml   <-- required; see below
-  |  <# .SYNOPSIS one line for source readers #>
+  |  <# .EXTERNALHELP ModuleName-Help.xml      <-- required; see below
+  |     .SYNOPSIS  one line for source readers #>
   |
   |  New-MarkdownCommandHelp        (once, at first generation)
   |  Update-MarkdownCommandHelp     (every time the signature changes)
@@ -74,11 +74,12 @@ This is the single detail that decides whether shipped MAML is used or silently 
 help block and the module also ships `ModuleName-Help.xml`, `Get-Help` displays the comment block
 and the MAML you built is dead weight. The `.EXTERNALHELP` keyword reverses that precedence.
 
+Put the keyword **inside the same `<# #>` block** as the synopsis, as its first entry:
+
 ```powershell
 function Get-ServerHealth {
-    # .EXTERNALHELP ModuleName-Help.xml
-
     <#
+    .EXTERNALHELP ModuleName-Help.xml
     .SYNOPSIS
         Collects health metrics from one or more servers.
     #>
@@ -105,7 +106,7 @@ The order for a new public function is therefore:
 1. Write full comment-based help in the `.ps1`, as
    [comments.instructions.md](./comments.instructions.md) describes.
 2. Run `New-MarkdownCommandHelp` — the prose lands in the Markdown.
-3. Add `# .EXTERNALHELP ModuleName-Help.xml` and trim the block to a one-line `.SYNOPSIS`.
+3. Add `.EXTERNALHELP ModuleName-Help.xml` and trim the block to a one-line `.SYNOPSIS`.
 
 Getting this backwards is silent: the build succeeds and the published help is empty.
 
@@ -120,9 +121,28 @@ Getting this backwards is silent: the build succeeds and the published help is e
   lookup fails and every command loses its help. Copy the name PlatyPS actually produced rather
   than the one you expect — check with `Get-ChildItem ./maml/ModuleName/`.
 - The value must be on the **same line** as the keyword. Any other placement is silently ignored.
-- It may sit in its own `#` comment or inside the `<# #>` block; both work. Keep it above the
-  `.SYNOPSIS` so its precedence is obvious to the next reader.
 - It wins **even when the XML file is missing**. This is the development-time gotcha below.
+
+### Keep It Inside the Block
+
+A `# .EXTERNALHELP` single-line comment also works, but it has a failure mode that produces no
+error and no warning. Comment-based help must be contiguous, and a comment group that opens with
+ordinary prose is disqualified as a help topic unless a blank line separates the prose from the
+keyword. When a separate `<# #>` block follows, that block then wins and the keyword is ignored —
+`Get-Help` quietly serves the stub synopsis and the MAML is never read.
+
+Tested against PowerShell 7.6, with the same MAML present in `en-US/` in every case:
+
+| Arrangement | MAML used |
+|---|---|
+| `.EXTERNALHELP` inside the `<# #>` block with `.SYNOPSIS` | yes |
+| `# .EXTERNALHELP` alone, no other help block | yes |
+| `# .EXTERNALHELP` alone, then a separate `<# .SYNOPSIS #>` block | yes |
+| prose comment, blank line, `# .EXTERNALHELP`, then a separate block | yes |
+| **prose comment, no blank line, `# .EXTERNALHELP`, then a separate block** | **no** |
+
+Only the last row fails, and it is the arrangement a helpful comment above the keyword naturally
+produces. Putting the keyword inside the block avoids the question entirely.
 
 ### Development-Time Gotcha
 
@@ -153,9 +173,16 @@ $newMarkdownSplat = @{
     ModuleInfo     = Get-Module -Name ModuleName
     OutputFolder   = './docs'
     WithModulePage = $true
+    Locale         = 'en-US'
 }
 New-MarkdownCommandHelp @newMarkdownSplat
 ```
+
+**Always pass `-Locale` explicitly.** It defaults to the generating machine's culture, so a
+developer running in `en-GB` or `en-AE` stamps that into the front matter of every file while the
+MAML still ships to `en-US/`. The mismatch does not fail the build; it just makes the committed
+Markdown disagree with the folder it compiles into, and the next person on a different machine sees
+a diff on every file.
 
 This creates `./docs/ModuleName/` containing one `.md` per exported command plus `ModuleName.md`,
 the module page listing every command with its synopsis.
@@ -224,6 +251,16 @@ Measure-PlatyPSMarkdown -Path ./docs/ModuleName/*.md |
     Test-MarkdownCommandHelp -Path {$_.FilePath} -DetailView
 ```
 
+`Test-MarkdownCommandHelp` returns `True` for a file whose `## RELATED LINKS` entries are relative
+paths, but `Get-Help` throws `The specified URI ... is not valid` at read time and returns nothing.
+A `.LINK` value must be a bare topic name or an absolute `http`/`https` URL — never a relative path
+to a file in the repository. Check before building:
+
+```powershell
+Select-String -Path ./docs/ModuleName/*.md -Pattern '^\s*-?\s*\[.+\]\((?!https?://)' |
+    ForEach-Object { Write-Error "Relative link in $($_.Filename):$($_.LineNumber)" -ErrorAction Stop }
+```
+
 Also fail the build on leftover placeholders — `Test-MarkdownCommandHelp` checks structure, not
 whether anyone wrote the content:
 
@@ -234,6 +271,30 @@ if ($unfilled) {
     Write-Error "Help templates still contain placeholders: $names" -ErrorAction Stop
 }
 ```
+
+### Exclude Generated Help From the Prose Linter
+
+PlatyPS Markdown does not satisfy a normal markdownlint configuration, and the violations are
+structural rather than fixable:
+
+- **MD040** — the `## SYNTAX` code fence carries no language label
+- **MD013** — the module page writes the manifest `Description` as one unwrapped line
+
+Both are rewritten on every `Update-MarkdownCommandHelp` run, so a hand-correction lasts until the
+next regeneration and then reappears in the diff. Exclude the generated help instead of fighting it:
+
+```yaml
+- name: Lint Markdown
+  uses: DavidAnson/markdownlint-cli2-action@v14
+  with:
+    globs: |
+      **/*.md
+      !**/docs/*/*.md
+    config: '.markdownlint.json'
+```
+
+A `.markdownlintignore` file does **not** work here — `markdownlint-cli2` ignores it once explicit
+globs are passed on the command line. Use a negated glob in the same list.
 
 ## Building MAML
 
@@ -263,7 +324,7 @@ ModuleName/
 ├── ModuleName.psd1
 ├── ModuleName.psm1
 ├── Public/
-│   └── Get-Thing.ps1               # carries `# .EXTERNALHELP ModuleName-Help.xml`
+│   └── Get-Thing.ps1               # carries `.EXTERNALHELP ModuleName-Help.xml`
 ├── Private/
 ├── docs/                           # PlatyPS Markdown - SOURCE, committed
 │   └── ModuleName/
@@ -335,7 +396,7 @@ Run this on the same pull request trigger as the Pester and PSScriptAnalyzer gat
    the current one.
 3. Fill in the new `## ALIASES` section that appears in every converted file. It is optional content
    — delete the section if the command has no aliases — but the placeholder must not survive.
-4. Add `# .EXTERNALHELP ModuleName-Help.xml` to every public function, and cut the now-duplicated
+4. Add `.EXTERNALHELP ModuleName-Help.xml` to every public function, and cut the now-duplicated
    comment-based help down to a one-line `.SYNOPSIS`.
 5. Diff every file against its backup before committing. Conversion is mechanical; the review is not.
 
@@ -345,7 +406,7 @@ Before a module is considered documented:
 
 - [ ] `Microsoft.PowerShell.PlatyPS` 1.0.3+ is used, and no `platyPS` 0.14 cmdlet names appear
       anywhere in build scripts or workflows
-- [ ] Every exported function carries `# .EXTERNALHELP ModuleName-Help.xml` with the filename only,
+- [ ] Every exported function carries `.EXTERNALHELP ModuleName-Help.xml` with the filename only,
       on the same line as the keyword
 - [ ] Every exported function has a Markdown file under `docs/ModuleName/`, and no Markdown file
       exists for a command that is no longer exported

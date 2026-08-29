@@ -1,51 +1,12 @@
 function Get-ExampleData {
+    # The full help for this command lives in docs/ModuleExample/Get-ExampleData.md and
+    # ships compiled as en-US/ModuleExample-Help.xml. See
+    # .github/instructions/platyps.instructions.md
+
     <#
+    .EXTERNALHELP ModuleExample-Help.xml
     .SYNOPSIS
         Retrieves service status for one or more services.
-
-    .DESCRIPTION
-        The exported surface of this example module. Demonstrates the patterns the
-        standards require:
-
-        - An approved verb, with a descriptive [OutputType] rather than PSCustomObject
-        - Pipeline input, so the function composes
-        - A correlation ID generated once and carried through every call
-        - $_ in the catch block, and per-item failure that does not abort the batch
-
-    .PARAMETER ServiceName
-        One or more service names to query. Accepts pipeline input.
-
-    .PARAMETER Environment
-        Environment to query. Defaults to Development so the example is safe to run.
-
-    .PARAMETER CorrelationId
-        Optional correlation identifier. One is generated when not supplied, which is
-        why the parameter carries no ValidateNotNullOrEmpty - it is never empty.
-
-    .EXAMPLE
-        PS> Get-ExampleData -ServiceName 'Billing'
-
-        DESCRIPTION: Queries a single service in the default environment.
-        OUTPUT: One ExampleServiceResult.
-        USE CASE: Ad-hoc check of a single service.
-
-    .EXAMPLE
-        PS> 'Billing', 'Identity' | Get-ExampleData -Environment Test
-
-        DESCRIPTION: Queries two services via the pipeline.
-        OUTPUT: One ExampleServiceResult per service.
-        USE CASE: Batch check where one failure must not stop the rest.
-
-    .OUTPUTS
-        ExampleServiceResult. One object per service queried.
-
-    .NOTES
-        Author: Jeffrey Stuhr
-        Blog: https://www.techbyjeff.net
-        LinkedIn: https://www.linkedin.com/in/jeffrey-stuhr-034214aa/
-
-        TROUBLESHOOTING:
-        - Connection issues: .\Troubleshooting\Common\Function-Issues.md
     #>
 
     [CmdletBinding()]
