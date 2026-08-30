@@ -254,10 +254,14 @@ Measure-PlatyPSMarkdown -Path ./docs/ModuleName/*.md |
 `Test-MarkdownCommandHelp` returns `True` for a file whose `## RELATED LINKS` entries are relative
 paths, but `Get-Help` throws `The specified URI ... is not valid` at read time and returns nothing.
 A `.LINK` value must be a bare topic name or an absolute `http`/`https` URL — never a relative path
-to a file in the repository. Check before building:
+to a file in the repository. PlatyPS writes a bare topic as `[Get-Thing]()`, so the check
+below has to allow empty parentheses while still rejecting a path. Check before building:
 
 ```powershell
-Select-String -Path ./docs/ModuleName/*.md -Pattern '^\s*-?\s*\[.+\]\((?!https?://)' |
+# The |\) in the lookahead is what permits a bare topic name. Without it this flags every
+# [Get-Thing]() cross-reference as a relative link - rejecting the exact form the paragraph
+# above calls correct.
+Select-String -Path ./docs/ModuleName/*.md -Pattern '^\s*-?\s*\[.+\]\((?!https?://|\))' |
     ForEach-Object { Write-Error "Relative link in $($_.Filename):$($_.LineNumber)" -ErrorAction Stop }
 ```
 
