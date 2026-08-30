@@ -113,6 +113,7 @@ Blog: https://www.techbyjeff.net
 LinkedIn: https://www.linkedin.com/in/jeffrey-stuhr-034214aa/
 
 TROUBLESHOOTING:
+
 - Connection issues: .\Troubleshooting\Common\Function-Issues.md</maml:para>
       </maml:alert>
     </maml:alertSet>
@@ -145,6 +146,10 @@ USE CASE: Batch check where one failure must not stop the rest.</maml:para>
     <command:relatedLinks>
       <maml:navigationLink>
         <maml:linkText>Online Version</maml:linkText>
+        <maml:uri />
+      </maml:navigationLink>
+      <maml:navigationLink>
+        <maml:linkText>about_ModuleExample</maml:linkText>
         <maml:uri />
       </maml:navigationLink>
       <maml:navigationLink>

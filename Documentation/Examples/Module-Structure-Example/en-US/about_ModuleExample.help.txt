@@ -1,0 +1,69 @@
+TOPIC
+    about_ModuleExample
+
+SHORT DESCRIPTION
+    Describes the conventions ModuleExample demonstrates, and the concepts that
+    span its commands rather than belonging to any one of them.
+
+LONG DESCRIPTION
+    ModuleExample is a reference module. It exists to show the layout, export
+    boundary, and help pipeline the PowerShell Copilot Standards expect, in a
+    form small enough to read in one sitting.
+
+    This topic is hand-written plain text. PlatyPS does not generate about
+    topics, and never rewrites them. That is the point: a module with more than
+    a handful of commands needs somewhere to explain the ideas its commands
+    share, and per-command help is the wrong place for that.
+
+  CORRELATION IDS
+
+    Every command accepts a -CorrelationId parameter and generates one when it
+    is not supplied. The identifier is created once, in the begin block, and
+    carried through every downstream call and every log line for the duration of
+    the pipeline.
+
+    The convention matters when a batch partially fails. Because one identifier
+    covers the whole invocation, the successful and failed items in a single run
+    share a key, and the logs for that run can be retrieved as a unit:
+
+        'Billing', 'Identity' | Get-ExampleData -Environment Test -Verbose
+
+    Passing your own identifier lets you correlate this module's activity with a
+    caller's trace:
+
+        $id = [guid]::NewGuid()
+        Get-ExampleData -ServiceName 'Billing' -CorrelationId $id
+
+  ENVIRONMENTS
+
+    Commands take an -Environment parameter constrained to Development, Test,
+    and Production. It defaults to Development so that every example in the help
+    is safe to run without touching a live system.
+
+    The environment selects the connection the private helper opens. It is not a
+    formatting or verbosity switch, and changing it changes what the command
+    talks to.
+
+  PARTIAL FAILURE
+
+    Commands that accept pipeline input do not abort the batch when one item
+    fails. The failing item writes a non-terminating error and the loop
+    continues, so a bad name in the middle of a list does not discard the
+    results either side of it.
+
+    To make a batch stop on the first failure, opt in at the call site:
+
+        'Billing', 'Identity' | Get-ExampleData -ErrorAction Stop
+
+  WHERE HELP LIVES
+
+    Command help is generated. The .ps1 files under Public/ carry only an
+    EXTERNALHELP keyword and a one-line synopsis; the content users read lives
+    in docs/ModuleExample/*.md and compiles to en-US/ModuleExample-Help.xml.
+
+    Edit the Markdown, never the XML and never the comment block. See
+    .github/instructions/platyps.instructions.md in the standards repository.
+
+SEE ALSO
+    Get-ExampleData
+    https://github.com/fadwen/Powershell-Copilot-Standards

@@ -23,7 +23,8 @@ Module-Structure-Example/
 │       ├── ModuleExample.md         # Module page
 │       └── Get-ExampleData.md       # Command help, canonical
 └── en-US/
-    └── ModuleExample-Help.xml       # Compiled MAML - what Get-Help reads
+    ├── ModuleExample-Help.xml       # Compiled MAML - what Get-Help reads
+    └── about_ModuleExample.help.txt # Hand-written; PlatyPS never touches it
 ```
 
 ## Why the folders exist
@@ -58,6 +59,27 @@ Measure-PlatyPSMarkdown -Path ./docs/ModuleExample/*.md |
 
 Copy-Item ./maml/ModuleExample/ModuleExample-Help.xml ./en-US/ -Force
 ```
+
+**`RELATED LINKS` uses two forms, and the choice is not stylistic.** `Get-Help` rejects a relative
+path outright — it throws `The specified URI ... is not valid` and returns nothing — so a `.LINK`
+value is either a bare topic name or an absolute URL:
+
+```markdown
+- [about_ModuleExample]()                      <- bare topic: a command or about_ topic
+- [Module structure standards](https://...)    <- absolute URL: anything outside the module
+```
+
+The empty parentheses are the PlatyPS form for a cross-reference `Get-Help` can resolve itself, and
+they render as a plain name rather than a URL. Use them for sibling commands and about topics.
+Absolute URLs are for documentation that lives outside the installed module — someone who installed
+from the Gallery has no repository checkout, so a relative path to a repo file would be unusable
+even if `Get-Help` accepted it. That is why the three standards links here are absolute rather than
+relative: it is the correct form for their target, not a workaround.
+
+**An about topic covers what no single command owns.** `about_ModuleExample.help.txt` documents the
+correlation-ID convention, the environment parameter, and partial-failure behaviour — concepts that
+span commands. It is plain text, hand-written, and PlatyPS neither generates nor rewrites it. Run
+`Get-Help about_ModuleExample` after importing.
 
 `.EXTERNALHELP` sits **inside** the `<# #>` block deliberately. As a bare `#` comment preceded by
 ordinary prose it stops being recognized, and `Get-Help` silently falls back to the stub synopsis
