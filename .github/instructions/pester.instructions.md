@@ -8,9 +8,12 @@ description: 'Creates comprehensive Pester 6 test suites for PowerShell code wit
 
 Generate enterprise-grade Pester test suites following these core requirements.
 
-**Target version: Pester 6.1+** on Windows PowerShell 5.1 or PowerShell 7.4+. Pester 6 removed
-support for PowerShell 3, 4, 6, and unsupported 7.x. 6.1 is additive over 6.0 - no test file needs
-to change to move between them.
+**Target version: Pester 6.2+** on Windows PowerShell 5.1 or PowerShell 7.4+. Pester 6 removed
+support for PowerShell 3, 4, 6, and unsupported 7.x. 6.1 and 6.2 are additive for test files - no
+test file needs to change to move between 6.0, 6.1, and 6.2. The one thing 6.2 changes underneath a
+suite is `Pester.BeforeContainer.ps1`: top-level code in it now runs at discovery only, so run-time
+setup there must sit in a `BeforeAll` - see
+[Moving From 6.1 to 6.2](./pester-supporting-docs/v6-migration.md#moving-from-61-to-62).
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -53,8 +56,11 @@ that break existing suites outright:
 
 1. `Assert-MockCalled` and `Assert-VerifiableMock` were **removed** - use `Should -Invoke` /
    `Should -InvokeVerifiable` (or `Should-Invoke` / `Should-NotInvoke`).
-2. Duplicate `BeforeAll`/`BeforeEach`/`AfterAll`/`AfterEach` in the same block now **throw**.
-3. `-Focus` and `Set-ItResult -Pending` were **removed**.
+2. `-Focus` and `Set-ItResult -Pending` were **removed**.
+3. A `-ForEach` / `-TestCases` that evaluates to `$null` or `@()` now **fails discovery**.
+
+A second `BeforeAll` (or `BeforeEach`, `AfterAll`, `AfterEach`) in one block threw in 6.0 and 6.1.
+6.2 allows it again, so it is no longer a migration item.
 
 ### Test Requirements Checklist
 
@@ -80,7 +86,7 @@ generated code unless asked; when a project does enable one, these are the conse
 
 | Option | Effect | Note |
 | --- | --- | --- |
-| `Run.Parallel` | One test file per runspace | Requires PowerShell 7+ and file-based containers. Coverage works from 6.1 but is forced onto slower breakpoint mode |
+| `Run.Parallel` | One test file per runspace | Requires file-based containers. Runs on PowerShell 7 and, from 6.2, on Windows PowerShell 5.1. Coverage works from 6.1 but is forced onto slower breakpoint mode |
 | `Run.Shuffle` | Randomizes file, block, and test order | Fails tests that depend on declaration order. Prints a seed; `Run.ShuffleSeed` replays it. Opt a file out with `#pester:no-shuffle` |
 | `Mock.Global` | A mock applies to calls from any module in the runspace | `-ModuleName` becomes a resolution hint, not a scope. Does **not** reinstate fall-through - a `-ParameterFilter` guard still needs a default mock |
 
@@ -115,7 +121,7 @@ files, and under `Run.Parallel` each file is discovered in its own runspace.
 Each test file must import the modules it needs and perform its own discovery-time setup:
 
 ```powershell
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 BeforeDiscovery {
     # Anything needed to BUILD the test tree (-ForEach data, helper commands)
@@ -128,10 +134,22 @@ BeforeAll {
 }
 ```
 
-When several files share bootstrap, put a `Pester.BeforeContainer.ps1` at the repository root rather
-than relying on another file having run first. It is dot-sourced before every container. The
-`Run.BeforeContainer` option that also did this was **removed in 6.1**; the convention file is the
-only mechanism. It fires only when `Run.RepoRoot` points at the directory holding it - see
+When several files share bootstrap, put it in a `Pester.BeforeContainer.ps1` rather than relying on
+another file having run first. From 6.2 every such file from `Run.RepoRoot` down to the test file's
+own folder applies, outermost first, so unit and integration tests can each carry their own setup.
+The file follows the same rule as a test file: top-level code runs at **discovery** only, and
+anything the tests need at run time goes in a `BeforeAll`:
+
+```powershell
+# Pester.BeforeContainer.ps1 - at the repository root, or in any folder under it
+BeforeAll {
+    Import-Module "$PSScriptRoot/Source/ModuleName.psd1" -Force
+    . "$PSScriptRoot/Tests/TestHelpers/TestHelpers.ps1"
+}
+```
+
+The `Run.BeforeContainer` option that also did this was **removed in 6.1**; the convention file is
+the only mechanism. The chain starts at `Run.RepoRoot` - see
 [Pester Configuration Guide](./pester-supporting-docs/pester-configuration.md).
 
 ### Quick Test Generation Pattern
@@ -146,8 +164,9 @@ Describe "Function-Name" -Tag "Unit", "Public" {
 }
 ```
 
-Only one `BeforeAll`, `BeforeEach`, `AfterAll`, and `AfterEach` per block - duplicates throw in
-Pester 6.
+From 6.2 a block may hold more than one `BeforeAll`, `BeforeEach`, `AfterAll`, or `AfterEach`.
+Setups run in declaration order and teardowns in reverse, so group setup by what it sets up rather
+than merging unrelated work into one block. 6.0 and 6.1 throw on the second one.
 
 ### Tagging
 

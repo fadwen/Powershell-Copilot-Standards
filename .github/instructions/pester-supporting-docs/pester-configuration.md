@@ -1,6 +1,6 @@
 # Pester Configuration Guide
 
-Targets **Pester 6.1+**. All settings below were verified against the `PesterConfiguration` object.
+Targets **Pester 6.2+**. All settings below were verified against the `PesterConfiguration` object.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -98,8 +98,9 @@ Use this standardized configuration for consistent test execution:
 
 ### Settings That Do Not Exist
 
-These appear in older guidance and in a lot of blog posts. They are not real and are silently
-ignored when set via a hashtable:
+These appear in older guidance and in a lot of blog posts. They are not real. From 6.2
+`Invoke-Pester` warns `Ignoring configuration keys '...', there are no such options` when a hashtable
+carries one; before 6.2 they were silently ignored:
 
 | Not a setting | Use instead |
 | --- | --- |
@@ -212,8 +213,9 @@ options. You can no longer silently configure a report that never gets written. 
 
 ## Parallel Execution (Experimental)
 
-Pester 6 can run test **files** concurrently, one file per runspace, using PowerShell 7+
-`ForEach-Object -Parallel`.
+Pester 6 can run test **files** concurrently, one file per runspace. From 6.2 the workers run on a
+runspace pool, which Windows PowerShell 5.1 and PowerShell 7 both have; 6.0 and 6.1 used
+`ForEach-Object -Parallel` and so ran sequentially on 5.1.
 
 ```powershell
 $config = New-PesterConfiguration
@@ -223,17 +225,23 @@ $config.Run.ParallelThrottleLimit = 4   # 0 (default) uses all processors
 Invoke-Pester -Configuration $config
 ```
 
-**Requirements**: PowerShell 7+ and file-based containers (`Run.Path`, or `New-PesterContainer
--Path` including parametrized files built with `-Data`).
+**Requirements**: file-based containers (`Run.Path`, or `New-PesterContainer -Path` including
+parametrized files built with `-Data`).
 
 **Falls back to a sequential run with a warning** when:
 
-- Running on Windows PowerShell 5.1
 - Using in-memory `ScriptBlock` containers
 - `Run.SkipRemainingOnFailure = 'Run'`
+- Running on Windows PowerShell 5.1 with Pester 6.0 or 6.1
 
 If every file opts out with `#pester:no-parallel` the run is simply sequential, with no warning -
 there is nothing left to parallelize.
+
+**A lost file is an error** from 6.2. A worker that died before returning its result used to vanish
+from the run - not failed, not skipped, simply absent, and the run looked green with one file fewer.
+The run now compares results to the files it sent and throws naming the missing ones. A worker that
+throws is reported with `Write-Error` and the remaining files still report, even under
+`$ErrorActionPreference = 'Stop'`, which used to abort the loop at the first failing file.
 
 **Code coverage works under parallel** as of 6.1: each worker measures the same locations and the
 parent merges the per-location hits into one report. The cost is that coverage in a parallel run is
@@ -264,49 +272,110 @@ change.
 
 ### Shared Per-File Setup
 
-Pester dot-sources a **`Pester.BeforeContainer.ps1`** from the repository root before **every** test
-file is discovered and run, in both serial and parallel runs. This matters most under parallel,
-where each worker starts from a clean runspace:
+Pester dot-sources every **`Pester.BeforeContainer.ps1`** it finds between `Run.RepoRoot` and the
+test file's own folder before that file is discovered and run, outermost first, in both serial and
+parallel runs. This matters most under parallel, where each worker starts from a clean runspace.
+
+The file follows the same rule as a test file. Top-level code runs during **discovery** only - use it
+for what `-ForEach` data or `BeforeDiscovery` needs. Anything the tests need at **run** time goes in
+a `BeforeAll`:
 
 ```powershell
 # Pester.BeforeContainer.ps1, at the repository root
-Import-Module "$PSScriptRoot/Tests/TestHelpers/Assertions.psd1" -Force
-. "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
+BeforeAll {
+    Import-Module "$PSScriptRoot/Tests/TestHelpers/Assertions.psd1" -Force
+    . "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
+}
 ```
 
+Before 6.2 the file had no `BeforeAll` and everything sat at top level. That shape silently stops
+working on 6.2: a function or variable dot-sourced at top level is gone by the time a test runs
+(verified - `CommandNotFoundException` for the helper, `$null` for the variable), and only an
+`Import-Module` happens to survive because module state is session-wide. Wrap it.
+
 Because it is a real file it always exposes a stable `$PSScriptRoot` and `$PSCommandPath`, so
-relative paths have something reliable to anchor against.
+relative paths have something reliable to anchor against. The files run before **every** container,
+so what they do must be safe to run more than once.
 
 > **Removed in 6.1**: the `Run.BeforeContainer` configuration option. 6.0 shipped both the option
 > and the convention file; the option had no file to anchor relative paths against, so it was
 > dropped and the convention file kept. Assigning `$config.Run.BeforeContainer` now throws
 > `The property 'BeforeContainer' cannot be found on this object`. Move the scriptblock's body into
-> `Pester.BeforeContainer.ps1` at the repository root.
+> a `BeforeAll` in `Pester.BeforeContainer.ps1` at the repository root.
 
-### Run.RepoRoot Decides Whether It Fires
+### Folder-Scoped Setup (6.2+)
 
-The convention file is only looked for at `Run.RepoRoot`, and that default is easy to get wrong:
+One file at the root was all 6.1 used. From 6.2 the chain follows the folder structure, so unit and
+integration tests can each carry their own setup without repeating it in every test file:
 
-```powershell
-$config.Run.RepoRoot = $PSScriptRoot    # be explicit in any script or CI job
+```text
+reporoot/Pester.BeforeContainer.ps1                    <- applies to everything
+reporoot/Tests/Pester.BeforeContainer.ps1              <- Tests/ and below
+reporoot/Tests/Unit/Pester.BeforeContainer.ps1         <- Tests/Unit only
+reporoot/Tests/Integration/Pester.BeforeContainer.ps1  <- Tests/Integration only
 ```
 
-`Run.RepoRoot` defaults to the nearest ancestor directory containing `.git`, searched upward from
-**`[System.IO.Directory]::GetCurrentDirectory()`** - the .NET process working directory - falling
-back to that directory when no `.git` is found. It is resolved once, when `New-PesterConfiguration`
-is called.
+```powershell
+# reporoot/Tests/Unit/Pester.BeforeContainer.ps1
+BeforeAll { $script:Db = 'in-memory' }
 
-That is _not_ PowerShell's `$PWD`, and `Set-Location` does not update it:
+# reporoot/Tests/Integration/Pester.BeforeContainer.ps1
+BeforeAll { $script:Db = 'real-sql' }
+```
+
+The files are dot-sourced into the container's own scope, not the run session state, so a file in
+`Tests/Integration` never sees what `Tests/Unit` set up, whichever runs first. A folder opts out of
+everything above it with a directive, the same meaning `root = true` has in an `.editorconfig`:
+
+```powershell
+# reporoot/Tests/Docs/Pester.BeforeContainer.ps1
+#pester:no-inherit
+BeforeAll { Import-Module "$PSScriptRoot/../../Source/ModuleName.psd1" }
+```
+
+Each container records which setup files applied to it, outermost first, as `BeforeContainerFile`
+on the result object - the folder tree cannot show a `#pester:no-inherit`, but this can:
+
+```powershell
+$result = Invoke-Pester -Path ./Tests -PassThru
+foreach ($container in $result.Containers) {
+    $container.Item.Name
+    $container.BeforeContainerFile | ForEach-Object { "    $_" }
+}
+```
+
+`Run.SkipRun` applies the chain too, so a discovery-only pass sees the same `-ForEach` data a real
+run does.
+
+### Run.RepoRoot Decides Where the Chain Starts
+
+The chain starts at `Run.RepoRoot`, and nothing above it is looked at. Be explicit in any script or
+CI job:
+
+```powershell
+$config.Run.RepoRoot = $PSScriptRoot
+```
+
+`Run.RepoRoot` defaults to the nearest ancestor directory containing `.git`, falling back to the
+starting directory when no `.git` is found. Where that search starts changed in 6.2:
+
+- `New-PesterConfiguration` still resolves the default from
+  `[System.IO.Directory]::GetCurrentDirectory()`, the .NET process working directory, which
+  `Set-Location` does not update. That is the value you see on the object.
+- `Invoke-Pester` then re-resolves it from the session's current location (`$PWD`) - **only when
+  you did not set it**. On 6.1 the run used the process directory, so a session that started
+  elsewhere and then changed into the repository found no setup file, with nothing to say why.
 
 ```powershell
 Set-Location $repo
-(New-PesterConfiguration).Run.RepoRoot.Value   # still the directory the process started in
+(New-PesterConfiguration).Run.RepoRoot.Value    # still the directory the process started in
+$result = Invoke-Pester -Configuration $config   # 6.2 resolves $repo here; 6.1 used the process directory
+$result.Configuration.Run.RepoRoot.Value         # what the run actually used
 ```
 
-Nor is it derived from `Run.Path`, so pointing Pester at a test directory in another repository does
-not move it. When the two diverge the bootstrap silently does not run, and every test that depended
-on it fails with `CommandNotFoundException` rather than anything naming the real cause. Set
-`Run.RepoRoot` explicitly whenever the run does not start from the repository root.
+It is never derived from `Run.Path`, so pointing Pester at a test directory in another repository
+does not move it. When the two diverge the bootstrap silently does not run, and every test that
+depended on it fails with `CommandNotFoundException` rather than anything naming the real cause.
 
 This does **not** replace per-file setup. Each file must still be able to be discovered on its own;
 see [Pester 6 Migration Guide](./v6-migration.md).
@@ -433,14 +502,36 @@ function Merge-HashTable {
 }
 ```
 
-`New-PesterConfiguration -Hashtable` ignores unknown keys silently. Validate what you loaded:
+From 6.2 the configuration checks what it is handed. A value of the wrong type throws while the
+configuration is built - which bites first with `psd1` and JSON files, where a boolean written in
+quotes arrives as a string:
+
+```powershell
+New-PesterConfiguration -Hashtable @{ Run = @{ Parallel = 'yes' } }
+# Error: "Run.Parallel expects a bool, but got the string 'yes'."
+```
+
+An `int` where a `decimal` is expected is still accepted, and a key present with a `$null` value
+still means "not set". A key that matches no option is collected rather than thrown on, because a
+hashtable may carry keys meant for something else, and `Invoke-Pester` warns about all of them once:
+
+```text
+WARNING: Ignoring configuration keys 'Nonsense', 'Run.Paralel', there are no such options.
+         Check the spelling, 'Get-Help about_PesterConfiguration' lists all the options.
+```
+
+A warning is easy to lose in CI output. Read the same list off the object and fail before the run:
 
 ```powershell
 $config = New-PesterConfiguration -Hashtable $mergedConfig
-if ($config.CodeCoverage.CoveragePercentTarget.Value -ne $mergedConfig.CodeCoverage.CoveragePercentTarget) {
-    throw 'Coverage target did not bind - check the setting name'
+$unknown = @($config.GetUnknownKeys())
+if ($unknown.Count -gt 0) {
+    throw "Configuration keys that match no option: $($unknown -join ', ')"
 }
 ```
+
+Before 6.2 both cases were silent - a misspelled key or a wrong-typed value simply did not apply,
+and the only defence was reading the value back off the object.
 
 ## Test Filtering Configuration
 
@@ -653,8 +744,8 @@ function Test-PesterConfiguration {
     # Validate Pester version
     $pester = Get-Module Pester -ListAvailable |
         Sort-Object Version -Descending | Select-Object -First 1
-    if ($pester.Version -lt [version]'6.1.0') {
-        throw "Pester 6.1+ required, found $($pester.Version)"
+    if ($pester.Version -lt [version]'6.2.0') {
+        throw "Pester 6.2+ required, found $($pester.Version)"
     }
 
     # Validate required paths exist
@@ -676,9 +767,11 @@ function Test-PesterConfiguration {
         throw "Invalid coverage target: $target"
     }
 
-    # Parallel is silently ignored on 5.1 - warn rather than let it look enabled
-    if ($Configuration.Run.Parallel.Value -and $PSVersionTable.PSVersion.Major -lt 7) {
-        Write-Warning 'Run.Parallel requires PowerShell 7+; the run will fall back to sequential'
+    # 6.2 collects keys that match no option instead of throwing on them.
+    # Invoke-Pester warns once; a gate should fail on them instead.
+    $unknown = @($Configuration.GetUnknownKeys())
+    if ($unknown.Count -gt 0) {
+        throw "Configuration keys that match no option: $($unknown -join ', ')"
     }
 }
 ```

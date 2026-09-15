@@ -1,6 +1,6 @@
 # Test Data Management Guide
 
-Targets **Pester 6.1+**.
+Targets **Pester 6.2+**.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -39,8 +39,10 @@ green. If the source is an empty array instead, Pester 6 fails discovery outrigh
 
 Because Pester 6 discovers **one file at a time**, discovery-time data must also be produced by the
 file that uses it - a helper module imported by another test file is not guaranteed to be loaded.
-Import helpers in the same file, or provide them via a `Pester.BeforeContainer.ps1` at the
-repository root.
+Import helpers in the same file, or provide them from a `Pester.BeforeContainer.ps1`. Top-level code
+in that file runs at discovery, which is exactly when `-ForEach` data is built; anything the tests
+need at run time goes in its `BeforeAll` - see
+[Test Structure Guide](./test-structure-guide.md#shared-bootstrap).
 
 ### Test data must be deterministic at discovery time
 
@@ -544,7 +546,6 @@ function Clear-TestDataCache {
 ```powershell
 BeforeEach {
     # Create isolated test data for each test.
-    # Only ONE BeforeEach and ONE AfterEach per block - duplicates throw in Pester 6.
     $script:TestUsers = New-TestUsers -Count 3 -Type 'Standard'
     $script:TestConfig = New-TestConfiguration -Environment 'Testing'
 }

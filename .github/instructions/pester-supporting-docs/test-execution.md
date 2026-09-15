@@ -1,6 +1,6 @@
 # Test Execution Guide
 
-Targets **Pester 6.1+** on Windows PowerShell 5.1 or PowerShell 7.4+.
+Targets **Pester 6.2+** on Windows PowerShell 5.1 or PowerShell 7.4+.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -28,7 +28,7 @@ param(
     [string[]]$ExcludeTag = @(),
 
     # EXPERIMENTAL: run test files concurrently, one file per runspace.
-    # Requires PowerShell 7+; falls back to sequential with a warning otherwise.
+    # Runs on Windows PowerShell 5.1 and PowerShell 7 alike from Pester 6.2.
     [switch]$Parallel,
     [int]$ThrottleLimit = 0,  # 0 = use all available processors
 
@@ -41,16 +41,17 @@ begin {
     Write-Host "PowerShell Test Execution Framework" -ForegroundColor Cyan
     Write-Host "Test Type: $TestType | Environment: $Environment" -ForegroundColor Green
 
-    # Pester 6.1 is required - Should-* assertions, New-ShouldAssertion, the parallel
-    # runner, and Run.Shuffle are not all present in earlier versions
+    # Pester 6.2 is required - Should-* assertions, New-ShouldAssertion, the parallel
+    # runner, Run.Shuffle, and BeforeAll in Pester.BeforeContainer.ps1 are not all
+    # present in earlier versions
     $pester = Get-Module Pester -ListAvailable |
         Sort-Object Version -Descending | Select-Object -First 1
 
-    if (-not $pester -or $pester.Version -lt [version]'6.1.0') {
-        Write-Error "Pester 6.1+ is required (found: $(if ($pester) { $pester.Version } else { 'none' })). Install with: Install-Module Pester -MinimumVersion 6.1.0 -Force"
+    if (-not $pester -or $pester.Version -lt [version]'6.2.0') {
+        Write-Error "Pester 6.2+ is required (found: $(if ($pester) { $pester.Version } else { 'none' })). Install with: Install-Module Pester -MinimumVersion 6.2.0 -Force"
         exit 1
     }
-    Import-Module Pester -MinimumVersion 6.1.0 -Force
+    Import-Module Pester -MinimumVersion 6.2.0 -Force
 
     # Ensure output directory exists
     if (-not (Test-Path $OutputPath)) {
@@ -122,10 +123,7 @@ process {
 
         # Configure parallel execution
         if ($Parallel) {
-            if ($PSVersionTable.PSVersion.Major -lt 7) {
-                Write-Warning "Run.Parallel requires PowerShell 7+; running sequentially."
-            }
-            elseif ($TestType -in 'Performance', 'Integration') {
+            if ($TestType -in 'Performance', 'Integration') {
                 Write-Warning "$TestType tests should not run in parallel; ignoring -Parallel."
             }
             else {
@@ -244,8 +242,8 @@ process {
         }
 
         # Report containers that failed to discover. This is a v6 failure mode
-        # (duplicate setup blocks, empty -ForEach, or a file that cannot be
-        # discovered independently) and it does NOT show up in FailedCount -
+        # (empty -ForEach, or a file that cannot be discovered independently)
+        # and it does NOT show up in FailedCount -
         # a suite can report 0 failed tests while whole files never ran.
         if ($result.FailedContainersCount -gt 0) {
             Write-Host "`nFailed Containers (discovery or setup errors):" -ForegroundColor Red
@@ -374,8 +372,8 @@ function Get-TroubleshootingHint {
         'Timeout'        = 'Increase timeout values or optimize performance. See ./Troubleshooting/Performance/'
         'not recognized' = 'Command not found. In Pester 6 each test file must import its own modules - check BeforeAll/BeforeDiscovery.'
         'ForEach'        = 'Empty -ForEach fails discovery in Pester 6. Build test data in BeforeDiscovery, not BeforeAll.'
-        'already defined' = 'Duplicate BeforeAll/BeforeEach/AfterAll/AfterEach in one block throws in Pester 6. Merge them.'
         'Assert-Mock'    = 'Assert-MockCalled was removed in Pester 6. Use Should -Invoke or Should-Invoke.'
+        'to measure or a' = 'Should-BeFasterThan/SlowerThan need a scriptblock or a timespan (Pester 6.2). Pipe the scriptblock, not its result.'
     }
 
     foreach ($keyword in $hints.Keys) {
@@ -481,6 +479,7 @@ names in older guidance return `$null` silently.
 | Counts | `TotalCount`, `PassedCount`, `FailedCount`, `SkippedCount`, `InconclusiveCount`, `NotRunCount` |
 | Test collections | `Tests`, `Passed`, `Failed`, `Skipped`, `Inconclusive`, `NotRun` |
 | Per-file results | `Containers` (each has `Item`, `Result`, `Passed`, `ErrorRecord`) |
+| Setup files applied | `$container.BeforeContainerFile` - the `Pester.BeforeContainer.ps1` files that ran for that file, outermost first (6.2+) |
 | Discovery failures | `FailedContainers`, `FailedContainersCount` |
 | Block-level failures | `FailedBlocks`, `FailedBlocksCount` |
 | Coverage percent | `CodeCoverage.CoveragePercent` (**not** `CoveredPercent`) |
@@ -537,9 +536,10 @@ losing coverage.
 
 ## Parallel Test Execution (Experimental)
 
-Pester 6 runs test **files** concurrently, one file per runspace, via PowerShell 7+
-`ForEach-Object -Parallel`. On a multi-core machine this cuts wall-clock time substantially for
-large suites.
+Pester 6 runs test **files** concurrently, one file per runspace. From 6.2 the workers run on a
+runspace pool, which Windows PowerShell 5.1 and PowerShell 7 both have; 6.0 and 6.1 used
+`ForEach-Object -Parallel` and so ran sequentially on 5.1. On a multi-core machine this cuts
+wall-clock time substantially for large suites.
 
 ```powershell
 $config = New-PesterConfiguration
@@ -560,12 +560,21 @@ The run keeps working but emits a **warning** when:
 
 | Condition | Reason |
 | --- | --- |
-| Windows PowerShell 5.1 | `ForEach-Object -Parallel` requires PowerShell 7+ |
 | `ScriptBlock` containers | In-memory containers cannot cross runspaces |
 | `Run.SkipRemainingOnFailure = 'Run'` | A cross-file stop cannot span runspaces |
+| Windows PowerShell 5.1 on Pester 6.0 or 6.1 | Those releases used `ForEach-Object -Parallel`, a PowerShell 7 feature. 6.2 moved to a runspace pool and runs parallel on 5.1 |
 
 When every file opts out with `#pester:no-parallel` the run is simply sequential and no warning is
 printed - there is nothing left to parallelize.
+
+### A Lost File Is an Error
+
+A worker that died before returning its result used to disappear from the run - the file was not
+failed, skipped, or errored, and the run looked green with one file fewer. From 6.2 the run compares
+results to the files it sent and throws naming the missing ones. A worker that throws is reported
+and the remaining files still report their results, including when the caller runs with
+`$ErrorActionPreference = 'Stop'`, which used to abort the loop at the first failing file and drop
+everything already finished.
 
 ### Coverage Under Parallel
 
@@ -616,19 +625,24 @@ each container.
 ### Prerequisite: Self-Contained Files
 
 Parallel only works if each file can be discovered and run on its own, because each worker starts
-from a **clean runspace**. Put shared bootstrap in a `Pester.BeforeContainer.ps1` at the repository
-root, which Pester dot-sources before every file in both serial and parallel runs:
+from a **clean runspace**. Put shared bootstrap in `Pester.BeforeContainer.ps1` files, which Pester
+dot-sources before every file in both serial and parallel runs - from 6.2, every one between
+`Run.RepoRoot` and the test file's folder. Run-time setup goes in a `BeforeAll`; top-level code in
+the file runs at discovery only:
 
 ```powershell
 # Pester.BeforeContainer.ps1, at the repository root
-. "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
+BeforeAll {
+    . "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
+}
 ```
 
 The `Run.BeforeContainer` option that also did this was **removed in 6.1**. If a CI job sets it, the
 assignment now throws.
 
-The file is only picked up from `Run.RepoRoot`, which is resolved from the .NET process working
-directory - not `$PWD` - so set it explicitly when the run does not start at the repository root:
+The chain starts at `Run.RepoRoot`. When unset, 6.2 resolves it from the session's current location
+at run time (6.1 used the .NET process working directory, which `Set-Location` does not move). Set
+it explicitly when the run does not start inside the repository:
 
 ```powershell
 $config.Run.RepoRoot = $PSScriptRoot
@@ -726,8 +740,8 @@ function Test-TestEnvironment {
         Sort-Object Version -Descending | Select-Object -First 1
     if (-not $pester) {
         $issues += "Required module missing: Pester"
-    } elseif ($pester.Version -lt [version]'6.1.0') {
-        $issues += "Pester 6.1+ required (found $($pester.Version))"
+    } elseif ($pester.Version -lt [version]'6.2.0') {
+        $issues += "Pester 6.2+ required (found $($pester.Version))"
     }
 
     # Check test data availability
@@ -745,7 +759,8 @@ function Test-TestEnvironment {
 ### Structural Validation (Discovery-Only Pass)
 
 Run discovery without executing anything. This is fast and catches the v6 structural breakages -
-duplicate setup blocks, empty `-ForEach` sets, files that cannot be discovered independently:
+empty `-ForEach` sets, files that cannot be discovered independently, and from 6.2 a configuration
+value of the wrong type:
 
 ```powershell
 function Test-SuiteStructure {

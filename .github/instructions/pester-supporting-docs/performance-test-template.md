@@ -1,6 +1,6 @@
 # Performance Test Template
 
-Targets **Pester 6.1+**. Uses the `Should-*` assertion syntax - see
+Targets **Pester 6.2+**. Uses the `Should-*` assertion syntax - see
 [Assertion Guide](./assertion-guide.md).
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
@@ -11,7 +11,7 @@ text descriptions and standard ASCII characters only.
 Use this template for performance benchmarking and regression detection:
 
 ```powershell
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 # Performance measurement is meaningless when other test files are competing for the
 # CPU. This directive keeps the file on the serial path even when Run.Parallel is set.
@@ -325,6 +325,11 @@ It accepts a duration string (`'250ms'`, `'2s'`) or a `TimeSpan`, measures the s
 the actual measured time in the failure message. Prefer it over `Measure-Command` plus a comparison
 for single-shot limits. Keep `Measure-Command` where you need the measurement itself for ratios,
 averages, or coefficient-of-variation math.
+
+Pipe the **scriptblock**, not its result. From 6.2 both assertions throw when handed anything other
+than a `[scriptblock]` or a `[timespan]`; on 6.1 a string, number, or `$null` slipped through and
+the test passed without measuring. A limit that starts failing on 6.2 with
+`Expected a [scriptblock] to measure or a [timespan] to compare` was never a limit.
 
 ### Compare like with like
 

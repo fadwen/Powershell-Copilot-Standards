@@ -62,7 +62,7 @@ ln -s .copilot-standards/.github/copilot-instructions.md .github/copilot-instruc
   version-dependent `+=` guidance that changed in PowerShell 7.5
 - **Modern Tooling**: `Install-PSResource` (Microsoft.PowerShell.PSResourceGet) over PowerShellGet
   v2, with a capability check for Windows PowerShell 5.1 fallback
-- **Testing Standards**: Pester 6.1 patterns — `Should-*` assertions, custom assertions via
+- **Testing Standards**: Pester 6.2 patterns — `Should-*` assertions, custom assertions via
   `New-ShouldAssertion`, `BeforeDiscovery` data, self-contained test files, and 13 supporting guides
   covering mocking, CI, and templates
 
@@ -105,7 +105,7 @@ PowerShell-Copilot-Standards/
 │   ├── copilot-instructions.md          # Main Copilot instructions (applied automatically)
 │   ├── instructions/                    # 13 scoped instruction files, applied by `applyTo` glob
 │   │   ├── powershell-version.instructions.md   # Version baseline, lifecycle, breaking changes
-│   │   ├── pester.instructions.md               # Pester 6.1 core testing standards
+│   │   ├── pester.instructions.md               # Pester 6.2 core testing standards
 │   │   ├── platyps.instructions.md              # Help docs: PlatyPS Markdown to MAML
 │   │   └── pester-supporting-docs/              # 13 guides: mocking, assertions, CI, templates
 │   ├── prompts/                         # 10 `/prompt-name` files for Copilot Chat
@@ -217,7 +217,7 @@ full.
 
 ### Automated Testing
 
-Standards for the code you generate — Pester 6.1 throughout:
+Standards for the code you generate — Pester 6.2 throughout:
 
 - **Unit Tests**: Pester tests targeting 80%+ coverage
 - **Integration Tests**: External dependency validation
@@ -279,7 +279,7 @@ Create function for infrastructure management with:
 
 - **[PowerShell Version Baseline](./.github/instructions/powershell-version.instructions.md)**:
   Support lifecycle, choosing a target, version-gated features, breaking changes
-- **[Pester 6.1 Testing Standards](./.github/instructions/pester.instructions.md)**: Core testing
+- **[Pester 6.2 Testing Standards](./.github/instructions/pester.instructions.md)**: Core testing
   requirements, with [13 supporting guides](./.github/instructions/pester-supporting-docs/) for
   mocking, assertions, CI, templates, and v6 migration
 - **[PlatyPS Help Documentation](./.github/instructions/platyps.instructions.md)**: Generating and

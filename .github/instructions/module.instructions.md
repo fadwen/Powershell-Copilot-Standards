@@ -381,11 +381,11 @@ function Get-ModuleCredential {
 
 ### Pester Test Structure
 
-Generate comprehensive test suites targeting **Pester 6.1+**:
+Generate comprehensive test suites targeting **Pester 6.2+**:
 
 ```powershell
 # Tests/Unit/Public/Verb-Noun.Tests.ps1
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 BeforeAll {
     # Pester 6 discovers and runs one file at a time - each file must be self-contained
@@ -411,7 +411,6 @@ Describe "Verb-Noun" -Tag "Unit", "Public" {
     }
 
     Context "Functionality" {
-        # Only one BeforeEach per block - Pester 6 throws on duplicates
         BeforeEach {
             Mock External-Dependency { "MockedResult" }
         }
@@ -437,8 +436,8 @@ Describe "Verb-Noun" -Tag "Unit", "Public" {
 ```
 
 Key Pester 6 points: `Should-*` assertions replace `Should -Be` for new tests,
-`Assert-MockCalled` was removed in favour of `Should-Invoke`, duplicate setup blocks throw, and
-every file must import its own dependencies. See
+`Assert-MockCalled` was removed in favour of `Should-Invoke`, and every file must import its own
+dependencies. See
 [Pester instructions](./pester.instructions.md) and the
 [migration guide](./pester-supporting-docs/v6-migration.md).
 

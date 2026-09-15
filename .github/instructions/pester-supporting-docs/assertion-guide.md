@@ -1,6 +1,6 @@
 # Pester 6 Assertion Guide
 
-Targets **Pester 6.1+**.
+Targets **Pester 6.2+**.
 
 Pester 6 ships a new family of `Should-*` assertions (dash, no space) alongside the classic
 `Should -Be` operator. Both work. This guide covers which to use and how they differ.
@@ -25,8 +25,9 @@ The classic `Should` routes `-Be`, `-BeExactly`, `-Contain` and friends through 
 left side is always unwrapped by the pipeline and failure messages have to guess intent. The
 `Should-*` assertions are specialized and type-aware:
 
-- Failure messages are precise (string diffs point a caret at the first differing character;
-  collection comparisons point at the first differing index).
+- Failure messages are precise (a short string diff points a caret at the first differing character
+  and a long one prints every differing region with line numbers; collection comparisons point at
+  the first differing index).
 - `$Expected` drives the comparison type, so `1 | Should-Be $true` compares as booleans.
 - Type-specific switches live where they belong (`Should-BeString -IgnoreWhitespace`).
 - `$null`, empty collections, and single-item arrays behave consistently.
@@ -137,6 +138,34 @@ Get-Content $path -Raw       | Should-BeString $expected -NormalizeLineEnding
 
 `Should-NotBeString` takes both `-TrimWhitespace` and `-NormalizeLineEnding`, and its `-Expected` is
 mandatory.
+
+#### Long strings get a real diff
+
+From 6.2, when either string is longer than 10 lines or 120 characters, a failing `Should-BeString`
+prints every region that differs with context, instead of a caret under the first difference.
+Expected line numbers are on the left and actual on the right, so the output stays readable when
+lines were added or removed and the two sides stop lining up:
+
+```text
+Expected strings to be the same, but they were different.
+Expected length: 860
+Actual length:   834
+Expected 30 line(s), actual 30 line(s).
+2 regions differ.
+   3  3 |   line 3 of the expected text
+   4  4 |   line 4 of the expected text
+   5    | - line 5 of the expected text
+      5 | + line 5 CHANGED
+   6  6 |   line 6 of the expected text
+  ...
+  17    | - line 17 of the expected text
+     17 | + line 17 CHANGED
+```
+
+Only the differing lines are expanded, so a tab or trailing space shows up without the unchanged
+context turning into escape codes. This is the assertion to use for snapshot tests, rendered
+templates, and generated configuration files - pair it with `-NormalizeLineEnding`. Short strings
+keep the caret.
 
 ### Booleans and null
 
@@ -266,6 +295,18 @@ $record.Created                | Should-BeBefore ([datetime]::Now)
 `Should-BeFasterThan` replaces hand-rolled `Measure-Command` plus `Should -BeLessThan` and avoids
 the TimeSpan-vs-double comparison mistakes that pattern invites. Its `-Expected` is mandatory, as is
 `Should-BeSlowerThan`'s - a bare `Should-BeFasterThan` no longer binds to a silent default.
+
+Both take a `[scriptblock]` to measure or a `[timespan]` to compare, and nothing else. From 6.2
+anything else **throws**:
+
+```powershell
+{ Invoke-Thing } | Should-BeFasterThan 1s    # measures the scriptblock
+(Invoke-Thing)   | Should-BeFasterThan 1s    # 6.1: passed without measuring anything. 6.2: throws
+# Expected a [scriptblock] to measure or a [timespan] to compare, but got [string] 'result'.
+```
+
+On 6.1 a string, a number, or `$null` fell through the assertion and the test passed having asserted
+nothing. A performance test that starts failing on 6.2 with that message was never measuring.
 
 ### Deep object comparison
 

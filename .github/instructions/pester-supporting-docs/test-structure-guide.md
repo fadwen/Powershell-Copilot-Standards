@@ -1,6 +1,6 @@
 # Pester Test Structure Guide
 
-Targets **Pester 6.1+**.
+Targets **Pester 6.2+**.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -46,16 +46,18 @@ Tests/
 ├── Results/
 │   ├── Coverage.xml
 │   └── TestResults.xml
+├── Pester.BeforeContainer.ps1   <- optional, applies to Tests/ and below (6.2+)
 ├── PesterConfiguration.psd1
 └── Invoke-Tests.ps1
 
-Pester.BeforeContainer.ps1     <- optional, at REPOSITORY ROOT (not in Tests/)
+Pester.BeforeContainer.ps1     <- optional, at REPOSITORY ROOT - applies to every test file
 ```
 
-`Pester.BeforeContainer.ps1` must sit at the repository root - the directory containing `.git`, which
-Pester exposes as `Run.RepoRoot`. When present, Pester dot-sources it before **every** test file is
-discovered and run, in both serial and parallel runs. As of 6.1 this is the only shared-bootstrap
-mechanism; the `Run.BeforeContainer` option was removed.
+`Pester.BeforeContainer.ps1` is looked for at the repository root - the directory containing `.git`,
+which Pester exposes as `Run.RepoRoot` - and, from 6.2, in every folder between there and the test
+file. When present, Pester dot-sources each one before **every** test file below it is discovered
+and run, outermost first, in both serial and parallel runs. As of 6.1 this is the only
+shared-bootstrap mechanism; the `Run.BeforeContainer` option was removed.
 
 ## Test File Isolation (Pester 6)
 
@@ -67,7 +69,7 @@ runspace.
 discovery-time setup. It cannot rely on a file that happened to be discovered earlier.
 
 ```powershell
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 BeforeDiscovery {
     # Only what is needed to BUILD the test tree: -ForEach data, helper commands
@@ -87,21 +89,57 @@ isolated need no changes.
 
 ### Shared Bootstrap
 
-When many files need identical setup, put it in one place rather than duplicating it:
+When many files need identical setup, put it in one place rather than duplicating it. The setup file
+follows the same rule as a test file: top-level code runs during **discovery** only, and what the
+tests need at **run** time goes in a `BeforeAll`:
 
 ```powershell
 # Pester.BeforeContainer.ps1 at the repository root
+
+# Discovery only - keep this only where a -ForEach or BeforeDiscovery needs it
 Import-Module "$PSScriptRoot/Source/ModuleName.psd1" -Force
-. "$PSScriptRoot/Tests/TestHelpers/TestHelpers.ps1"
+
+# Run time - what the tests themselves need
+BeforeAll {
+    Import-Module "$PSScriptRoot/Source/ModuleName.psd1" -Force
+    . "$PSScriptRoot/Tests/TestHelpers/TestHelpers.ps1"
+}
 ```
+
+Before 6.2 everything sat at top level and reached the tests. On 6.2 that shape fails silently: a
+function or variable dot-sourced at top level is gone by the time a test runs (the helper call fails
+with `CommandNotFoundException`, the variable reads as `$null`), and only `Import-Module` happens to
+survive because module state is session-wide. Wrap run-time setup in `BeforeAll`, and keep the
+top-level part only where discovery genuinely needs it.
 
 Anchor every path in it to `$PSScriptRoot`. The file runs before each container in both serial and
 parallel runs, and a relative path would resolve against whatever the working directory happens to
-be - which is precisely why the `Run.BeforeContainer` scriptblock option was removed in 6.1.
+be - which is precisely why the `Run.BeforeContainer` scriptblock option was removed in 6.1. It runs
+once per container, so what it does must be safe to repeat.
 
-If the bootstrap does not appear to run, check `Run.RepoRoot`. It is resolved from the .NET process
-working directory rather than `$PWD`, so a run launched from outside the repository looks for the
-file in the wrong place and simply finds nothing:
+#### Per-folder setup (6.2+)
+
+A `Pester.BeforeContainer.ps1` in a subfolder applies to that folder and below, after the ones
+above it, so each suite carries only what it needs:
+
+```powershell
+# Tests/Unit/Pester.BeforeContainer.ps1
+BeforeAll { $script:Db = 'in-memory' }
+
+# Tests/Integration/Pester.BeforeContainer.ps1
+BeforeAll { $script:Db = 'real-sql' }
+```
+
+Each file is dot-sourced into the container's own scope, so `Tests/Integration` never inherits what
+`Tests/Unit` set up, whichever runs first. A folder that wants none of the setup above it starts its
+file with `#pester:no-inherit`. The result object records which files applied to each container as
+`BeforeContainerFile`, outermost first - see
+[Pester Configuration Guide](./pester-configuration.md#folder-scoped-setup-62).
+
+If the bootstrap does not appear to run, check `Run.RepoRoot` - the chain starts there. From 6.2 the
+run resolves it from the session's current location when it is unset (6.1 used the .NET process
+working directory), so a run launched from outside the repository, or against a checkout with no
+`.git` folder, still looks in the wrong place and simply finds nothing:
 
 ```powershell
 $config.Run.RepoRoot = $PSScriptRoot
@@ -233,15 +271,14 @@ inside strings.
 - All external dependencies must be mocked appropriately
 - Test isolation must be maintained between tests **and between files**
 - Clean test data and resources in `AfterAll` or `AfterEach`
-- Exactly one `BeforeAll`, `BeforeEach`, `AfterAll`, and `AfterEach` per block - duplicates throw
 - Every `Describe` block carries at least one tag
 - No `-ForEach` / `-TestCases` expression can evaluate to `$null` or `@()`
 
 ### Verifying Structure
 
 A discovery-only pass validates the whole suite's structure without paying for a full run. It
-surfaces duplicate setup blocks, empty `-ForEach` sets, and files that cannot be discovered
-independently:
+surfaces empty `-ForEach` sets, files that cannot be discovered independently, and - from 6.2 - a
+configuration value of the wrong type:
 
 ```powershell
 $config = New-PesterConfiguration

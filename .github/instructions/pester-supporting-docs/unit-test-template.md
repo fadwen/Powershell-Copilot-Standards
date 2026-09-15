@@ -1,6 +1,6 @@
 # Unit Test Template
 
-Targets **Pester 6.1+**. Uses the `Should-*` assertion syntax - see
+Targets **Pester 6.2+**. Uses the `Should-*` assertion syntax - see
 [Assertion Guide](./assertion-guide.md) for the full reference and the v5 mapping table.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
@@ -16,7 +16,7 @@ text descriptions and standard ASCII characters only.
 Use this template for all unit tests:
 
 ```powershell
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 BeforeDiscovery {
     # Pester 6 discovers and runs one file at a time, so this file must set up
@@ -71,7 +71,7 @@ Describe "Function-Name" -Tag "Unit", "Public" {
 
     Context "Core Functionality" {
         BeforeEach {
-            # Set up mocks for each test. Only ONE BeforeEach per block - Pester 6 throws on duplicates.
+            # Set up mocks for each test.
             Mock External-Dependency {
                 @{ Status = 'Success'; Data = 'MockedData' }
             } -ModuleName ModuleName
@@ -182,10 +182,13 @@ Describe "Function-Name" -Tag "Unit", "Public" {
 
 ## Pester 6 Authoring Rules
 
-### One setup block per scope
+### Setup blocks compose
 
-Pester 6 **throws** on duplicate `BeforeAll`, `BeforeEach`, `AfterAll`, or `AfterEach` in the same
-block. This catches a common copy-paste mistake. Merge them into one.
+From 6.2 a block may declare several `BeforeAll`, `BeforeEach`, `AfterAll`, or `AfterEach` blocks.
+Setups run in declaration order and teardowns in reverse, so setup can be grouped by what it sets
+up - one `BeforeAll` that imports the module, another that builds the fixture - instead of merged
+into a single block. 6.0 and 6.1 throw on the second one, so a suite that must still run on those
+versions keeps one per block.
 
 ### No `param()` block in `It`
 

@@ -1,6 +1,6 @@
 # Mocking Patterns Guide
 
-Targets **Pester 6.1+**.
+Targets **Pester 6.2+**.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -823,17 +823,19 @@ Describe "Function Tests" {
 }
 ```
 
-Each `Context` gets its own `BeforeEach`. Pester 6 **throws** on two `BeforeEach` blocks in the
-_same_ block, so when you need several groups of mocks, split them into separate `Context` blocks
-rather than adding a second setup block.
+Each `Context` gets its own `BeforeEach`. From 6.2 a block may also hold several `BeforeEach`
+blocks, run in declaration order, so a second group of mocks can be its own block rather than
+merged into the first. Separate `Context` blocks remain the better split when the two groups serve
+different tests; 6.0 and 6.1 throw on a second `BeforeEach` in the _same_ block.
 
 ### Mocks Do Not Cross Files
 
 Pester 6 discovers and runs one file at a time, and under `Run.Parallel` each file gets its own
 runspace. A mock defined in one test file is never visible to another. Define every mock a file
 needs inside that file. For mock setup shared across many files, dot-source a shared mock factory
-from a `Pester.BeforeContainer.ps1` at the repository root - but note that `Mock` itself must still
-be called inside a `Describe`/`Context`/`BeforeAll` scope:
+from a `Pester.BeforeContainer.ps1` - inside its `BeforeAll`, because from 6.2 top-level code in
+that file runs at discovery only and a function it defined would be gone by the time a test calls
+it. `Mock` itself must still be called inside a `Describe`/`Context`/`BeforeAll` scope:
 
 ```powershell
 # TestHelpers/MockFactory.ps1 - dot-sourced from Pester.BeforeContainer.ps1
@@ -841,6 +843,13 @@ function Set-StandardExternalMock {
     param([string]$ModuleName)
     Mock Invoke-RestMethod { @{ Status = 'Healthy' } } -ModuleName $ModuleName
     Mock Write-Verbose { } -ModuleName $ModuleName
+}
+```
+
+```powershell
+# Pester.BeforeContainer.ps1, at the repository root
+BeforeAll {
+    . "$PSScriptRoot/Tests/TestHelpers/MockFactory.ps1"
 }
 ```
 

@@ -15,11 +15,13 @@ apply.
 
 ```powershell
 #Requires -Version 5.1
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 ```
 
-These standards target **6.1+**. Nothing in 6.1 breaks a 6.0 suite, so the migration below is the
-whole job; see [Moving From 6.0 to 6.1](#moving-from-60-to-61) at the end for what 6.1 adds.
+These standards target **6.2+**. Nothing in 6.1 or 6.2 breaks a test file written for 6.0, so the
+migration below is the whole job for test files; see [Moving From 6.0 to 6.1](#moving-from-60-to-61)
+and [Moving From 6.1 to 6.2](#moving-from-61-to-62) at the end for what changed underneath -
+configuration, positional parameters, and the shape of `Pester.BeforeContainer.ps1`.
 
 ## Upgrade Checklist
 
@@ -28,29 +30,31 @@ behavior changes that can pass silently and mislead.
 
 - [ ] **1. Replace `Assert-MockCalled` and `Assert-VerifiableMock`.** Both were **removed**. Use
       `Should -Invoke` / `Should -InvokeVerifiable`, or the new `Should-Invoke` / `Should-NotInvoke`.
-- [ ] **2. Remove duplicate setup/teardown blocks.** Two `BeforeAll` (or `BeforeEach`, `AfterAll`,
-      `AfterEach`) in the same block now **throw** instead of being silently allowed. Merge them.
-- [ ] **3. Remove `-Focus` and `-Pending`.** `Describe`/`Context`/`It` no longer accept `-Focus`, and
+- [ ] **2. Remove `-Focus` and `-Pending`.** `Describe`/`Context`/`It` no longer accept `-Focus`, and
       the `Focus` property is gone from the result object. `Set-ItResult -Pending` is gone - use
       `-Skipped` or `-Inconclusive`. Use `-Skip`, tags, or `Filter` to select which tests run.
-- [ ] **4. Audit every `-ForEach` / `-TestCases` that can produce an empty set.** `$null` or `@()`
+- [ ] **3. Audit every `-ForEach` / `-TestCases` that can produce an empty set.** `$null` or `@()`
       now **fails discovery** (`Run.FailOnNullOrEmptyForEach`, on by default). Opt out per block or
       test with `-AllowNullOrEmptyForEach`, or fix the generator so it cannot be empty.
-- [ ] **5. Make every test file self-contained.** Discovery and run now happen per file - a module
+- [ ] **4. Make every test file self-contained.** Discovery and run now happen per file - a module
       imported at discovery time in one file is not guaranteed to be loaded when another file is
       discovered. See below.
-- [ ] **6. Check for a literal tag named `None`.** `None` is now a reserved filter value meaning
+- [ ] **5. Check for a literal tag named `None`.** `None` is now a reserved filter value meaning
       "tests with no tags". Rename any real tag called `None`.
-- [ ] **7. Review code coverage settings.** Profiler-based coverage is now the default; set
+- [ ] **6. Review code coverage settings.** Profiler-based coverage is now the default; set
       `CodeCoverage.UseBreakpoints = $true` only if you depend on breakpoint-based numbers. The
       `CoverageGutters` output format was **removed** - use `JaCoCo` or `Cobertura`.
-- [ ] **8. Check test and block names containing `<...>`.** Only `<...>` templates are expanded now,
+- [ ] **7. Check test and block names containing `<...>`.** Only `<...>` templates are expanded now,
       and their contents are evaluated as full PowerShell expressions.
-- [ ] **9. Check for `*.Tests.ps1` in hidden or dot-prefixed folders.** These are now discovered and
+- [ ] **8. Check for `*.Tests.ps1` in hidden or dot-prefixed folders.** These are now discovered and
       run. Add `Run.ExcludePath` entries for any you do not want picked up.
-- [ ] **10. Adopt `Should-*` assertions in new tests.** Optional and additive - see
+- [ ] **9. Adopt `Should-*` assertions in new tests.** Optional and additive - see
       [Assertion Guide](./assertion-guide.md). Do not set `Should.DisableV5 = $true` until the whole
       suite is migrated.
+
+A second `BeforeAll` (or `BeforeEach`, `AfterAll`, `AfterEach`) in one block threw in 6.0 and 6.1
+and was a migration item. 6.2 allows it again - see
+[Moving From 6.1 to 6.2](#moving-from-61-to-62) - so it is no longer on the list.
 
 ## Discovery and Run Now Happen Per File
 
@@ -87,15 +91,20 @@ Runtime setup in `BeforeAll` was never affected by this and still works as befor
 
 **Shared bootstrap.** When several files need the same setup, put a `Pester.BeforeContainer.ps1` in
 the repository root (`Run.RepoRoot`). Pester dot-sources it before **every** test file is discovered
-and run, in both serial and parallel runs:
+and run, in both serial and parallel runs. Run-time setup goes in a `BeforeAll`; the file's top-level
+code runs at discovery only (6.2):
 
 ```powershell
 # Pester.BeforeContainer.ps1, at the repository root
-. "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
+BeforeAll {
+    . "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
+}
 ```
 
 6.0 also offered a `Run.BeforeContainer` configuration option for this. It was **removed in 6.1** -
-see [Moving From 6.0 to 6.1](#moving-from-60-to-61). The convention file is now the only mechanism.
+see [Moving From 6.0 to 6.1](#moving-from-60-to-61). The convention file is now the only mechanism,
+and from 6.2 it may also sit in any folder under the root - see
+[Moving From 6.1 to 6.2](#moving-from-61-to-62).
 
 **Console output changed.** A run prints one `Running tests from N files.` banner, then per-file
 results, then one grand-total summary. The old `Starting discovery in N files.` /
@@ -194,11 +203,11 @@ $config.Run.Parallel = $true
 $config.Run.ParallelThrottleLimit = 4   # 0 (default) uses all processors
 ```
 
-Requires PowerShell 7+ and file-based containers. Falls back to a sequential run **with a warning**
-on Windows PowerShell 5.1, for in-memory `ScriptBlock` containers, and when
-`Run.SkipRemainingOnFailure = 'Run'`. Coverage under parallel was unsupported in 6.0 and works from
-6.1 onward, at the cost of forced breakpoint mode - see
-[Test Execution Guide](./test-execution.md).
+Requires file-based containers. Runs on PowerShell 7 and, from 6.2, on Windows PowerShell 5.1 (6.0
+and 6.1 fell back to sequential there). Falls back to a sequential run **with a warning** for
+in-memory `ScriptBlock` containers and when `Run.SkipRemainingOnFailure = 'Run'`. Coverage under
+parallel was unsupported in 6.0 and works from 6.1 onward, at the cost of forced breakpoint mode -
+see [Test Execution Guide](./test-execution.md).
 
 Opt a single file out with a comment directive parsed like `#requires`:
 
@@ -227,7 +236,7 @@ Get-ChildItem -Recurse -Filter *.Tests.ps1 |
     Select-String -Pattern '-Focus\b|Set-ItResult\s+-Pending' |
     Select-Object Path, LineNumber, Line
 
-# 4. Discovery-only pass - surfaces duplicate setup blocks and empty -ForEach without running tests
+# 4. Discovery-only pass - surfaces empty -ForEach sets and files that cannot be discovered alone
 $config = New-PesterConfiguration
 $config.Run.Path = './Tests'
 $config.Run.SkipRun = $true
@@ -238,8 +247,8 @@ Invoke-Pester -Configuration $config
 Invoke-Pester -Path ./Tests -TagFilter 'None'
 ```
 
-Step 4 is the highest-value check: it walks every file through discovery, so duplicate
-`BeforeAll`/`AfterEach` blocks and empty `-ForEach` sets throw there without paying for a full run.
+Step 4 is the highest-value check: it walks every file through discovery, so empty `-ForEach` sets
+and files that depend on another file having run first fail there without paying for a full run.
 
 ## Moving From 6.0 to 6.1
 
@@ -260,9 +269,11 @@ Neither of these appears in the 6.1.0 release announcement. Check for both befor
       `The property 'BeforeContainer' cannot be found on this object`. Move the scriptblock body
       into a `Pester.BeforeContainer.ps1` at the repository root.
 
-- [ ] **A hashtable config loses it silently.** `New-PesterConfiguration -Hashtable` ignores unknown
-      keys, so a `Run.BeforeContainer` entry in a `PesterConfiguration.psd1` does **not** throw - the
-      bootstrap simply stops running. Grep for the name rather than relying on the run to tell you.
+- [ ] **A hashtable config lost it silently on 6.1.** `New-PesterConfiguration -Hashtable` ignored
+      unknown keys, so a `Run.BeforeContainer` entry in a `PesterConfiguration.psd1` did **not**
+      throw - the bootstrap simply stopped running. From 6.2 `Invoke-Pester` warns
+      `Ignoring configuration keys 'Run.BeforeContainer'`; on 6.1 grep for the name rather than
+      relying on the run to tell you.
 
 - [ ] **`Should-BeEquivalent -StrictOrder` was removed.** It never worked. If a call passes it,
       the switch was not doing what its name implied - assert collection order with
@@ -341,3 +352,158 @@ Turning either on can surface real problems in an existing suite - that is what 
 `Mock.Global` can make a previously-unmocked call start hitting a mock; `Run.Shuffle` fails tests
 that depended on declaration order. Both may still change before they are declared stable, so pin
 the behavior you rely on in a dedicated job rather than across the whole suite.
+
+## Moving From 6.1 to 6.2
+
+6.2.0 shipped 2026-09-09. It is additive for test files - no assertion or mocking API a test file
+uses was removed or renamed. The changes that can affect an existing suite are in
+`Pester.BeforeContainer.ps1`, in the two timing assertions, and in how the configuration treats bad
+input. Everything below was verified against an installed 6.2.0.
+
+```powershell
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
+```
+
+### Check Before Upgrading
+
+- [ ] **Top-level code in `Pester.BeforeContainer.ps1` runs during discovery only.** Anything the
+      tests need at run time has to be in a `BeforeAll`. A setup file written for 6.1 has no
+      `BeforeAll` and stops working without a warning - see
+      [The Setup File Needs a BeforeAll](#the-setup-file-needs-a-beforeall) below.
+- [ ] **`Should-BeFasterThan` and `Should-BeSlowerThan` throw on input they cannot measure.** Both
+      take a `[scriptblock]` to run or a `[timespan]` to compare. On 6.1 a string, a number, or
+      `$null` fell through and the test passed having asserted nothing; on 6.2 it fails with
+      `Expected a [scriptblock] to measure or a [timespan] to compare, but got [string] '...'`. A
+      test that starts failing here was never measuring - fix it to pipe the scriptblock.
+- [ ] **A configuration value of the wrong type throws while the configuration is built.**
+      `Run.Parallel = 'yes'` fails with `Run.Parallel expects a bool, but got the string 'yes'`.
+      This bites `psd1` and JSON files first, where a boolean written in quotes arrives as a string.
+      An `int` for a `decimal` is still accepted, and a `$null` value still means "not set".
+- [ ] **A key that matches no option is reported.** `Invoke-Pester` warns once:
+      `WARNING: Ignoring configuration keys 'Run.Paralel', there are no such options`. The list is
+      also on the object as `$config.GetUnknownKeys()`, which is the thing to gate on in CI since a
+      warning does not fail a job. Before 6.2 a misspelled key was silently ignored.
+- [ ] **Assertions name themselves in the collection-on-`-Expected` error.** The message that read
+      "is not allowed by this assertion" now reads "is not allowed by Should-Be". Anything matching
+      on that text sees a new string.
+- [ ] **Stray output from a setup file no longer warns.** It cannot escape the container any more,
+      so a pipeline that grepped for that warning finds nothing.
+
+### The Setup File Needs a BeforeAll
+
+On 6.1 everything in `Pester.BeforeContainer.ps1` sat at top level and reached the tests. On 6.2 the
+file follows the same rule as a test file: top-level code runs at discovery, `BeforeAll` runs before
+the tests. Measured on 6.2 with the 6.1 shape, in both sequential and parallel runs:
+
+| Top-level statement in the setup file | Visible at discovery | Visible to the tests |
+| --- | --- | --- |
+| `Import-Module` | yes | yes - module state is session-wide, not because the file ran |
+| `. ./Bootstrap.ps1` defining a function | yes | **no** - `CommandNotFoundException` |
+| `$script:Var = ...` | yes | **no** - reads as `$null` |
+
+Nothing warns. Wrap the run-time part:
+
+```powershell
+# before (6.1)
+Import-Module "$PSScriptRoot/Source/MyModule.psd1" -Force
+. "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
+
+# after (6.2)
+BeforeAll {
+    Import-Module "$PSScriptRoot/Source/MyModule.psd1" -Force
+    . "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
+}
+```
+
+Keep a top-level copy only for what discovery itself needs - a helper command used inside a
+`-ForEach` or `BeforeDiscovery`. `BeforeAll` in a setup file does nothing on 6.1 - none of its setup
+reaches discovery or the tests - so one file cannot serve both versions; the version floor moves
+with this change.
+
+### Restriction Lifted
+
+A block can have as many `BeforeAll`, `AfterAll`, `BeforeEach` and `AfterEach` blocks as you want.
+They all run - setups in declaration order, teardowns in reverse - so setup can be grouped by what it
+sets up:
+
+```powershell
+Describe 'Get-User' {
+    BeforeAll { Import-Module "$PSScriptRoot/../src/MyModule.psd1" -Force }
+    BeforeAll { $script:user = New-TestUser -Name 'jakub' }
+    AfterAll  { Remove-TestUser -Name 'jakub' }
+    AfterAll  { Remove-Module MyModule -Force }
+}
+```
+
+6.0 and 6.1 threw on the second one. A CI hint keyed on that error, or a lint rule enforcing one
+block per scope, can go.
+
+### What Is New
+
+| Addition | Where |
+| --- | --- |
+| `Pester.BeforeContainer.ps1` in any folder under `Run.RepoRoot` - every one from the root down applies, outermost first | [Pester Configuration Guide](./pester-configuration.md#folder-scoped-setup-62) |
+| `#pester:no-inherit` - a folder's setup file opts out of everything above it | [Pester Configuration Guide](./pester-configuration.md#folder-scoped-setup-62) |
+| `$container.BeforeContainerFile` - which setup files applied, on the result object | [Test Execution Guide](./test-execution.md#result-object-reference) |
+| `Should-BeString` prints every differing region with line numbers for strings over 10 lines or 120 characters | [Assertion Guide](./assertion-guide.md#long-strings-get-a-real-diff) |
+| `$config.GetUnknownKeys()` - configuration keys that matched no option | [Pester Configuration Guide](./pester-configuration.md#dynamic-configuration-loading) |
+| `Run.Parallel` on Windows PowerShell 5.1 (experimental) - the runner moved to a runspace pool | [Test Execution Guide](./test-execution.md#parallel-test-execution-experimental) |
+| A parallel run throws when a worker's file goes missing, and a failed worker no longer aborts the rest under `$ErrorActionPreference = 'Stop'` | [Test Execution Guide](./test-execution.md#a-lost-file-is-an-error) |
+| Failures point at the line that caused them - errors from inside Pester keep their stack trace, and an assertion failing inside a helper reports the helper's caller too | Output only |
+
+### Behavior Worth Knowing About
+
+None of these fail an existing suite, but they change what you see:
+
+- **`Run.RepoRoot` is resolved from the session's current location** when you did not set it.
+  `New-PesterConfiguration` still shows the .NET process working directory on the object, but
+  `Invoke-Pester` re-resolves from `$PWD` before the run, so a session that started elsewhere and
+  then changed into the repository now finds its setup files. Setting it explicitly still wins.
+- **`Run.SkipRun` applies the setup-file chain.** A discovery-only pass - the path the VS Code Test
+  Explorer uses - used to skip the setup files, so a `-ForEach` over data they provided came back
+  empty in the explorer and populated in a real run.
+- **A `BeforeAll` that throws reports the real error.** 6.1 reported _A 'break' or 'continue'
+  statement with a label that does not match any enclosing loop escaped from your code_ and
+  discarded the exception, so a database being down read as a misspelled loop label.
+- **`Invoke-Pester` keeps its `-1` exit code when it fails internally.** It could overwrite it with
+  `$null` when the failure came before the run was created, or with `0` when a plugin failed after
+  an otherwise successful run.
+- **Pester imports on PowerShell 7.4.0 to 7.4.5 again.** 6.0 and 6.1 failed there with
+  `Cannot convert "PesterConfigurationDeserializer" from String to Type`, because the `net8.0`
+  assembly referenced a newer `System.Management.Automation` than those releases carry.
+- **Stack traces from Pester's own C# code no longer carry the build agent's path.**
+  `D:\a\1\s\src\csharp\Pester\...` became `/_/src/csharp/Pester/...`, and the build is reproducible
+  as a side effect.
+- **The `TestRegistry` retry message is a debug message now.** `IO exception during a TestRegistry
+  operation, retrying.` no longer appears as a warning when the retry recovers.
+
+### Verifying The Upgrade
+
+```powershell
+# 1. Find setup files with top-level statements other than BeforeAll/AfterAll -
+#    those run at discovery only on 6.2
+Get-ChildItem -Recurse -Filter Pester.BeforeContainer.ps1 | ForEach-Object {
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$null)
+    $topLevel = @($ast.EndBlock.Statements | Where-Object {
+        $first = $_.PipelineElements[0]
+        -not ($first -is [System.Management.Automation.Language.CommandAst] -and
+              $first.GetCommandName() -in 'BeforeAll', 'AfterAll')
+    })
+    if ($topLevel.Count -gt 0) {
+        "$($_.FullName): $($topLevel.Count) top-level statement(s) run at discovery only"
+    }
+}
+
+# 2. Confirm which setup files each test file actually got
+$result = Invoke-Pester -Path ./Tests -PassThru -Output None
+$result.Containers | ForEach-Object { "$($_.Item.Name): $($_.BeforeContainerFile -join ', ')" }
+
+# 3. Find timing assertions whose left side does not end in a scriptblock's closing brace
+Get-ChildItem -Recurse -Filter *.Tests.ps1 |
+    Select-String -Pattern '[^}\s]\s*\|\s*Should-Be(Faster|Slower)Than' |
+    Select-Object Path, LineNumber, Line
+
+# 4. Fail on configuration keys that match no option
+$config = New-PesterConfiguration -Hashtable (Import-PowerShellDataFile ./Tests/PesterConfiguration.psd1)
+if ($config.GetUnknownKeys()) { throw "Unknown keys: $($config.GetUnknownKeys() -join ', ')" }
+```

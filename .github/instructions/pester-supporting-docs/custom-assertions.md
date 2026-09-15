@@ -1,6 +1,6 @@
 # Custom Assertion Guide
 
-Requires **Pester 6.1+**. `New-ShouldAssertion` does not exist in 6.0.x.
+Requires **Pester 6.2+**. `New-ShouldAssertion` does not exist in 6.0.x.
 
 **NOTE**: Do not use Unicode emojis in any generated code, documentation, or test output. Use plain
 text descriptions and standard ASCII characters only.
@@ -295,14 +295,18 @@ BeforeAll {
 ```
 
 For a repository-wide set, import them from a `Pester.BeforeContainer.ps1` at the repository root,
-which Pester dot-sources before every container:
+which Pester dot-sources before every container. Put the import in a `BeforeAll`: from 6.2 the
+file's top-level code runs at discovery only, and while a module import happens to survive into the
+run phase (module state is session-wide), a dot-sourced function does not:
 
 ```powershell
 # Pester.BeforeContainer.ps1, at the repository root
-Import-Module "$PSScriptRoot/Tests/TestHelpers/Assertions.psd1" -Force
+BeforeAll {
+    Import-Module "$PSScriptRoot/Tests/TestHelpers/Assertions.psd1" -Force
+}
 ```
 
-That file fires only when `Run.RepoRoot` points at the directory holding it - see
+The chain of setup files starts at `Run.RepoRoot` - see
 [Pester Configuration Guide](./pester-configuration.md).
 
 ## Test The Assertion Itself
