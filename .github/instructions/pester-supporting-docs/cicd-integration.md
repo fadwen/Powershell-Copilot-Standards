@@ -1,6 +1,6 @@
 # CI/CD Integration Guide
 
-Targets **Pester 6.1+**. Pester 6 supports **Windows PowerShell 5.1** and **PowerShell 7.4+** only -
+Targets **Pester 6.2+**. Pester 6 supports **Windows PowerShell 5.1** and **PowerShell 7.4+** only -
 support for PowerShell 3, 4, 6, and early/unsupported 7.x was removed, so drop `7.2` and `7.3` from
 existing test matrices.
 
@@ -14,7 +14,7 @@ text descriptions and standard ASCII characters only.
 
 ## Job Design for Pester 6
 
-Two facts shape the pipeline:
+Three facts shape the pipeline:
 
 1. **Coverage and parallel pull against each other.** Pester 6.0 refused to combine them at all;
    6.1 merges coverage across workers but forces slower breakpoint-based collection to do it. Either
@@ -23,13 +23,18 @@ Two facts shape the pipeline:
 2. **Discovery failures do not appear in `FailedCount`.** A file that fails discovery contributes
    zero failed tests. Every gate must also check `FailedContainersCount`, and a cheap discovery-only
    job should run first.
+3. **Pester 6.0 and 6.1 do not import on PowerShell 7.4.0 to 7.4.5.** Their `net8.0` assembly
+   referenced a newer `System.Management.Automation` than those releases carry, so `Import-Module`
+   failed with `Cannot convert "PesterConfigurationDeserializer" from String to Type`. 6.2 fixed it.
+   Hosted runners ship the latest 7.4.x, so this bites self-hosted agents and pinned container
+   images - pin Pester at 6.2.0 or newer wherever a 7.4 leg remains.
 
 ```text
 validate (discovery-only, fast)
     |
-    +--> test-parallel  (no coverage, PS 7.4+, fast feedback)
+    +--> test-parallel  (no coverage, fast feedback)
     +--> test-coverage  (sequential, coverage gate)
-    +--> test-ps51      (Windows PowerShell 5.1, sequential - no parallel support)
+    +--> test-ps51      (Windows PowerShell 5.1; parallel works here too from 6.2)
 ```
 
 ## GitHub Actions Integration
@@ -49,12 +54,12 @@ on:
 
 env:
   POWERSHELL_TELEMETRY_OPTOUT: 1
-  PESTER_VERSION: '6.1.0'
+  PESTER_VERSION: '6.2.0'
 
 jobs:
-  # Fast structural check. Catches the Pester 6 breakages - duplicate setup blocks,
-  # empty -ForEach, files that cannot be discovered independently - without running
-  # a single test.
+  # Fast structural check. Catches the Pester 6 breakages - empty -ForEach, files
+  # that cannot be discovered independently, a wrong-typed configuration value -
+  # without running a single test.
   validate:
     runs-on: ubuntu-latest
     steps:
@@ -119,7 +124,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
         shell: [pwsh]
         include:
-          # Windows PowerShell 5.1 - sequential only, no parallel support
+          # Windows PowerShell 5.1 - Run.Parallel works here from Pester 6.2
           - os: windows-latest
             shell: powershell
 
@@ -160,17 +165,17 @@ jobs:
           throw "PSScriptAnalyzer found $($analysisResults.Count) issues"
         }
 
-    # Fast feedback: parallel, no coverage. Parallel is silently ignored on
-    # Windows PowerShell 5.1, which falls back to sequential with a warning.
+    # Fast feedback: parallel, no coverage. From Pester 6.2 the parallel runner
+    # works on Windows PowerShell 5.1 too; 6.0 and 6.1 fell back to sequential there.
     - name: Run Unit Tests
       shell: ${{ matrix.shell }}
       run: |
-        Import-Module Pester -MinimumVersion 6.1.0 -Force
+        Import-Module Pester -MinimumVersion 6.2.0 -Force
 
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Unit'
         $config.Run.PassThru = $true
-        $config.Run.Parallel = $PSVersionTable.PSVersion.Major -ge 7
+        $config.Run.Parallel = $true
         $config.TestResult.Enabled = $true
         $config.TestResult.OutputFormat = 'NUnitXml'
         $config.TestResult.OutputPath = './TestResults.xml'
@@ -187,7 +192,7 @@ jobs:
     - name: Run Integration Tests
       shell: ${{ matrix.shell }}
       run: |
-        Import-Module Pester -MinimumVersion 6.1.0 -Force
+        Import-Module Pester -MinimumVersion 6.2.0 -Force
 
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Integration'
@@ -233,7 +238,7 @@ jobs:
     - name: Run Tests with Coverage
       shell: pwsh
       run: |
-        Import-Module Pester -MinimumVersion 6.1.0 -Force
+        Import-Module Pester -MinimumVersion 6.2.0 -Force
 
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Unit'
@@ -308,7 +313,7 @@ jobs:
     - name: Run Security Tests
       shell: pwsh
       run: |
-        Import-Module Pester -MinimumVersion 6.1.0 -Force
+        Import-Module Pester -MinimumVersion 6.2.0 -Force
 
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Security'
@@ -372,7 +377,7 @@ jobs:
     - name: Run Performance Tests
       shell: pwsh
       run: |
-        Import-Module Pester -MinimumVersion 6.1.0 -Force
+        Import-Module Pester -MinimumVersion 6.2.0 -Force
 
         $config = New-PesterConfiguration
         $config.Run.Path = './Tests/Performance'
@@ -485,7 +490,7 @@ stages:
         targetType: 'inline'
         script: |
           Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module Pester -MinimumVersion 6.1.0 -Force -Scope CurrentUser
+          Install-Module Pester -MinimumVersion 6.2.0 -Force -Scope CurrentUser
           Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
         pwsh: $(powershellVersion -eq '7.x')
 
@@ -507,7 +512,7 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
-          Import-Module Pester -MinimumVersion 6.1.0 -Force
+          Import-Module Pester -MinimumVersion 6.2.0 -Force
 
           $config = New-PesterConfiguration
           $config.Run.Path = './Tests'
@@ -575,7 +580,7 @@ stages:
         targetType: 'inline'
         script: |
           Set-PSRepository PSGallery -InstallationPolicy Trusted
-          Install-Module Pester -MinimumVersion 6.1.0 -Force -Scope CurrentUser
+          Install-Module Pester -MinimumVersion 6.2.0 -Force -Scope CurrentUser
         pwsh: true
 
     - task: PowerShell@2
@@ -670,7 +675,7 @@ pipeline {
                     steps {
                         powershell '''
                             Set-PSRepository PSGallery -InstallationPolicy Trusted
-                            Install-Module Pester -MinimumVersion 6.1.0 -Force -Scope CurrentUser
+                            Install-Module Pester -MinimumVersion 6.2.0 -Force -Scope CurrentUser
 
                             $config = New-PesterConfiguration
                             $config.Run.Path = './Tests'
@@ -697,7 +702,7 @@ pipeline {
                     steps {
                         pwsh '''
                             Set-PSRepository PSGallery -InstallationPolicy Trusted
-                            Install-Module Pester -MinimumVersion 6.1.0 -Force -Scope CurrentUser
+                            Install-Module Pester -MinimumVersion 6.2.0 -Force -Scope CurrentUser
 
                             ./Invoke-Tests.ps1 -TestType All -Environment CI -CodeCoverage
                         '''
@@ -775,7 +780,7 @@ variables:
 .powershell_template: &powershell_template
   before_script:
     - Set-PSRepository PSGallery -InstallationPolicy Trusted
-    - Install-Module Pester -MinimumVersion 6.1.0 -Force -Scope CurrentUser
+    - Install-Module Pester -MinimumVersion 6.2.0 -Force -Scope CurrentUser
 
 # GitLab needs JUnit for test results and Cobertura for coverage. Pester 6
 # supports both natively - set TestResult.OutputFormat = 'JUnitXml' and
@@ -849,7 +854,7 @@ Pester 6 has a built-in parallel runner. `Run.Container` is for _parametrizing_ 
 parallelism - the old snippet using multiple containers ran sequentially.
 
 ```powershell
-# Actual parallel execution: one file per runspace, PowerShell 7+ only
+# Actual parallel execution: one file per runspace, on 5.1 and 7 alike from 6.2
 $config = New-PesterConfiguration
 $config.Run.Path = './Tests/Unit'
 $config.Run.Parallel = $true
@@ -871,21 +876,29 @@ jobs is still the better default - a parallel job without coverage for feedback,
 job with the profiler for the gate - but measure before assuming either is faster.
 
 Each worker starts from a **clean runspace**, so every test file must be self-contained. Provide
-shared bootstrap through a `Pester.BeforeContainer.ps1` at the repository root, which Pester
-dot-sources before every container:
+shared bootstrap through `Pester.BeforeContainer.ps1` files, which Pester dot-sources before every
+container - from 6.2, every one from `Run.RepoRoot` down to the test file's folder, outermost first.
+Put run-time setup in a `BeforeAll`; top-level code in the file runs at discovery only:
 
 ```powershell
 # Pester.BeforeContainer.ps1, at the repository root
-. "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
+BeforeAll {
+    . "$PSScriptRoot/Tests/TestHelpers/Bootstrap.ps1"
+}
 ```
 
 The `Run.BeforeContainer` option was removed in 6.1 - a CI job that still sets it now throws. In CI
-also set `Run.RepoRoot` explicitly, because the default is resolved from the .NET process working
-directory and a job that runs Pester from a subdirectory will not find the bootstrap file:
+also set `Run.RepoRoot` explicitly. From 6.2 an unset root is resolved from the session's current
+location (6.1 used the .NET process working directory), but a checkout without a `.git` directory,
+or a run launched from outside the repository, still lands on the wrong root and finds no setup file:
 
 ```powershell
 $config.Run.RepoRoot = $env:GITHUB_WORKSPACE   # or the equivalent for your CI system
 ```
+
+A parallel worker that died used to drop its file from the results without a trace. From 6.2 the run
+throws naming the missing files, and a worker that throws no longer aborts the remaining files when
+the job runs with `$ErrorActionPreference = 'Stop'`.
 
 Verify isolation before enabling parallel in CI - if a file only passes as part of a full run, it is
 not self-contained:
@@ -964,3 +977,13 @@ if ($result.CodeCoverage) {
 
 Items 2 and 3 are the ones a Pester 5 pipeline will not have, and they are exactly how a v6 upgrade
 turns green while running fewer tests than before.
+
+From 6.2 the configuration is part of the gate too. A wrong-typed value - `'true'` as a string in a
+`psd1`, say - throws when the configuration is built, and a key that matches no option is reported
+once by `Invoke-Pester` as `WARNING: Ignoring configuration keys ...`. A warning does not fail a job,
+so check the list before the run:
+
+```powershell
+$unknown = @($config.GetUnknownKeys())
+if ($unknown.Count -gt 0) { throw "Configuration keys that match no option: $($unknown -join ', ')" }
+```

@@ -540,18 +540,17 @@ try {
 
 ### Pester Test Template
 
-Targets Pester 6.1+. See [Testing Framework](./instructions/pester.instructions.md) for the
+Targets Pester 6.2+. See [Testing Framework](./instructions/pester.instructions.md) for the
 full standards and [Assertion Guide](./instructions/pester-supporting-docs/assertion-guide.md)
 for the `Should-*` reference.
 
 ```powershell
-#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.1.0' }
+#Requires -Modules @{ ModuleName = 'Pester'; ModuleVersion = '6.2.0' }
 
 Describe "Get-ExampleData" -Tag "Unit" {
     BeforeAll {
         # Pester 6 discovers and runs one file at a time, so each file
-        # imports its own dependencies. Only one BeforeAll per block -
-        # duplicates throw.
+        # imports its own dependencies.
         Import-Module $PSScriptRoot\..\ModuleName.psd1 -Force
 
         # Mock external dependencies following community patterns
@@ -688,7 +687,7 @@ Use these prompts for quality assurance:
 - **Community Standards**: Reference `.github/instructions/community-standards.instructions.md`
 - **Style Guide**: Reference `.github/instructions/style-enforcement.instructions.md`
 - **Troubleshooting**: Always organized in `./Troubleshooting/` folder structure
-- **Testing**: Use Pester 6.1+ with comprehensive coverage requirements
+- **Testing**: Use Pester 6.2+ with comprehensive coverage requirements
 - **Help Docs**: Use Microsoft.PowerShell.PlatyPS 1.0.3+ — Markdown in `docs/`, MAML in `en-US/`
 - **Security**: Implement defense-in-depth with community-approved patterns
 - **Performance**: Optimize using community-identified best practices and expert feedback
